@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 const transform = require('../src/index');
-const { log } = require('../utils/utils');
+const { log } = require('../src/utils/utils');
 const pkg = require('../package.json');
 
 process.on('exit', () => console.log());
@@ -40,7 +40,6 @@ let src = program.args[0];
 let dist = program.args[1];
 
 src = path.resolve(process.cwd(), src);
-dist = path.resolve(process.cwd(), dist);
 
 if (!fs.existsSync(src)) {
     log(`The source folder dose not exist: ${src}`);

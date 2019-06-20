@@ -109,10 +109,12 @@ const componentTemplateBuilder = function (ast, vistors, isApp) {
 					let nodeArr = [];
 					if (parent.arguments) {
 						parent.arguments.forEach(function (obj) {
-							obj.properties.forEach(function (item) {
-								let node = t.expressionStatement(buildAssignmentWidthThis(item.key, item.value));
-								nodeArr.push(node);
-							});
+							if (obj.properties) {
+								obj.properties.forEach(function (item) {
+									let node = t.expressionStatement(buildAssignmentWidthThis(item.key, item.value));
+									nodeArr.push(node);
+								});
+							}
 						});
 						if (nodeArr.length > 0) {
 							//将this.setData({})进行替换
@@ -125,7 +127,19 @@ const componentTemplateBuilder = function (ast, vistors, isApp) {
 				} else if (t.isIdentifier(property.node, { name: "data" })) {
 					//将this.data替换为this
 					path.replaceWith(t.thisExpression());
+
 				}
+			}
+			if (t.isIdentifier(object.node, { name: "app" })) {
+				if (t.isIdentifier(property.node, { name: "globalData" })) {
+					//app.globalData.xxx的情况 
+					object.replaceWith(t.thisExpression());
+				} else {
+					//app.fun()的情况 这种不管
+				}
+			}else if(t.isCallExpression(object.node) && t.isIdentifier(path.get('object.callee').node, { name: "getApp" })) {
+				//getApp().globalData.userInfo => this.globalData.userInfo
+				object.replaceWith(t.thisExpression());
 			}
 		},
 		enter(path) {

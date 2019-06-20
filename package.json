@@ -1,46 +1,73 @@
 {
-  "name": "miniprogram-to-uniapp",
-  "version": "1.0.0",
-  "description": "Try to transform Weixin miniprogram project to Uni-app project",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "_from": "miniprogram-to-uniapp",
+  "_id": "miniprogram-to-uniapp@1.0.0",
+  "_inBundle": false,
+  "_integrity": "sha512-S0DRqDTKn+48flxH9rIa4ov2NRXLOjWXyKiTZw6lhEfpHQ3Itwbih/lKeea5rRWkRynPEJID+H/GaORvPbeFXQ==",
+  "_location": "/miniprogram-to-uniapp",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "miniprogram-to-uniapp",
+    "name": "miniprogram-to-uniapp",
+    "escapedName": "miniprogram-to-uniapp",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER"
+  ],
+  "_resolved": "https://registry.npmjs.org/miniprogram-to-uniapp/-/miniprogram-to-uniapp-1.0.0.tgz",
+  "_shasum": "705f13dcbdc835010e077bc7d6f56b5a229559cd",
+  "_spec": "miniprogram-to-uniapp",
+  "_where": "E:\\zpWork\\Project_self\\wx2uni",
+  "author": {
+    "name": "375890534@qq.com"
   },
   "bin": {
     "wtu": "bin/wtu"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/zhangdaren/miniprogram-to-uniapp.git"
+  "bugs": {
+    "url": "https://github.com/zhangdaren/miniprogram-to-uniapp/issues"
   },
-  "keywords": [
-    "weixin",
-    "miniprogram",
-    "uni-app",
-    "transformation"
-  ],
+  "bundleDependencies": false,
   "dependencies": {
     "@babel/core": "^7.4.5",
     "@babel/generator": "^7.4.4",
     "@babel/traverse": "^7.4.5",
     "@babel/types": "^7.4.4",
     "babylon": "^6.18.0",
+    "chalk": "^2.3.2",
+    "commander": "^2.15.1",
     "fs-extra": "^8.0.1",
     "htmlparser2": "^3.10.1",
-    "prettier": "^1.17.1",
-    "chalk": "^2.3.2",
-    "commander": "^2.15.1"
+    "prettier": "^1.17.1"
   },
+  "deprecated": false,
+  "description": "Try to transform Weixin miniprogram project to Uni-app project",
   "devDependencies": {
-    "babel-core": "^6.26.3",
-    "babel-loader": "^8.0.6",
     "@babel/plugin-transform-object-assign": "^7.0.0",
-    "@babel/preset-env": "^7.1.6"
-  },
-  "bugs": {
-    "url": "https://github.com/zhangdaren/miniprogram-to-uniapp/issues"
+    "@babel/preset-env": "^7.1.6",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^8.0.6"
   },
   "homepage": "https://github.com/zhangdaren/miniprogram-to-uniapp#readme",
-  "author": "375890534@qq.com",
-  "license": "MIT"
+  "keywords": [
+    "weixin",
+    "miniprogram",
+    "uni-app",
+    "transformation"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "miniprogram-to-uniapp",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/zhangdaren/miniprogram-to-uniapp.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.1"
 }

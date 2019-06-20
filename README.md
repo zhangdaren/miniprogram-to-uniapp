@@ -31,8 +31,10 @@ Examples:
 $ wtu -i miniprogramProject
 ```
 
+### 增加使用教程：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
 
-## 处理规则   
+
+## 转换规则   
 基本参照大佬的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)。
 
 因为小程序与uni/vue的语法以及文件结构都有很大的差别，所以做了很多的优化工作，后面再补。
@@ -66,6 +68,7 @@ App({
 * 区分app.js/component，两者解析规则略有不同   
 * 替换rpx为upx   
 * this.SetData({aa:"123", bb:"456"}); 转换为this.aa="123"; this.bb="456";   
+* app.globalData/getApp().golbalData：通过将globalData挂载到vue的原型上来实现此功能，app.fun()这类函数仍保留不变（需要用户自行处理）   
    
    
     
@@ -75,8 +78,8 @@ App({
 * [todo] 配置参数，支持指定目录、指定文件方式进行转换   
 * [todo] 文件操作的同步方法添加try catch    
 * [todo] 未去掉转换产生的空生命周期    
-* [todo] bind:click未简写的情况   
 * [todo] getApp()的支持    
+* [todo] this在嵌套函数里，并且不是箭头函数里，将无法引用到全局globalData(后面将function转换成=>，或添加that变量)
    
    
     

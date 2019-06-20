@@ -12,7 +12,10 @@ class JavascriptParser {
    * @returns
    */
   beforeParse(code) {
-    return code.replace(/this\.\$apply\(\);?/gm, '').replace(/import\s+wepy\s+from\s+['"]wepy['"]/gm, '')
+    // return code.replace(/this\.\$apply\(\);?/gm, '').replace(/import\s+wepy\s+from\s+['"]wepy['"]/gm, '')
+    // return code.replace(/const\s+app\s+=\s+getApp\(\)/gm, '');
+    //这里为了能兼容一部分app.funcallback这类方法，这里还是保留下来。
+    return code;
   }
   
   /**

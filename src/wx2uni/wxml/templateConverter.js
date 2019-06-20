@@ -1,7 +1,6 @@
 //html标签替换规则，可以添加更多
 const tagConverterConfig = {
-	'view': 'div',
-	'image': 'img'
+	// 'image': 'img'
 }
 //属性替换规则，也可以加入更多
 const attrConverterConfigVue = {
@@ -35,29 +34,42 @@ const attrConverterConfigUni = {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1')
 		}
 	},
+	'wx:else': {
+		key: 'v-else',
+	},
+	'wx:elif': {
+		key: 'v-else-if',
+	},
 	'bindtap': {
 		key: '@tap'
 	},
 	'bindinput': {
 		key: '@input'
 	},
+	'bindgetuserinfo': {
+		key: '@getuserinfo'
+	},
 	'catch:tap': {
 		key: '@tap.native.stop'
 	},
-	'style': {
-		key: 'style', //这里需要根据绑定情况来判断是否增加:
-		value: (str) => {
-			var tmpStr = str.replace(/}}rpx/g, " + 'rpx'");
-			tmpStr = tmpStr.replace(/[({{)(}})]/g, '');
-			return '{' + tmpStr + '}';
-		}
-	}
+	// 'style': {
+	// 	key: 'style', //这里需要根据绑定情况来判断是否增加:
+	// 	value: (str) => {
+	// 		// var tmpStr = str.replace(/}}rpx/g, " + 'rpx'");
+	// 		// tmpStr = tmpStr.replace(/[({{)(}})]/g, '');
+	// 		// return '{' + tmpStr + '}';
+
+	// 		let reg = /"(.*?){{(.*?)}}(.*?)"/g;
+
+	// 		// style="background-image: url({{avatarUrl}})"
+	// 	}
+	// }
 }
 // style="color: {{step === index + 1 ? 'red': 'black'}}; font-size:{{abc}}">
 // <view style="width : {{item.dayExpressmanEarnings / maxIncome * 460 + 250}}rpx;"></view>
 
 //替换入口方法
-const templateConverter = function(ast) {
+const templateConverter = function (ast) {
 	var reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
@@ -77,14 +89,14 @@ const templateConverter = function(ast) {
 					//单独判断style的绑定情况
 					var key = target['key'];
 					var value = node.attribs[k];
-					if (k == 'style') {
-						var hasBind = value.indexOf("{{") > -1;
-						key = hasBind ? ':style' : this.key;
-					} else if (k == 'url') {
+					// if (k == 'style') {
+					// 	var hasBind = value.indexOf("{{") > -1;
+					// 	key = hasBind ? ':style' : this.key;
+					// } else 
+					if (k == 'url') {
 						var hasBind = value.indexOf("{{") > -1;
 						key = hasBind ? ':url' : this.key;
 					}
-
 					attrs[key] = target['value'] ?
 						target['value'](node.attribs[k]) :
 						node.attribs[k];
@@ -106,6 +118,8 @@ const templateConverter = function(ast) {
 					// "'../list/list?type=' + item.key ' + '&title=' + item.title"
 
 					//其他属性
+					//处理下面这种嵌套关系的样式或绑定的属性
+					//style="background-image: url({{avatarUrl}});color:{{abc}};font-size:12px;"
 					var value = node.attribs[k];
 					var hasBind = reg_tag.test(value);
 					if (hasBind) {
@@ -114,7 +128,7 @@ const templateConverter = function(ast) {
 						var reg3 = /^{{ ?/; //起始的{{
 						var reg4 = / ?}}$/; //文末的}}
 						value = value.replace(reg1, "' + ").replace(reg2, " + '");
-						
+
 						//单独处理前后是否有{{}}的情况
 						if (reg3.test(value)) {
 							//有起始的{{的情况
