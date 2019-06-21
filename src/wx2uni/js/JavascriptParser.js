@@ -1,5 +1,6 @@
 // const Parser = require('./Parser')  //基类
 const babylon = require('babylon')  //AST解析器
+const parse = require('@babel/parser').parse;
 const generate = require('@babel/generator').default
 const traverse = require('@babel/traverse').default
 
@@ -17,7 +18,7 @@ class JavascriptParser {
     //这里为了能兼容一部分app.funcallback这类方法，这里还是保留下来。
     return code;
   }
-  
+
   /**
    * 文本内容解析成AST
    * @param scriptText
@@ -26,25 +27,29 @@ class JavascriptParser {
   parse(scriptText) {
     return new Promise((resolve, reject) => {
       try {
-        const scriptParsed = babylon.parse(scriptText, {
-          sourceType: 'module',
-          plugins: [
-            // "estree", //这个插件会导致解析的结果发生变化，因此去除，这本来是acron的插件
-            "jsx",
-            "flow",
-            "doExpressions",
-            "objectRestSpread",
-            "exportExtensions",
-            "classProperties",
-            "decorators",
-            "asyncGenerators",
-            "functionBind",
-            "functionSent",
-            "throwExpressions",
-            "templateInvalidEscapes",
-          ]
-        })
-        resolve(scriptParsed);
+        const ast = parse(scriptText);
+        resolve(ast);
+
+        //使用下面的代码，在遇到解构语法(...)时，会报错，改用babel-parser方案
+        // const scriptParsed = babylon.parse(scriptText, {
+        //   sourceType: 'module',
+        //   plugins: [
+        //     // "estree", //这个插件会导致解析的结果发生变化，因此去除，这本来是acron的插件
+        //     "jsx",
+        //     "flow",
+        //     "doExpressions",
+        //     "objectRestSpread",
+        //     "exportExtensions",
+        //     "classProperties",
+        //     "decorators",
+        //     "asyncGenerators",
+        //     "functionBind",
+        //     "functionSent",
+        //     "throwExpressions",
+        //     "templateInvalidEscapes",
+        //   ]
+        // })
+        // resolve(scriptParsed);
       } catch (e) {
         reject(e);
       }

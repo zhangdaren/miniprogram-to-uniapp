@@ -1,6 +1,4 @@
 const t = require('@babel/types');
-const babylon = require('babylon')
-const parser = require("@babel/parser");
 const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
 const Vistor = require("./Vistor");

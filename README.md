@@ -31,7 +31,9 @@ Examples:
 $ wtu -i miniprogramProject
 ```
 
-### 增加使用教程：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
+## 使用指南
+
+本插件详细使用教程，请参照：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
 
 
 ## 转换规则   
@@ -67,14 +69,14 @@ App({
 * 支持同一目录下有不同名js/wxml/wxss文件转换   
 * 区分app.js/component，两者解析规则略有不同   
 * 替换rpx为upx   
-* this.SetData({aa:"123", bb:"456"}); 转换为this.aa="123"; this.bb="456";   
+* this.setData({aa:"123", bb:"456"}); 转换为this.aa="123"; this.bb="456";   
 * app.globalData/getApp().golbalData：通过将globalData挂载到vue的原型上来实现此功能，app.fun()这类函数仍保留不变（需要用户自行处理）   
    
    
     
 ## 存在问题 & todolist   
-* [todo] js里含有ES6的解构语法(...)时，会解析报错   
-* [todo] wxml含有import语法时(<import src="../../../common/head.wxml" />)，此行未转换，仅原样复制   
+* [已完成] js里含有ES6的解构语法(...)时，会解析报错   
+* [todo] wxml含有import语法时(```<import src="../../../common/head.wxml" />```)，此行未转换，仅原样复制   
 * [todo] 配置参数，支持指定目录、指定文件方式进行转换   
 * [todo] 文件操作的同步方法添加try catch    
 * [todo] 未去掉转换产生的空生命周期    
