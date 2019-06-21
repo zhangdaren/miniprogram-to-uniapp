@@ -157,7 +157,8 @@ const templateConverter = function (ast) {
 			// }
 		} else if (node.type === 'Literal') {
 			//处理wxml里导入wxml的情况
-			node.value = node.value.replace(/.wxml/g, ".css");
+			//暂未想好怎么转换
+			// node.value = node.value.replace(/.wxml/g, ".css");
 		}
 		//因为是树状结构，所以需要进行递归
 		if (node.children) {
