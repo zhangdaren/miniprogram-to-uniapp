@@ -75,7 +75,7 @@ App({
    
     
 ## 存在问题 & todolist   
-* [已完成] js里含有ES6的解构语法(...)时，会解析报错   
+* [已完成] js里含有ES6的扩展运算符(...)时，会解析报错   
 * [todo] wxml含有import语法时(```<import src="../../../common/head.wxml" />```)，此行未转换，仅原样复制   
 * [todo] 配置参数，支持指定目录、指定文件方式进行转换   
 * [todo] 文件操作的同步方法添加try catch    

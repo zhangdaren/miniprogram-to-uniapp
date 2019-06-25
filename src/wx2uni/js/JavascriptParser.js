@@ -27,7 +27,9 @@ class JavascriptParser {
   parse(scriptText) {
     return new Promise((resolve, reject) => {
       try {
-        const ast = parse(scriptText);
+        const ast = parse(scriptText, {
+          sourceType: 'module'
+        });
         resolve(ast);
 
         //使用下面的代码，在遇到解构语法(...)时，会报错，改用babel-parser方案

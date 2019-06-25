@@ -1,9 +1,10 @@
 {
   "presets": [
-    "@babel/preset-env"
+    "env",
+    "react",
+    "stage-0"
   ],
   "plugins": [
     "@babel/plugin-proposal-object-rest-spread",
   ]
 }
-
