@@ -75,6 +75,8 @@ const templateConverter = function (ast) {
 		let node = ast[i];
 		//检测到是html节点
 		if (node.type === 'tag') {
+			//template标签上面的属性不作转换 // <template is="head" data="{{title: 'addPhoneContact'}}"/>
+			if (node.name == "template") return;
 			//进行标签替换  
 			if (tagConverterConfig[node.name]) {
 				node.name = tagConverterConfig[node.name];

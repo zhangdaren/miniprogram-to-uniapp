@@ -53,9 +53,12 @@ const componentVistor = {
 		declareStr += str;
 	},
 	VariableDeclaration(path) {
-		//定义的外部变量
-		// vistors.variable.handle(path.node);
-		declareStr += `${generate(path.node).code}\r\n`;
+		const parent = path.parentPath.parent;
+		if (!parent) {	
+			//定义的外部变量
+			// vistors.variable.handle(path.node);
+			declareStr += `${generate(path.node).code}\r\n`;
+		}
 	},
 	ObjectMethod(path) {
 		const parent = path.parentPath.parent;
@@ -75,7 +78,7 @@ const componentVistor = {
 				vistors.lifeCycle.handle(path.node);
 			}
 		}
-		// path.skip();
+		path.skip();
 	},
 	ObjectProperty(path) {
 		const name = path.node.key.name;

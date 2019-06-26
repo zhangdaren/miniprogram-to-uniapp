@@ -198,15 +198,14 @@ async function filesHandle(fileData) {
 					var hasJSFile = false;
 					var hasWxssFile = false;
 
-					if ((file_wxml && file_js) || (file_wxss && file_js)) {
-						//当有wxml，那必然会有js文件，可能会有wxss文件
+					if ((file_wxml && file_js) || (file_wxss && file_js) || file_wxml) {
+						//当有wxml，那必然会有js文件，可能会有wxss文件，单独的.wxml，转为.vue
 						extName = ".vue";
 						hasAllFile = true;
 					} else if (file_js) {
 						//除了上面至少两种文件存在的情况，那么这里就是单独存在的js文件
 						extName = ".js";
 						hasJSFile = true;
-
 					} else if (file_wxss) {
 						//与js文件类似，这里只可能是单独存在的wxss文件
 						extName = ".css";
