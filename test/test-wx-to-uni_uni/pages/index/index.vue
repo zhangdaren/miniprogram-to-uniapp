@@ -22,7 +22,12 @@ export default {
       motto: 'Hello World',
       userInfo: {},
       hasUserInfo: false,
-      canIUse: wx.canIUse('button.open-type.getUserInfo')
+      canIUse: wx.canIUse('button.open-type.getUserInfo'),
+      multistageProperty: {
+        a: {
+          b: "cccccc"
+        }
+      }
     };
   },
 
@@ -36,6 +41,7 @@ export default {
       app.userInfoReadyCallback = res => {
         this.userInfo = res.userInfo;
         this.hasUserInfo = true;
+        this.multistageProperty.a.b = "dddddddd";
       };
     } else {
       // 在没有 open-type=getUserInfo 版本的兼容处理

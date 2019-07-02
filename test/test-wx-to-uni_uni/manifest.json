@@ -1,5 +1,5 @@
 {
-	"name": "purchase-weapp",
+	"name": "test-wx-to-uni",
 	"appid": "",
 	"description": "",
 	"versionName": "",
@@ -48,7 +48,7 @@
 	"quickapp": {},
 	"mp-weixin": {
 		"usingComponents": true,
-		"appid": "wx776afedbfae3a228",
+		"appid": "wxd2850046af481bc5",
 		"setting": {
 			"urlCheck": false
 		}
