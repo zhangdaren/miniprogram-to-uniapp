@@ -25,7 +25,7 @@ const attrConverterConfigUni = {
 	'wx:for': {
 		key: 'v-for',
 		value: (str) => {
-			return str.replace(/{{ ?(.*?) ?}}/, '(item,key) in $1')
+			return str.replace(/{{ ?(.*?) ?}}/, '(item,key) in $1" :key="key')
 		}
 	},
 	'wx:if': {
@@ -76,7 +76,7 @@ const templateConverter = function (ast) {
 		//检测到是html节点
 		if (node.type === 'tag') {
 			//template标签上面的属性不作转换 // <template is="head" data="{{title: 'addPhoneContact'}}"/>
-			if (node.name == "template") return;
+			if (node.name == "template") continue;
 			//进行标签替换  
 			if (tagConverterConfig[node.name]) {
 				node.name = tagConverterConfig[node.name];
@@ -108,6 +108,7 @@ const templateConverter = function (ast) {
 					var hasBind = reg_tag.test(value);
 					if (hasBind) {
 						var reg = /(.*?) +{{(.*?)}}/g;
+						let tempR;
 						while (tempR = reg.exec(value)) {
 							attrs['class'] = tempR[1];
 							attrs[':class'] = tempR[2];

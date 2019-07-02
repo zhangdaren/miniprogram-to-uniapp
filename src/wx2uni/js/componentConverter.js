@@ -38,7 +38,7 @@ let computedValue = {};
 let watchValue = {};
 /*
  *
- * 注：因为遍历时，会因为防止深层遍历，而直接路过子级遍历，所以如果添加enter进行全遍历时，孙级节点将跳过
+ * 注：为防止深层遍历，将直接路过子级遍历，所以使用enter进行全遍历时，孙级节点将跳过
  * 
  */
 const componentVistor = {
@@ -54,7 +54,7 @@ const componentVistor = {
 	},
 	VariableDeclaration(path) {
 		const parent = path.parentPath.parent;
-		if (!parent) {	
+		if (t.isFile(parent)) {	
 			//定义的外部变量
 			// vistors.variable.handle(path.node);
 			declareStr += `${generate(path.node).code}\r\n`;
@@ -112,21 +112,16 @@ const componentVistor = {
 				}
 				break;
 			case 'globalData':
-				//方案一：
-				//全局变量，因为uni-app没有对应的结构，所以这里直接存入到data里，至少代码不会报错!!!
-				//vistors.data.handle(path.node);
-
-				//方案二：
-				//挂载vue的原型上，改动较少，后面再使用vuex
-				//在这里直接忽略globalData
+				//globalData 存入生命周期
+				vistors.lifeCycle.handle(path.node);
 				break;
 			default:
 				const parent = path.parentPath.parent;
 				const value = parent.value;
-				//如果父级不为data时，那么就加入
 
+				//如果父级不为data时，那么就加入生命周期，比如app.js下面的全局变量
 				if (value == dataValue) {
-					vistors.data.handle(path.node);
+					vistors.lifeCycle.handle(path.node);
 				} else {
 					const node = path.node.value;
 					if (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) {

@@ -162,7 +162,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 
 
 //处理一组文件（js、wxml、wxss）
-async function filesHandle(fileData) {
+async function filesHandle(fileData, miniprogramRoot) {
 	// console.log("--------------", tFolder);
 	try {
 		await new Promise((resolve, reject) => {
@@ -213,6 +213,19 @@ async function filesHandle(fileData) {
 					}
 					targetFilePath = path.join(tFolder, fileName + extName);
 					if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
+					//当前文件引用的自定义组件
+					let usingComponents = {};
+
+					//解析json
+					if (file_json) {
+						let data = fs.readJsonSync(file_json);
+						routerData[key] = {
+							navigationBarTitleText: data.navigationBarTitleText,
+							usingComponents: data.usingComponents,
+						};
+						usingComponents = data.usingComponents;
+						console.log(key + " -- ", data.navigationBarTitleText)
+					}
 
 					if (hasAllFile) {
 						//读取.wxml文件
@@ -228,7 +241,7 @@ async function filesHandle(fileData) {
 						if (file_js && fs.existsSync(file_js)) {
 							let data_js = fs.readFileSync(file_js, 'utf8');
 							if (data_js) {
-								let data = await jsHandle(data_js, isAppFile);
+								let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot);
 								fileContent += data;
 							}
 						}
@@ -237,7 +250,7 @@ async function filesHandle(fileData) {
 						if (file_wxss && fs.existsSync(file_wxss)) {
 							let data_wxss = fs.readFileSync(file_wxss, 'utf8');
 							if (data_wxss) {
-								data_wxss = await cssHandle(data_wxss);
+								data_wxss = await cssHandle(data_wxss, miniprogramRoot, file_wxss);
 								fileContent += `<style>\r\n${data_wxss}\r\n</style>`;
 							}
 						}
@@ -263,7 +276,7 @@ async function filesHandle(fileData) {
 							if (file_wxss && fs.existsSync(file_wxss)) {
 								let data_wxss = fs.readFileSync(file_wxss, 'utf8');
 								if (data_wxss) {
-									data_wxss = await cssHandle(data_wxss);
+									data_wxss = await cssHandle(data_wxss, miniprogramRoot, file_wxss);
 									let content = `${data_wxss}`;
 									//写入文件
 									fs.writeFile(targetFilePath, content, () => {
@@ -274,15 +287,7 @@ async function filesHandle(fileData) {
 						}
 					}
 
-					//解析json
-					if (file_json) {
-						let data = fs.readJsonSync(file_json);
-						routerData[key] = {
-							navigationBarTitleText: data.navigationBarTitleText,
-							usingComponents: data.usingComponents,
-						};
-						console.log(key + " -- ", data.navigationBarTitleText)
-					}
+
 
 					count++;
 					if (count >= total) {
@@ -328,7 +333,7 @@ async function transform(sourceFolder, targetFolder) {
 		// fs.writeJson("./log.log", log);
 
 		//处理文件组
-		filesHandle(fileData);
+		filesHandle(fileData, miniprogramRoot);
 
 		//处理配置文件
 		configHandle(configData, routerData, miniprogramRoot, targetFolder);

@@ -1,5 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
+const t = require('@babel/types');
+const generate = require('@babel/generator').default;
 
 /*
 *
@@ -15,6 +17,8 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//app.json文件路径
 			let json_app = path.join(miniprogramRoot, "app.json");
 			let appJson = fs.readJsonSync(json_app);
+			//app.json里面引用的全局组件
+			let globalUsingComponents = appJson.usingComponents;
 
 			//将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
 			let pages = [];
@@ -26,8 +30,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				let navigationBarTitleText = "";
 				let usingComponents = {};
 
-				if(data && JSON.stringify(data) != "{}")
-				{
+				if (data && JSON.stringify(data) != "{}") {
 					navigationBarTitleText = data.navigationBarTitleText;
 					usingComponents = data.usingComponents;
 				}
@@ -36,7 +39,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 					"path": pagePath,
 					"style": {
 						"navigationBarTitleText": navigationBarTitleText,
-						"usingComponents":usingComponents
+						"usingComponents": usingComponents
 					}
 				};
 				pages.push(obj);
@@ -50,8 +53,8 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//sitemap.json似乎在uniapp用不上，删除！
 			delete appJson["sitemapLocation"];
 
-			//usingComponents节点，也是用不上。 //先保留着
-			// delete data["usingComponents"];
+			//usingComponents节点，上面删除缓存，这里删除
+			delete appJson["usingComponents"];
 
 			//tabBar节点一致，不做调整
 
@@ -81,9 +84,32 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 
 			////////////////////////////write main.js/////////////////////////////
 			let file_main_temp = path.join(__dirname, "/template/main.js");
-			let file_main = path.join(targetFolder, "main.js");
-			fs.copySync(file_main_temp, file_main);
 
+			let mainContent = "import Vue from 'vue';\r\n";
+			mainContent += "import App from './App';\r\n\r\n";
+
+			//全局引入自定义组件
+			//import firstcompoent from '../firstcompoent/firstcompoent'
+			for (const key in globalUsingComponents) {
+				let filePath = globalUsingComponents[key];
+				filePath = filePath.replace(/^\//g, "./"); //相对路径处理
+				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(key))], t.stringLiteral(filePath));
+				mainContent += `${generate(node).code}\r\n`;
+				let name = path.basename(filePath);
+				mainContent += `Vue.component('${name}', ${key});\r\n\r\n`;
+			}
+			//
+			mainContent += "Vue.config.productionTip = false;\r\n\r\n";
+			mainContent += "App.mpType = 'app';\r\n\r\n";
+			mainContent += "const app = new Vue({\r\n";
+			mainContent += "    ...App\r\n";
+			mainContent += "});\r\n";
+			mainContent += "app.$mount();\r\n";
+			//
+			let file_main = path.join(targetFolder, "main.js");
+			fs.writeFile(file_main, mainContent, () => {
+				console.log(`write ${file_main} success!`);
+			});
 
 			//////////////////////////////////////////////////////////////////////
 			resolve();

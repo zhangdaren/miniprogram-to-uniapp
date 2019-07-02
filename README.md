@@ -40,24 +40,6 @@ $ wtu -i miniprogramProject
 基本参照大佬的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)。
 
 因为小程序与uni/vue的语法以及文件结构都有很大的差别，所以做了很多的优化工作，后面再补。
-
-ps: 值得注意的是app.js里根级属性也会被转换进data里，如：
-``` javasctipt
-const baidu = require('./utils/baidu.js');
-App({baidu:baidu})
-```
-
-转换为:
-``` javasctipt
-const baidu = require('./utils/baidu.js');
-App({
-    data() { 
-        return {
-            baidu: baidu
-        }      
-    }   
-})
-```
    
 
 ## 已完成   
@@ -70,7 +52,7 @@ App({
 * 区分app.js/component，两者解析规则略有不同   
 * 替换rpx为upx   
 * this.setData({aa:"123", bb:"456"}); 转换为this.aa="123"; this.bb="456";   
-* app.globalData/getApp().golbalData：通过将globalData挂载到vue的原型上来实现此功能，app.fun()这类函数仍保留不变（需要用户自行处理）   
+* ~~app.globalData/getApp().golbalData：通过将globalData挂载到vue的原型上来实现此功能，app.fun()这类函数仍保留不变（需要用户自行处理）~~   
    
    
     
@@ -80,18 +62,36 @@ App({
 * [todo] 配置参数，支持指定目录、指定文件方式进行转换   
 * [todo] 文件操作的同步方法添加try catch    
 * [todo] 未去掉转换产生的空生命周期    
-* [todo] getApp()的支持    
-* [todo] this在嵌套函数里，并且不是箭头函数里，将无法引用到全局globalData(后面将function转换成=>，或添加that变量)
-* [todo] ```<template is="head" data="{{title: 'addPhoneContact'}}"/>``` template的属性暂不作转换
+* [已完成] getApp()的支持    
+* [已完成] this在嵌套函数里，并且不是箭头函数里，将无法引用到全局globalData(后面将function转换成=>，或添加that变量)
+* [已完成] ```<template is="head" data="{{title: 'addPhoneContact'}}"/>``` template的属性暂不作转换
    
 
    
 ## 更新记录   
-### v1.07(20190626)   
+### v1.0.8(20190702)   
+* [新增] 支持识别 "that.setData()"   
+* [新增] 模板语法v-for增加:key属性   
+* [新增] 支持自定义组件嵌入   
+* [新增] 支持全局组件引用   
+* [修复] 修复this.setData里，key为字符串导致转换失败的情况(测试代码如下)   
+``` javasctipt
+this.setData({
+    "show":true,
+    ["swiperConfig.current"]: event.detail.current
+})
+```
+* [修复] getApp()代码不作转换   
+* [修复] globalData 存入生命周期里   
+* [修复] 修复多个template在一个wxml文件里时转换失败   
+* [修复] 修复wxml、wxss里面import的路径为相对路径（因uni-app不支持/根目录表达方式）  
+
+
+### v1.0.7(20190626)   
 * 修复函数里的函数会被提取到全局的问题   
 
    
-### v1.06(20190626)   
+### v1.0.6(20190626)   
 * 修复局部变量会被提取到全局变量的bug   
 * 忽略```<template/>```上面的的属性转换   
    
