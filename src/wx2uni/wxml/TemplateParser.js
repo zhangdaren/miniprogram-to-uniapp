@@ -1,14 +1,19 @@
 // const Parser = require('./Parser') //基类
 const htmlparser = require('htmlparser2')   //html的AST类库
+/**
+ * @description: Template 解析类
+ * @param {type} 
+ * @return: 
+ */
 class TemplateParser {
   constructor(){
   }
   /**
-   * HTML文本转AST方法
-   * @param scriptText
+   * Template文本转AST方法
+   * @param {String} templateText 需要解析的Template文本
    * @returns {Promise}
    */
-  parse(scriptText){
+  parse(templateText){
     return new Promise((resolve, reject) => {
       //先初始化一个domHandler
       const handler = new htmlparser.DomHandler((error, dom)=>{
@@ -22,7 +27,7 @@ class TemplateParser {
       //再初始化一个解析器
       const parser = new htmlparser.Parser(handler);
       //再通过write方法进行解析
-      parser.write(scriptText);
+      parser.write(templateText);
       parser.end();
     });
   }

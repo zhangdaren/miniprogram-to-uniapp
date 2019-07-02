@@ -43,9 +43,42 @@ export default {
 function buildAssignment(left, right) {
 	return t.assignmentExpression("=", left, right);
 }
-//output "this.let = right;"
-function buildAssignmentWidthThis(left, right) {
-	return t.assignmentExpression("=", t.memberExpression(t.thisExpression(), left), right);
+/**
+ * @description: 生成在具有多层MemberExpression语法时的结构
+ * @param {String} stringLiteral 字符串格式数据，类似：'a.b.c'
+ * @return:返回生成的多级MemberExpression类型语法结构
+ */
+function buildMultistageMemberExpression(stringLiteral){
+	let stringLiteralToArray=stringLiteral.split(".");
+	let astNode=null;
+	stringLiteralToArray.forEach((item,index)=>{
+		if(index==0){
+			astNode=t.memberExpression(t.thisExpression(),t.identifier(item))
+		}else{
+			astNode=t.memberExpression(astNode,t.identifier(item))
+		}
+	})
+	return astNode;
+}
+/**
+ * @description: 编译this.setData()语法
+ * @param {String} item
+ * @return: output "this.let = right;"
+ */
+function buildAssignmentWidthThis(left,right) {
+	/**
+	 *  这里需要区分如果有类似  
+	 * 	this.setData({
+	 * 		"a.b.c": value
+	 * 	})
+	 * 时的处理
+	 */
+	if(left.type=='StringLiteral'){
+		return t.assignmentExpression("=",buildMultistageMemberExpression(left.value), right);
+
+	}else{
+		return t.assignmentExpression("=", t.memberExpression(t.thisExpression(), left), right);
+	}
 }
 
 const componentTemplateBuilder = function (ast, vistors, isApp) {
@@ -103,15 +136,14 @@ const componentTemplateBuilder = function (ast, vistors, isApp) {
 			let property = path.get('property');
 			//
 			let parent = path.parent;
-
 			if (t.isThisExpression(object)) {
 				if (t.isIdentifier(property.node, { name: "setData" })) {
 					let nodeArr = [];
 					if (parent.arguments) {
-						parent.arguments.forEach(function (obj) {
+						parent.arguments.forEach(function (obj,indexArguments) {
 							if (obj.properties) {
-								obj.properties.forEach(function (item) {
-									let node = t.expressionStatement(buildAssignmentWidthThis(item.key, item.value));
+								obj.properties.forEach(function (item,indexProperties) {
+									let node = t.expressionStatement(buildAssignmentWidthThis(item.key,item.value));
 									nodeArr.push(node);
 								});
 							}

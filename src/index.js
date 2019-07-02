@@ -14,6 +14,8 @@ const configHandle = require('./wx2uni/configHandle');
 
 /**
  * 解析小程序项目
+ * @param folder 小程序项目文件夹
+ * @param sourceFolder 来源文件
  */
 function wxProjectParse(folder, sourceFolder) {
 	let file_projectConfigJson = path.join(folder, "project.config.json");
@@ -80,7 +82,6 @@ function wxProjectParse(folder, sourceFolder) {
 let fileData = {};
 //路由数据，用来记录对应页面的title和使用的自定义组件
 let routerData = {};
-
 
 //遍历目录
 function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {

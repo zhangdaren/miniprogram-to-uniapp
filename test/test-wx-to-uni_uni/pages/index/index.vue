@@ -15,9 +15,6 @@
 
 </template>
 <script>
-//index.js
-//获取应用实例
-const app = getApp();
 
 export default {
   data() {

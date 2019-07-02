@@ -1,6 +1,10 @@
 var fs = require('fs')
 var path = require('path')
-
+/**
+ * @description: 拷贝文件
+ * @param {type} 
+ * @return: 
+ */
 var copyFile = function(srcPath, tarPath, cb) {
 	var rs = fs.createReadStream(srcPath)
 	rs.on('error', function(err) {
@@ -24,6 +28,11 @@ var copyFile = function(srcPath, tarPath, cb) {
 	rs.pipe(ws)
 }
 
+/**
+ * @description: 拷贝文件夹
+ * @param {type} 
+ * @return: 
+ */
 var copyFolder = function(srcDir, tarDir, cb) {
 	fs.readdir(srcDir, function(err, files) {
 		var count = 0
@@ -61,7 +70,11 @@ var copyFolder = function(srcDir, tarDir, cb) {
 		files.length === 0 && cb && cb()
 	})
 }
-
+/**
+ * @description: 删除目录
+ * @param {type} 
+ * @return: 
+ */
 function delDir(path){
     let files = [];
     if(fs.existsSync(path)){
@@ -79,14 +92,21 @@ function delDir(path){
 	}
 }
 
-//获取无后缀名的文件名
+/**
+ * @description: 获取无后缀名的文件名
+ * @param {type} 
+ * @return: 
+ */
 function getFileNameNoExt(filePath){
 	let extname =  path.extname(filePath);
 	return path.basename(filePath, extname);
 }
 
-
-/* 同步创建多重目录 */
+/**
+ * @description: 同步创建多重目录
+ * @param {type} 
+ * @return: 
+ */
 function mkdirsSync(dirname){
     if(fs.existsSync(dirname))
         return true;
@@ -97,7 +117,11 @@ function mkdirsSync(dirname){
     return false;
 }
 
-/* 同步删除目录下所有文件 */
+/**
+ * @description: 同步删除目录下所有文件
+ * @param {type} 
+ * @return: 
+ */
 function rmdirsSync(dirname){
     if(!fs.existsSync(dirname))
         return true;

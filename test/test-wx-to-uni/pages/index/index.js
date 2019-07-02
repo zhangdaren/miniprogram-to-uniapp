@@ -7,7 +7,12 @@ Page({
     motto: 'Hello World',
     userInfo: {},
     hasUserInfo: false,
-    canIUse: wx.canIUse('button.open-type.getUserInfo')
+    canIUse: wx.canIUse('button.open-type.getUserInfo'),
+    multistageProperty:{
+      a:{
+        b:"cccccc"
+      }
+    }
   },
   //事件处理函数
   bindViewTap: function() {
@@ -27,7 +32,8 @@ Page({
       app.userInfoReadyCallback = res => {
         this.setData({
           userInfo: res.userInfo,
-          hasUserInfo: true
+          hasUserInfo: true,
+          'multistageProperty.a.b':"dddddddd"
         })
       }
     } else {
