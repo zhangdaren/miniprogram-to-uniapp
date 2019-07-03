@@ -1,3 +1,7 @@
+const path = require('path');
+
+
+
 //html标签替换规则，可以添加更多
 const tagConverterConfig = {
 	// 'image': 'img'
@@ -25,7 +29,7 @@ const attrConverterConfigUni = {
 	'wx:for': {
 		key: 'v-for',
 		value: (str) => {
-			return str.replace(/{{ ?(.*?) ?}}/, '(item,key) in $1" :key="key')
+			return str.replace(/{{ ?(.*?) ?}}/, '(item, index) in $1" :key="index')
 		}
 	},
 	'wx:if': {
@@ -151,6 +155,7 @@ const templateConverter = function (ast) {
 					}
 				}
 			}
+
 			node.attribs = attrs;
 		} else if (node.type === 'text') {
 			// var hasBind = reg_tag.test(node.data);
@@ -162,6 +167,36 @@ const templateConverter = function (ast) {
 			//处理wxml里导入wxml的情况
 			//暂未想好怎么转换
 			// node.value = node.value.replace(/.wxml/g, ".css");
+
+		} else if (node.type === 'img') {
+
+			//正则匹配路径
+			// let reg = /^\.\/.*?\.(jpg|jpeg|gif|svg|png)/;
+			// let key = path.node.key;
+			// let valueTxt = path.node.value.value;
+
+			// //判断是否含有当前目录的文件路径
+			// //微信的页面是多页面的，即单独启动某个文件，而vue是单页面的，转换后导致原有资源引用报错。
+			// if (reg.test(valueTxt)) {
+			// 	//js文件所在目录
+			// 	let fileDir = nodePath.dirname(file_js);
+			// 	let filePath;
+			// 	if (/^\//.test(valueTxt)) {
+			// 		//如果是以/开头的，表示根目录
+			// 		filePath = nodePath.join(miniprogramRoot, valueTxt);
+			// 	} else {
+			// 		filePath = nodePath.join(fileDir, valueTxt);
+			// 	}
+			// 	filePath = nodePath.relative(miniprogramRoot, filePath);
+			// 	filePath = filePath.split("\\").join("/");
+			// 	//手动组装
+			// 	let node = t.objectProperty(key, t.stringLiteral(filePath));
+			// 	vistors.data.handle(node);
+			// } else {
+			// 	vistors.data.handle(path.node);
+			// }
+
+
 		}
 		//因为是树状结构，所以需要进行递归
 		if (node.children) {

@@ -1,4 +1,5 @@
 const t = require('@babel/types');
+const nodePath = require('path');
 const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
 const Vistor = require("./Vistor");
@@ -36,6 +37,11 @@ let dataValue = {};
 let computedValue = {};
 //wacth对象
 let watchValue = {};
+
+//工作目录
+let miniprogramRoot = "";
+//当前处理的js文件路径
+let file_js = "";
 /*
  *
  * 注：为防止深层遍历，将直接路过子级遍历，所以使用enter进行全遍历时，孙级节点将跳过
@@ -54,7 +60,7 @@ const componentVistor = {
 	},
 	VariableDeclaration(path) {
 		const parent = path.parentPath.parent;
-		if (t.isFile(parent)) {	
+		if (t.isFile(parent)) {
 			//定义的外部变量
 			// vistors.variable.handle(path.node);
 			declareStr += `${generate(path.node).code}\r\n`;
@@ -74,8 +80,14 @@ const componentVistor = {
 				//async函数
 				vistors.methods.handle(path.node);
 			} else {
-				//value为空的，可能是app.js里的生命周期函数
-				vistors.lifeCycle.handle(path.node);
+				//这里function
+				if (lifeCycleFunction[name]) {
+					//value为空的，可能是app.js里的生命周期函数
+					vistors.lifeCycle.handle(path.node);
+				} else {
+					//类似这种函数 fun(){} 
+					vistors.methods.handle(path.node);
+				}
 			}
 		}
 		path.skip();
@@ -119,9 +131,10 @@ const componentVistor = {
 				const parent = path.parentPath.parent;
 				const value = parent.value;
 
+				// console.log("name", name)
 				//如果父级不为data时，那么就加入生命周期，比如app.js下面的全局变量
 				if (value == dataValue) {
-					vistors.lifeCycle.handle(path.node);
+					vistors.data.handle(path.node);
 				} else {
 					const node = path.node.value;
 					if (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) {
@@ -145,7 +158,7 @@ const componentVistor = {
 		}
 	}
 }
-const componentConverter = function (ast) {
+const componentConverter = function (ast, _miniprogramRoot, _file_js) {
 	//清空上次的缓存
 	declareStr = '';
 	//data对象
@@ -154,6 +167,9 @@ const componentConverter = function (ast) {
 	computedValue = {};
 	//wacth对象
 	watchValue = {};
+	//
+	miniprogramRoot = _miniprogramRoot;
+	file_js = _file_js;
 	//
 	vistors = {
 		props: new Vistor(),

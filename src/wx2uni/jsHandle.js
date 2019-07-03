@@ -202,7 +202,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 	return ast;
 }
 
-async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot) {
+async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_js) {
 	//先反转义
 	let javascriptContent = fileData;
 
@@ -220,7 +220,7 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot) {
 		convertedJavascript,
 		vistors,
 		declareStr
-	} = componentConverter(javascriptAst);
+	} = componentConverter(javascriptAst, miniprogramRoot, file_js);
 
 	//引入自定义组件
 	//import firstcompoent from '../firstcompoent/firstcompoent'

@@ -241,7 +241,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 						if (file_js && fs.existsSync(file_js)) {
 							let data_js = fs.readFileSync(file_js, 'utf8');
 							if (data_js) {
-								let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot);
+								let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js);
 								fileContent += data;
 							}
 						}
