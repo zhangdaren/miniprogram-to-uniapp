@@ -5,17 +5,24 @@
  */
 const t = require('@babel/types');
 const path = require('path');
+const parse = require('@babel/parser').parse;
 const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
 const template = require('@babel/template').default;
 const JavascriptParser = require('./js/JavascriptParser');
 const componentConverter = require('./js/componentConverter');
 
-//将ast属性数组组合为ast对象
+/**
+ * 将ast属性数组组合为ast对象
+ * @param {*} pathAry 
+ */
 function arrayToObject(pathAry) {
 	return t.objectExpression(pathAry);
 }
 
+/**
+ * 子页面/组件的模板
+ */
 const componentTemplate =
 	`
 export default {
@@ -30,30 +37,51 @@ export default {
 }
 `;
 
+/**
+ * App页面的模板
+ */
 const componentTemplateApp =
 	`
 export default {
   data() {
     return DATA
   },
+  methods: METHODS
 }
 `;
 
-//output "let = right;"
+/**
+ * 生成"let = right;"表达式
+ * @param {*} left 
+ * @param {*} right 
+ */
 function buildAssignment(left, right) {
 	return t.assignmentExpression("=", left, right);
 }
-//output "this.left = right;"
+
+/**
+ * 生成"this.left = right;"表达式
+ * @param {*} left 
+ * @param {*} right 
+ */
 function buildAssignmentWidthThis(left, right) {
 	return t.assignmentExpression("=", t.memberExpression(t.thisExpression(), left), right);
 }
-//output "that.left = right;"  //后面有需求再考虑其他关键字
+
+/**
+ * 生成"that.left = right;"  //后面有需求再考虑其他关键字
+ * @param {*} left 
+ * @param {*} right 
+ */
 function buildAssignmentWidthThat(left, right, name) {
 	return t.assignmentExpression("=", t.memberExpression(t.identifier(name), left), right);
 }
 
-//处理this.setData
-//isThis，区分前缀是this，还是that
+/**
+ * 处理this.setData -- 已弃用
+ * @param {*} path 
+ * @param {*} isThis 区分前缀是this，还是that
+ */
 function handleSetData(path, isThis) {
 	let parent = path.parent;
 	let nodeArr = [];
@@ -81,19 +109,80 @@ function handleSetData(path, isThis) {
 			//将this.setData({})进行替换
 			//!!!!!!!!这里找父级使用递归查找，有可能path的上一级会是CallExpression!!!!!
 			parent = path.findParent((parent) => parent.isExpressionStatement())
-			parent.replaceWithMultiple(nodeArr);
+			if (parent) {
+				parent.replaceWithMultiple(nodeArr);
+			} else {
+				console.log(`异常-->代码为：${generate(path.node).code}`);
+			}
 		}
 	}
 }
 
+/**
+ * 获取setData()的AST
+ * 暂未想到其他好的方式来实现将setData插入到methods里。
+ */
+function getSetDataFun() {
+	const code = `
+	var setData = {
+	setData:function(obj){  
+		let that = this;  
+		let keys = [];  
+		let val,data;  
+		Object.keys(obj).forEach(function(key){  
+				keys = key.split('.');  
+				val = obj[key];  
+				data = that.$data;  
+				keys.forEach(function(key2,index){  
+					if(index+1 == keys.length){  
+						that.$set(data,key2,val);  
+					}else{  
+						if(!data[key2]){  
+							that.$set(data,key2,{});  
+						}  
+					}  
+					data = data[key2];  
+				})  
+			});  
+		} 
+	}
+	`;
+	const ast = parse(code, {
+		sourceType: 'module'
+	});
+
+	let result = null;
+	traverse(ast, {
+		ObjectProperty(path) {
+			result = path.node;
+		}
+	});
+
+	return result;
+}
+
+/**
+ * 组件模板处理
+ * @param {*} ast 
+ * @param {*} vistors 
+ * @param {*} isApp 是否为app.js文件
+ * @param {*} usingComponents  使用的自定义组件列表
+ */
 const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents) {
 	let buildRequire = null;
+
+	//插入setData()
+	const node = getSetDataFun();
+	vistors.methods.handle(node);
+
+	//
 	if (isApp) {
 		//是app.js文件,要单独处理
 		buildRequire = template(componentTemplateApp);
 		//app.js目前看到有data属性的，其余的还未看到。
 		ast = buildRequire({
-			DATA: arrayToObject(vistors.data.getData())
+			DATA: arrayToObject(vistors.data.getData()),
+			METHODS: arrayToObject(vistors.methods.getData())
 		});
 	} else {
 		//非app.js文件
@@ -164,27 +253,47 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 			}
 		},
 		MemberExpression(path) {
-			//解决this.setData的问题
+			//解决this.triggerEvent()的问题
 			let object = path.get('object');
 			let property = path.get('property');
-			//
-			let parent = path.parent;
 
-			if (t.isThisExpression(object)) {
-				if (t.isIdentifier(property.node, { name: "setData" })) {
-					//如果是this.setData()时
-					handleSetData(path, true);
-				} else if (t.isIdentifier(property.node, { name: "data" })) {
-					//将this.data替换为this
-					path.replaceWith(t.thisExpression());
-				}
-			} else if (t.isIdentifier(property.node, { name: "setData" })) {
-				if (t.isIdentifier(object.node, { name: "that" })) {
-					//如果是that.setData()时
-					handleSetData(path);
-				}
+			if (t.isIdentifier(property.node, { name: "triggerEvent" })) {
+				let obj = t.memberExpression(object, t.identifier("$emit"));
+				path.replaceWith(obj);
 			}
 
+
+			//解决this.setData的问题
+			//20190719 
+			//因为存在含有操作setData的三元表达式，如：
+			//"block" == this.data.listmode ? this.setData({
+			// 		listmode: ""
+			// }) : this.setData({
+			//		 listmode: "block"
+			// })
+			//和 this使用其他变量代替的情况，所以
+			//回归初次的解决方案，使用一个setData()函数来替代。
+			//
+			// let object = path.get('object');
+			// let property = path.get('property');
+			// //
+			// let parent = path.parent;
+
+			// if (t.isThisExpression(object)) {
+			// 	if (t.isIdentifier(property.node, { name: "setData" })) {
+			// 		//如果是this.setData()时
+			// 		handleSetData(path, true);
+			// 	} else if (t.isIdentifier(property.node, { name: "data" })) {
+			// 		//将this.data替换为this
+			// 		path.replaceWith(t.thisExpression());
+			// 	}
+			// } else if (t.isIdentifier(property.node, { name: "setData" })) {
+			// 	if (t.isIdentifier(object.node, { name: "that" })) {
+			// 		//如果是that.setData()时
+			// 		handleSetData(path);
+			// 	}
+			// }
+			//
 			//uni-app 支持getApp() 这里不作转换
 			// if (t.isIdentifier(object.node, { name: "app" })) {
 			// 	if (t.isIdentifier(property.node, { name: "globalData" })) {
@@ -197,11 +306,19 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 			// 	//getApp().globalData.userInfo => this.globalData.userInfo
 			// 	object.replaceWith(t.thisExpression());
 			// }
-		}
+		},
 	});
 	return ast;
 }
 
+/**
+ * js 处理入口方法
+ * @param {*} fileData          要处理的文件内容 
+ * @param {*} isApp             是否为入口app.js文件
+ * @param {*} usingComponents   使用的自定义组件列表
+ * @param {*} miniprogramRoot   小程序目录
+ * @param {*} file_js           当前处理的文件路径
+ */
 async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_js) {
 	//先反转义
 	let javascriptContent = fileData;
@@ -227,7 +344,7 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	for (const key in usingComponents) {
 		let filePath = usingComponents[key];
 		//filePath = filePath.replace(/^\//g, "./"); //相对路径处理
-		
+
 		//先转绝对路径，再转相对路径
 		filePath = path.join(miniprogramRoot, filePath);
 		filePath = path.relative(miniprogramRoot, filePath);
@@ -235,6 +352,9 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(key))], t.stringLiteral(filePath));
 		declareStr += `${generate(node).code}\r\n`;
 	}
+
+	//相对路径里\\替换为/
+	declareStr = declareStr.split("\\\\").join("/");
 
 	//放到预先定义好的模板中
 	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents);

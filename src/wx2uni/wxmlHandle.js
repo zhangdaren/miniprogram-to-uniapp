@@ -13,6 +13,10 @@ const templateConverter = require('./wxml/templateConverter');
 //初始化一个解析器
 templateParser = new TemplateParser();
 
+/**
+ * wxml文件处理
+ * @param {*} fileData wxml文件内容
+ */
 async function wxmlHandle(fileData) {
 
 	let reg = /<template([\s\S]*?)<\/template>/g;

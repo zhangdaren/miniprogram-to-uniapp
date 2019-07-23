@@ -7,22 +7,21 @@ const traverse = require('@babel/traverse').default
 class JavascriptParser {
   constructor() {
   }
-  /**
-   * 解析前替换掉无用字符
-   * @param code
-   * @returns
-   */
+
+   /**
+    * 解析前替换掉无用字符
+    * @param {*} code 
+    */
   beforeParse(code) {
     // return code.replace(/this\.\$apply\(\);?/gm, '').replace(/import\s+wepy\s+from\s+['"]wepy['"]/gm, '')
     // return code.replace(/const\s+app\s+=\s+getApp\(\)/gm, '');  //保留getApp()
     return code;
   }
 
-  /**
-   * 文本内容解析成AST
-   * @param scriptText
-   * @returns {Promise}
-   */
+   /**
+    * 文本内容解析成AST
+    * @param {*} scriptText 
+    */
   parse(scriptText) {
     return new Promise((resolve, reject) => {
       try {

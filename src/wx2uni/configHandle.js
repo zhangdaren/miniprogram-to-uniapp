@@ -3,12 +3,14 @@ const path = require('path');
 const t = require('@babel/types');
 const generate = require('@babel/generator').default;
 
-/*
-*
-* 处理配置文件
-* 生成配置文件: pages.json、manifest.json
-*
-*/
+/**
+ * 处理配置文件
+ * 生成配置文件: pages.json、manifest.json、main.js
+ * @param {*} configData        小程序配置数据
+ * @param {*} routerData        所有的路由页面数据
+ * @param {*} miniprogramRoot   小程序主体所在目录
+ * @param {*} targetFolder      最终要生成的目录
+ */
 async function configHandle(configData, routerData, miniprogramRoot, targetFolder) {
 	try {
 		await new Promise((resolve, reject) => {

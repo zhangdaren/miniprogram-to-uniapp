@@ -66,6 +66,13 @@ const componentVistor = {
 			declareStr += `${generate(path.node).code}\r\n`;
 		}
 	},
+	FunctionDeclaration(path) {
+		const parent = path.parentPath.parent;
+		if (t.isFile(parent)) {
+			//定义的外部函数
+			declareStr += `${generate(path.node).code}\r\n`;
+		}
+	},
 	ObjectMethod(path) {
 		const parent = path.parentPath.parent;
 		const value = parent.value;
@@ -131,27 +138,29 @@ const componentVistor = {
 				const parent = path.parentPath.parent;
 				const value = parent.value;
 
-				// console.log("name", name)
+				//console.log("name", name)
 				//如果父级不为data时，那么就加入生命周期，比如app.js下面的全局变量
 				if (value == dataValue) {
 					vistors.data.handle(path.node);
 				} else {
 					const node = path.node.value;
-					if (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) {
+					if (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node) || t.isObjectExpression(node)) {
 						//这里function
 						if (lifeCycleFunction[name]) {
 							// console.log("add lifeCycle： ", name);
 							vistors.lifeCycle.handle(path.node);
 							//跳过生命周期下面的子级，不然会把里面的也给遍历出来
-							path.skip();
+
 						} else if (value == computedValue) {
+
 							vistors.computed.handle(path.node);
 						} else if (value == watchValue) {
 							vistors.watch.handle(path.node);
 						} else {
 							vistors.methods.handle(path.node);
-							path.skip();
+
 						}
+						path.skip();
 					}
 				}
 				break;

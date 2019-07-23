@@ -13,7 +13,9 @@ const configHandle = require('./wx2uni/configHandle');
 
 
 /**
- * 解析小程序项目
+ * 解析小程序项目的配置
+ * @param {*} folder        小程序主体所在目录
+ * @param {*} sourceFolder  输入目录
  */
 function wxProjectParse(folder, sourceFolder) {
 	let file_projectConfigJson = path.join(folder, "project.config.json");
@@ -82,7 +84,13 @@ let fileData = {};
 let routerData = {};
 
 
-//遍历目录
+/**
+ * 遍历目录
+ * @param {*} folder           当前要遍历的目录
+ * @param {*} miniprogramRoot  小程序主体所在目录
+ * @param {*} targetFolder     生成目录
+ * @param {*} callback         回调函数
+ */
 function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 	fs.readdir(folder, function (err, files) {
 		var count = 0
@@ -95,8 +103,14 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 			let newFileDir = path.join(tFolder, fileName);
 			fs.stat(fileDir, function (err, stats) {
 				if (stats.isDirectory()) {
-					fs.mkdirSync(newFileDir);
-					return traverseFolder(fileDir, miniprogramRoot, targetFolder, checkEnd);
+					if (fileName == "images" || fileName == "image") {
+						//处理图片目录，复制到static目录里
+						 fs.copySync(fileDir, path.join(tFolder, "static" + "/" + fileName));
+					} else {
+						fs.mkdirSync(newFileDir);
+						//继续往下面遍历
+						return traverseFolder(fileDir, miniprogramRoot, targetFolder, checkEnd);
+					}
 				} else {
 					/*not use ignore files*/
 					if (fileName[0] == '.') {
@@ -141,6 +155,9 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 							case ".json":
 								obj["json"] = fileDir;
 								break;
+							case ".wxs":
+								fs.copySync(fileDir, path.join(tFolder, fileNameNoExt + ".js"));
+								break;
 							default:
 								fs.copySync(fileDir, newFileDir);
 								// log.path = {
@@ -160,8 +177,11 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 	})
 }
 
-
-//处理一组文件（js、wxml、wxss）
+/**
+ * 处理一组文件（js、wxml、wxss）
+ * @param {*} fileData         一组文件数据(即同名的js/wxml/wxss为一组数据)
+ * @param {*} miniprogramRoot  小程序主体所在目录
+ */
 async function filesHandle(fileData, miniprogramRoot) {
 	// console.log("--------------", tFolder);
 	try {
@@ -302,7 +322,11 @@ async function filesHandle(fileData, miniprogramRoot) {
 	}
 }
 
-////////////////////////////转换入口/////////////////////////////
+/**
+ * 转换入口
+ * @param {*} sourceFolder 输入目录
+ * @param {*} targetFolder 输出目录
+ */
 async function transform(sourceFolder, targetFolder) {
 	fileData = {};
 	routerData = {};

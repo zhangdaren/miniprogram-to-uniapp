@@ -26,14 +26,20 @@ const attrConverterConfigVue = {
 }
 
 const attrConverterConfigUni = {
-	'wx:for': {
-		key: 'v-for',
-		value: (str) => {
-			return str.replace(/{{ ?(.*?) ?}}/, '(item, index) in $1" :key="index')
-		}
-	},
+	// 'wx:for': {
+	// 	key: 'v-for',
+	// 	value: (str) => {
+	// 		return str.replace(/{{ ?(.*?) ?}}/, '(item, index) in $1" :key="index')
+	// 	}
+	// },
 	'wx:if': {
 		key: 'v-if',
+		value: (str) => {
+			return str.replace(/{{ ?(.*?) ?}}/, '$1')
+		}
+	},
+	'wx:key': {
+		key: ':key',
 		value: (str) => {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1')
 		}
@@ -43,6 +49,15 @@ const attrConverterConfigUni = {
 	},
 	'wx:elif': {
 		key: 'v-else-if',
+		value: (str) => {
+			return str.replace(/{{ ?(.*?) ?}}/, '$1')
+		}
+	},
+	'scrollX': {
+		key: 'scroll-x'
+	},
+	'scrollY': {
+		key: 'scroll-y'
 	},
 	'bindtap': {
 		key: '@tap'
@@ -69,11 +84,16 @@ const attrConverterConfigUni = {
 	// 	}
 	// }
 }
-// style="color: {{step === index + 1 ? 'red': 'black'}}; font-size:{{abc}}">
-// <view style="width : {{item.dayExpressmanEarnings / maxIncome * 460 + 250}}rpx;"></view>
 
-//替换入口方法
-const templateConverter = function (ast) {
+/**
+ * wmxml转换
+ * // style="color: {{step === index + 1 ? 'red': 'black'}}; font-size:{{abc}}">
+ * // <view style="width : {{item.dayExpressmanEarnings / maxIncome * 460 + 250}}rpx;"></view>
+ * 
+ * @param {*} ast 抽象语法树
+ * @param {Boolean} isChildren 是否正在遍历子项目
+ */
+const templateConverter = function (ast, isChildren) {
 	var reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
@@ -90,8 +110,6 @@ const templateConverter = function (ast) {
 			for (let k in node.attribs) {
 				let target = attrConverterConfigUni[k];
 				if (target) {
-					//分别替换属性名和属性值
-
 					//单独判断style的绑定情况
 					var key = target['key'];
 					var value = node.attribs[k];
@@ -120,6 +138,11 @@ const templateConverter = function (ast) {
 					} else {
 						attrs['class'] = node.attribs[k];
 					}
+				} else if (k == 'wx:for') {
+					//wx:for单独处理
+					var value = node.attribs[k];
+					value = value.replace(/{{ ?(.*?) ?}}/, '(item, index) in $1" :key="index');
+					attrs['v-for'] = value;
 				} else {
 					// "../list/list?type={{ item.key }}&title={{ item.title }}"
 					// "'../list/list?type=' + item.key ' + '&title=' + item.title"
@@ -200,7 +223,7 @@ const templateConverter = function (ast) {
 		}
 		//因为是树状结构，所以需要进行递归
 		if (node.children) {
-			templateConverter(node.children);
+			templateConverter(node.children, true);
 		}
 	}
 	return ast;

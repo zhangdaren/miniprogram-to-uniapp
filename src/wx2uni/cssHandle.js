@@ -1,17 +1,22 @@
 const fs = require('fs-extra');
 const path = require('path');
 
-/*
-*
-* 处理css文件 
-* 替换rpx为upx
-*/
+/**
+ * 处理css文件 
+ * 1.内部引用的wxss文件修改为css文件
+ * 2.修正引用的wxss文件的路径
+ * 
+ * @param {*} fileContent       css文件内容
+ * @param {*} miniprogramRoot   小程序主体所在目录
+ * @param {*} file_wxss         当前处理的文件路径
+ */
 async function cssHandle(fileContent, miniprogramRoot, file_wxss) {
 	let content = "";
 	try {
 		content = await new Promise((resolve, reject) => {
-			let reg = /(\d+)rpx/g;
-			fileContent = fileContent.replace(reg, "$1upx");
+			//rpx不再转换
+			// let reg = /(\d+)rpx/g;
+			// fileContent = fileContent.replace(reg, "$1upx");
 			fileContent = fileContent.replace(/.wxss/g, ".css");
 
 			let reg_import = /@import +"(.*?)"/g;  //应该没有写单引号的呗？
