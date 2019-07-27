@@ -31,7 +31,7 @@
   "bugs": {
     "url": "https://github.com/zhangdaren/miniprogram-to-uniapp/issues"
   },
-  "bundleDependencies": false,
+  "bundleDependencies": [],
   "dependencies": {
     "@babel/core": "^7.4.5",
     "@babel/generator": "^7.4.4",
@@ -52,7 +52,8 @@
     "babel-core": "^6.26.3",
     "babel-loader": "^8.0.6",
     "babel-preset-env": "^1.7.0",
-    "babel-preset-stage-0": "^6.24.1"
+    "babel-preset-stage-0": "^6.24.1",
+    "lodash": ">=4.17.13"
   },
   "homepage": "https://github.com/zhangdaren/miniprogram-to-uniapp#readme",
   "keywords": [
@@ -71,5 +72,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.11"
+  "version": "1.0.13"
 }

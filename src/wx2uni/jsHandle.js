@@ -12,6 +12,10 @@ const template = require('@babel/template').default;
 const JavascriptParser = require('./js/JavascriptParser');
 const componentConverter = require('./js/componentConverter');
 
+const {
+	toCamel2
+} = require('../utils/utils.js');
+
 /**
  * 将ast属性数组组合为ast对象
  * @param {*} pathAry 
@@ -174,7 +178,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 	//插入setData()
 	const node = getSetDataFun();
 	vistors.methods.handle(node);
-
 	//
 	if (isApp) {
 		//是app.js文件,要单独处理
@@ -196,6 +199,9 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 			WATCH: arrayToObject(vistors.watch.getData()),
 		});
 	}
+
+
+
 
 	//久久不能遍历，搜遍google，template也没有回调，后面想着源码中应该会有蛛丝马迹，果然，在templateVisitor里找到了看到这么一个属性noScope，有点嫌疑
 	//noScope: 从babel-template.js中发现这么一个属性，因为直接转出来的ast进行遍历时会报错，找了官方文档，没有这个属性的介绍信息。。。
@@ -222,8 +228,11 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 				if (isApp) {
 					var methodsArr = vistors.methods.getData();
 					for (let key in methodsArr) {
-						// console.log(liftCycleArr[key]);
-						path.insertAfter(methodsArr[key]);
+						let obj = methodsArr[key];
+						if (!t.isIdentifier(obj.key, { name: "setData" })) {
+							// console.log(liftCycleArr[key]);
+							path.insertAfter(obj);
+						}
 					}
 				}
 			}
@@ -240,12 +249,15 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 				// 	},
 				// }
 				for (const key in usingComponents) {
+					//中划线转驼峰
+					let componentName = toCamel2(key);
+
 					//这里两个小优化空间
 					//1.是否有其他操作这个数组方式
 					//2.属性名与变量名相同是否可以合并为一个？ (解决，第三个参数：shorthand：true 即可)
 					path.node.value.properties.push(t.objectProperty(
-						t.identifier(key),
-						t.identifier(key),
+						t.identifier(componentName),
+						t.identifier(componentName),
 						false,
 						true
 					));
@@ -348,8 +360,11 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		//先转绝对路径，再转相对路径
 		filePath = path.join(miniprogramRoot, filePath);
 		filePath = path.relative(miniprogramRoot, filePath);
+
+		//中划线转驼峰
+		let componentName = toCamel2(key);
 		//
-		let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(key))], t.stringLiteral(filePath));
+		let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
 		declareStr += `${generate(node).code}\r\n`;
 	}
 
@@ -359,9 +374,15 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	//放到预先定义好的模板中
 	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents);
 
+
+	// console.log(`${generate(convertedJavascript).code}`);
+
+
 	//生成文本并写入到文件
 	let codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
 
+
+	// console.log(codeText);
 	return codeText;
 }
 module.exports = jsHandle;

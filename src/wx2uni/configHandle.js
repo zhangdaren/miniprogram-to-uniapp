@@ -58,7 +58,22 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//usingComponents节点，上面删除缓存，这里删除
 			delete appJson["usingComponents"];
 
-			//tabBar节点一致，不做调整
+			//tabBar节点
+			//将iconPath引用的图标路径进行修复
+			let tabBar = appJson["tabBar"];
+			if (tabBar && tabBar.list && tabBar.list.length) {
+				for (const key in tabBar.list) {
+					let item = tabBar.list[key];
+					/**
+					 * 目前已知的规则：
+					 * iconPath和selectedIconPath字段是使用/images下面的文件
+					 * 而 /pages/images下面的文件是用于页面里的
+					 * 其余情况后面发现再加入
+					 */
+					if (item.iconPath) item.iconPath = "static/" + item.iconPath;
+					if (item.selectedIconPath) item.selectedIconPath = "static/" + item.selectedIconPath;
+				}
+			}
 
 			//写入pages.json
 			let file_pages = path.join(targetFolder, "pages.json");

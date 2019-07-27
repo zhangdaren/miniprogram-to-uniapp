@@ -82,7 +82,8 @@ function wxProjectParse(folder, sourceFolder) {
 let fileData = {};
 //路由数据，用来记录对应页面的title和使用的自定义组件
 let routerData = {};
-
+//素材目录
+let imagesFolder = "";
 
 /**
  * 遍历目录
@@ -101,70 +102,84 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 		files.forEach(function (fileName) {
 			var fileDir = path.join(folder, fileName);
 			let newFileDir = path.join(tFolder, fileName);
+			let isContinue = false;
 			fs.stat(fileDir, function (err, stats) {
 				if (stats.isDirectory()) {
+					//console.log(fileDir, fileName);
 					if (fileName == "images" || fileName == "image") {
 						//处理图片目录，复制到static目录里
-						 fs.copySync(fileDir, path.join(tFolder, "static" + "/" + fileName));
+						fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
+						imagesFolder = fileDir;
 					} else {
-						fs.mkdirSync(newFileDir);
-						//继续往下面遍历
-						return traverseFolder(fileDir, miniprogramRoot, targetFolder, checkEnd);
+						//如果不是是素材目录下面的子目录就复制
+						if (imagesFolder && fileDir.indexOf(imagesFolder) > -1) {
+							//
+						} else {
+							fs.mkdirSync(newFileDir);
+						}
 					}
+					//继续往下面遍历
+					return traverseFolder(fileDir, miniprogramRoot, targetFolder, checkEnd);
 				} else {
 					/*not use ignore files*/
 					if (fileName[0] == '.') {
 
 					} else {
-						//这里处理一下，防止目录名与文件名不一致
-						let extname = path.extname(fileName);
-						let fileNameNoExt = getFileNameNoExt(fileName);
-
-						let obj = {};
-						//为了适应小程序里的app.json/pages节点的特点，这里也使用同样的规则，key为去掉后缀名的路径
-						var key = path.join(tFolder, fileNameNoExt);
-						if (extname == ".js" || extname == ".wxml" || extname == ".wxss" || extname == ".json") {
-							//如果obj为false，那么肯定是还没有初始化的underfined
-							if (!fileData[key]) {
-								fileData[key] = {
-									"js": "",
-									"wxml": "",
-									"wxss": "",
-									"folder": "",
-									"json": "",
-									"fileName": "",
-									"isAppFile": false
-								};
+						//判断是否为素材目录里面的文件
+						if (imagesFolder && fileDir.indexOf(imagesFolder) > -1) {
+							//
+						} else {
+							//非素材目录里的文件
+							//这里处理一下，防止目录名与文件名不一致
+							let extname = path.extname(fileName);
+							let fileNameNoExt = getFileNameNoExt(fileName);
+							//
+							let obj = {};
+							//为了适应小程序里的app.json/pages节点的特点，这里也使用同样的规则，key为去掉后缀名的路径
+							var key = path.join(tFolder, fileNameNoExt);
+							if (extname == ".js" || extname == ".wxml" || extname == ".wxss" || extname == ".json") {
+								//如果obj为false，那么肯定是还没有初始化的underfined
+								if (!fileData[key]) {
+									fileData[key] = {
+										"js": "",
+										"wxml": "",
+										"wxss": "",
+										"folder": "",
+										"json": "",
+										"fileName": "",
+										"isAppFile": false
+									};
+								}
+								obj = fileData[key];
+								obj["folder"] = tFolder;
+								obj["fileName"] = fileNameNoExt;
+								//标识是否为app.js入口文件
+								obj["isAppFile"] = (fileName == "app.js" || obj["isAppFile"]);
 							}
-							obj = fileData[key];
-							obj["folder"] = tFolder;
-							obj["fileName"] = fileNameNoExt;
-							//标识是否为app.js入口文件
-							obj["isAppFile"] = (fileName == "app.js" || obj["isAppFile"]);
-						}
-						switch (extname) {
-							case ".js":
-								obj["js"] = fileDir;
-								break;
-							case ".wxml":
-								obj["wxml"] = fileDir;
-								break;
-							case ".wxss":
-								obj["wxss"] = fileDir;
-								break;
-							case ".json":
-								obj["json"] = fileDir;
-								break;
-							case ".wxs":
-								fs.copySync(fileDir, path.join(tFolder, fileNameNoExt + ".js"));
-								break;
-							default:
-								fs.copySync(fileDir, newFileDir);
-								// log.path = {
-								// 	...log.path,
-								// 	...newFileDir
-								// };
-								break;
+							switch (extname) {
+								case ".js":
+									obj["js"] = fileDir;
+									break;
+								case ".wxml":
+									obj["wxml"] = fileDir;
+									break;
+								case ".wxss":
+									obj["wxss"] = fileDir;
+									break;
+								case ".json":
+									obj["json"] = fileDir;
+									break;
+								case ".wxs":
+									fs.copySync(fileDir, path.join(tFolder, fileNameNoExt + ".js"));
+									break;
+								default:
+									fs.copySync(fileDir, newFileDir);
+									// log.path = {
+									// 	...log.path,
+									// 	...newFileDir
+									// };
+									break;
+							}
 						}
 					}
 					checkEnd();
@@ -252,7 +267,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 						if (file_wxml && fs.existsSync(file_wxml)) {
 							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
 							if (data_wxml) {
-								let data = await wxmlHandle(data_wxml);
+								let data = await wxmlHandle(data_wxml, file_wxml);
 								fileContent += data;
 							}
 						}
@@ -270,7 +285,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 						if (file_wxss && fs.existsSync(file_wxss)) {
 							let data_wxss = fs.readFileSync(file_wxss, 'utf8');
 							if (data_wxss) {
-								data_wxss = await cssHandle(data_wxss, miniprogramRoot, file_wxss);
+								data_wxss = await cssHandle(data_wxss, file_wxss);
 								fileContent += `<style>\r\n${data_wxss}\r\n</style>`;
 							}
 						}
@@ -296,7 +311,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 							if (file_wxss && fs.existsSync(file_wxss)) {
 								let data_wxss = fs.readFileSync(file_wxss, 'utf8');
 								if (data_wxss) {
-									data_wxss = await cssHandle(data_wxss, miniprogramRoot, file_wxss);
+									data_wxss = await cssHandle(data_wxss, file_wxss);
 									let content = `${data_wxss}`;
 									//写入文件
 									fs.writeFile(targetFilePath, content, () => {
@@ -330,6 +345,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 async function transform(sourceFolder, targetFolder) {
 	fileData = {};
 	routerData = {};
+	imagesFolderArr = [];
 
 	let miniprogramRoot = sourceFolder;
 	if (!targetFolder) targetFolder = sourceFolder + "_uni";
@@ -339,6 +355,12 @@ async function transform(sourceFolder, targetFolder) {
 	//小程序项目目录，不一定就等于输入目录，有无云开发的目录结构是不相同的。
 	miniprogramRoot = configData.miniprogramRoot;
 
+	//定义全局变量，之前传来传去的，过于麻烦
+	global.miniprogramRoot = miniprogramRoot;
+	global.sourceFolder = sourceFolder;
+	global.targetFolder = targetFolder;
+
+	//
 	if (fs.existsSync(targetFolder)) {
 		//清空output目录
 		fs.emptyDirSync(targetFolder);

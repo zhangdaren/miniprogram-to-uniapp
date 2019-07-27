@@ -35,12 +35,18 @@ $ wtu -i miniprogramProject
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
 
+### 转换注意事项   
+
+* 小程序并不能与uni-app完全对应，转换也并非100%，只希望能尽量减少大家的工作量。我一直在努力，也许有那么一天可以完美转换~~~   
+* 小程序使用wxParse组件时，转换难度挺大，建议手动替换为uni-app所对应的插件   
+
 
 ## 转换规则   
 基本参照大佬的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)。
 
 因为小程序与uni/vue的语法以及文件结构都有很大的差别，所以做了很多的优化工作，后面再补。
-   
+ 
+
 
 ## 已完成   
 * 支持含云开发的小程序项目(有云开发与无云开发的项目的目录结构有差别)   
@@ -56,27 +62,41 @@ $ wtu -i miniprogramProject
    
    
     
-## 存在问题 & todolist   
-* [已完成] js里含有ES6的扩展运算符(...)时，会解析报错   
+## Todolist   
 * [已完成] wxml含有import语法时(```<import src="../../../common/head.wxml" />```)，此行未转换，仅原样复制（尽量下一版将完善）   
 * [todo] 配置参数，支持指定目录、指定文件方式进行转换   
 * [todo] 文件操作的同步方法添加try catch    
 * [todo] 未去掉转换产生的空生命周期    
-* [已完成] getApp()的支持    
-* [已完成] this在嵌套函数里，并且不是箭头函数里，将无法引用到全局globalData(后面将function转换成=>，或添加that变量)
-* [已完成] ```<template is="head" data="{{title: 'addPhoneContact'}}"/>``` template的属性暂不作转换   
-* [todo] 修复转换到uni-app再生成小程序后，素材路径不对的问题。(因VSCode出问题，加上工作太忙，此功能下版再上)   
+* [todo] 页面/组件里data(){}里面的变量，如含有图片素材，将进行替换    
+* [todo] 将pages下面的子目录所包含图片复制到static目录     
+* [todo] globalData在app.vue里无法赋值的问题     
+   
+   
+## 更新记录   
+### v1.0.13(20190727)   
+* [修复] 修复转换到uni-app再生成小程序后，素材路径不对的问题。   
 规则：   
-1.识别小程序目录下/images、/image、/pages/images或/page/image等目录，将里面的素材复制到static目录；   
-2.将pages下面的子目录所包含图片复制到static目录；   
-3.修复wxml/js/wxss等文件里包含的素材路径。   
+1.识别小程序目录下/images、/image、/pages/images或/page/image等目录，将里面的素材复制到/static目录；   
+2.修复配置文件里tabbar下面iconPath和selectedIconPath等路径   
+3.修复```<image src='../images/abc.png'></image>```里面的src路径   
+4.修复wxss文件里所引用的素材文件的路径   
+   
 注意：   
 1.图片素材可能会有同名的，请在转换前重名，否则将直接替换，程序也会显示对应日志，请注意查看！   
 2.识别到图片文件再进行复制时，使用的是定式目录，以便保留文件夹结构，如素材目录有其他写法，请告知，感谢~   
+3.仅针对页面/组件里data(){}里面的变量，如含有图片素材，将进行替换，而如果代码里含有```return "../images/icn-abc.png";```类似代码，将不会进行替换，切记~   
+* [修复] 修复一个wxml文件里包含多个根节点和根元素含有wx:for属性的问题   
+* [修复] 修复wx:else含条件的情况   
+* [修复] 修复自定义组件使用中划线命名导致语法错误   
+* [修复] 修复模板绑定里使用单引号包含双引号导致转换失败(如: ```<view style='height:{{screenHeight+"px"}}'>```)   
+* [修复] 修复wx:for、wx:for-item、wx:for-key、wx:for-items等属性   
+* [注意] 小程序使用wxParse组件时，转换难度挺大，建议手动替换为uni-app所对应的插件
+   
 
+### v1.0.12(20190723)   
+* [修复] 晕了，是自己写错代码了。   
 
    
-## 更新记录   
 ### v1.0.11(20190723)   
 * [新增] 新增this.triggerEvent()转换为this.$emit()   
 * [修复] 因uni-app推荐使用rpx替代upx，所以rpx将不再转换    
@@ -88,7 +108,6 @@ $ wtu -i miniprogramProject
 * [修复] 修复在App()或page()外部定义的函数遗漏的问题   
 * [修复] 解决转换computed串到methods的问题   
    
-
 
 ### v1.0.10(20190711)   
 * [修复] 修复ReferenceError: chalk is not defined     

@@ -1,5 +1,8 @@
 const fs = require('fs-extra');
 const path = require('path');
+const {
+	isURL
+} = require('../utils/utils.js');
 
 /**
  * 处理css文件 
@@ -7,10 +10,9 @@ const path = require('path');
  * 2.修正引用的wxss文件的路径
  * 
  * @param {*} fileContent       css文件内容
- * @param {*} miniprogramRoot   小程序主体所在目录
  * @param {*} file_wxss         当前处理的文件路径
  */
-async function cssHandle(fileContent, miniprogramRoot, file_wxss) {
+async function cssHandle(fileContent, file_wxss) {
 	let content = "";
 	try {
 		content = await new Promise((resolve, reject) => {
@@ -27,7 +29,7 @@ async function cssHandle(fileContent, miniprogramRoot, file_wxss) {
 				let fileDir = path.dirname(file_wxss);
 				if (/^\//.test(pos)) {
 					//如果是以/开头的，表示根目录
-					filePath = path.join(miniprogramRoot, pos);
+					filePath = path.join(global.miniprogramRoot, pos);
 				} else {
 					filePath = path.join(fileDir, pos);
 				}
@@ -36,6 +38,35 @@ async function cssHandle(fileContent, miniprogramRoot, file_wxss) {
 				return '@import "' + filePath.split("\\").join("/") + '"';
 			});
 
+
+			//修复图片路径
+			// background-image: url('../../images/bg_myaccount_top.png');
+			// background-image: url('https://www.jxddsx.com/wxImgs/myPage/bg_myaccount_top.png');
+
+			let reg_url = /url\(('|")(?<filePath>.*?).(?<extname>jpg|jpeg|gif|svg|png)('|")\)/g;
+			fileContent = fileContent.replace(reg_url, function (...args) {
+				const groups = args.slice(-1)[0];
+				let src = groups.filePath + "." + groups.extname;
+
+				//忽略网络素材地址，不然会转换出错
+				if (!isURL(src)) {
+					//当前处理文件所在目录
+					let wxssFolder = path.dirname(file_wxss);
+					//src资源完整路径
+					let filePath = path.resolve(wxssFolder, src);
+					//src资源文件相对于src所在目录的相对路径
+					let relativePath = path.relative(global.miniprogramRoot, filePath);
+					//处理images或image目录在pages下面的情况 
+					relativePath = relativePath.replace(/^pages\\/, "");
+					//资源文件路径
+					let newImagePath = path.join(global.miniprogramRoot, "static/" + relativePath);
+					newImagePath = path.relative(wxssFolder, newImagePath);
+					//修复路径
+					newImagePath = newImagePath.split("\\").join("/");
+					src = newImagePath;
+				}
+				return 'url("' + src + '")';
+			});
 			// fileContent = fileContent.replace(/@import +"\//g, '@import "./');
 			resolve(fileContent);
 		});
