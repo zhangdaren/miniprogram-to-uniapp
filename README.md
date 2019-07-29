@@ -73,6 +73,11 @@ $ wtu -i miniprogramProject
    
    
 ## 更新记录   
+### v1.0.14(20190729)   
+* [修复] 修复App.vue里没法使用this.globalData.xxx的方式来设置globalData数据(注意：后期如uni-app修复这个问题，那此项修复将回滚)   
+* [修复] 修复this.data.xxx为this.xxx(这两次更新不小心干掉了∙̆ .̯ ∙̆ )   
+   
+
 ### v1.0.13(20190727)   
 * [修复] 修复转换到uni-app再生成小程序后，素材路径不对的问题。   
 规则：   

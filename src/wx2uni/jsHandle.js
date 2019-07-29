@@ -80,6 +80,23 @@ function buildAssignmentWidthThis(left, right) {
 function buildAssignmentWidthThat(left, right, name) {
 	return t.assignmentExpression("=", t.memberExpression(t.identifier(name), left), right);
 }
+/**
+ * 生成"this.$options.globalData.left = right;"
+ * @param {*} left 
+ * @param {*} right 
+ */
+function buildAssignmentWidthGlobalData(left) {
+
+
+	let obj = t.memberExpression(object, t.identifier("$options.globalData"));
+
+
+	let subRight = t.memberExpression(t.identifier("$options"), left);
+	console.log("subRight" , subRight)
+	console.log("subRight" , subRight)
+	let newLeft = t.memberExpression(t.thisExpression(), subRight);
+	return t.memberExpression(t.thisExpression(), left);
+}
 
 /**
  * 处理this.setData -- 已弃用
@@ -265,15 +282,30 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 			}
 		},
 		MemberExpression(path) {
-			//解决this.triggerEvent()的问题
 			let object = path.get('object');
 			let property = path.get('property');
 
+			//this.triggerEvent()转换为this.$emit()
 			if (t.isIdentifier(property.node, { name: "triggerEvent" })) {
 				let obj = t.memberExpression(object, t.identifier("$emit"));
 				path.replaceWith(obj);
 			}
 
+			//将this.data.xxx转换为this.xxx
+			if (t.isIdentifier(property.node, { name: "data" })) {
+				path.replaceWith(t.thisExpression());
+			}
+
+			if (isApp) {
+				//仅在App.vue里将this.globalData.xxx转换为this.$options.globalData.xxx
+				//这里是暂时方案，后缀可能屏蔽(现在是uni-app无法支持this.globalData方式)
+				if (t.isThisExpression(object)) {
+					if (t.isIdentifier(property.node, { name: "globalData" })) {
+						let me = t.MemberExpression(t.MemberExpression(object, t.identifier('$options')), t.identifier('globalData'));
+						path.replaceWith(me);
+					}
+				}
+			}
 
 			//解决this.setData的问题
 			//20190719 
