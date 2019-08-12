@@ -80,23 +80,6 @@ function buildAssignmentWidthThis(left, right) {
 function buildAssignmentWidthThat(left, right, name) {
 	return t.assignmentExpression("=", t.memberExpression(t.identifier(name), left), right);
 }
-/**
- * 生成"this.$options.globalData.left = right;"
- * @param {*} left 
- * @param {*} right 
- */
-function buildAssignmentWidthGlobalData(left) {
-
-
-	let obj = t.memberExpression(object, t.identifier("$options.globalData"));
-
-
-	let subRight = t.memberExpression(t.identifier("$options"), left);
-	console.log("subRight" , subRight)
-	console.log("subRight" , subRight)
-	let newLeft = t.memberExpression(t.thisExpression(), subRight);
-	return t.memberExpression(t.thisExpression(), left);
-}
 
 /**
  * 处理this.setData -- 已弃用
@@ -279,6 +262,9 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 						true
 					));
 				}
+			} else if (path.node.key.name === 'computed' || path.node.key.name === 'watch') {
+				//这两个为空的话，会报错，所以删除，其他的不管先
+				if (path.node.value.properties.length == 0) path.remove();
 			}
 		},
 		MemberExpression(path) {
@@ -293,7 +279,9 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 
 			//将this.data.xxx转换为this.xxx
 			if (t.isIdentifier(property.node, { name: "data" })) {
-				path.replaceWith(t.thisExpression());
+				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" })) {
+					path.replaceWith(object);
+				}
 			}
 
 			if (isApp) {
@@ -385,13 +373,26 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 
 	//引入自定义组件
 	//import firstcompoent from '../firstcompoent/firstcompoent'
+	let jsFolder = path.dirname(file_js);
 	for (const key in usingComponents) {
 		let filePath = usingComponents[key];
-		//filePath = filePath.replace(/^\//g, "./"); //相对路径处理
+		filePath = filePath.replace(/^\//g, "./"); //相对路径处理
+
+		let relativeFolder = miniprogramRoot;
+		if (/^\//.test(filePath)) {
+			relativeFolder = jsFolder;
+		}
 
 		//先转绝对路径，再转相对路径
 		filePath = path.join(miniprogramRoot, filePath);
-		filePath = path.relative(miniprogramRoot, filePath);
+		filePath = path.relative(relativeFolder, filePath);
+		//相对路径里\\替换为/
+		filePath = filePath.split("\\").join("/");
+
+		if (!/^\./.test(filePath)) {
+			//路径前面不是以.开始，总不能是网络路径和绝对路径吧！
+			filePath = "./" + filePath;
+		}
 
 		//中划线转驼峰
 		let componentName = toCamel2(key);
@@ -399,9 +400,6 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
 		declareStr += `${generate(node).code}\r\n`;
 	}
-
-	//相对路径里\\替换为/
-	declareStr = declareStr.split("\\\\").join("/");
 
 	//放到预先定义好的模板中
 	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents);

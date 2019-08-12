@@ -3,6 +3,8 @@ const nodePath = require('path');
 const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
 const Vistor = require("./Vistor");
+const clone = require('clone');
+
 
 const lifeCycleFunction = {
 	onLoad: true,
@@ -119,20 +121,43 @@ const componentVistor = {
 			case 'computed':
 				//只让第一个computed进来，暂时不考虑其他奇葩情况
 				if (JSON.stringify(computedValue) == "{}") {
-					//第一个data，存储起来
+					//第一个computed，存储起来
 					computedValue = path.node.value;
 				}
 				break;
 			case 'watch':
 				//只让第一个watch进来，暂时不考虑其他奇葩情况
 				if (JSON.stringify(watchValue) == "{}") {
-					//第一个data，存储起来
+					//第一个watch，存储起来
 					watchValue = path.node.value;
 				}
 				break;
 			case 'globalData':
 				//globalData 存入生命周期
 				vistors.lifeCycle.handle(path.node);
+				break;
+			case 'attached':
+				//组件特有生命周期: attached-->onLoad
+				let newPath = clone(path);
+				newPath.node.key.name = "onLoad";
+				vistors.lifeCycle.handle(newPath.node);
+				path.skip();
+				break;
+			case 'properties':
+				//组件特有生命周期: properties-->props
+				var properties = path.node.value.properties;
+				properties.forEach(function (item) {
+					vistors.props.handle(item);
+				});
+				path.skip();
+				break;
+			case 'methods':
+				//组件特有生命周期: methods
+				var properties = path.node.value.properties;
+				properties.forEach(function (item) {
+					vistors.methods.handle(item);
+				});
+				path.skip();
 				break;
 			default:
 				const parent = path.parentPath.parent;
@@ -150,15 +175,12 @@ const componentVistor = {
 							// console.log("add lifeCycle： ", name);
 							vistors.lifeCycle.handle(path.node);
 							//跳过生命周期下面的子级，不然会把里面的也给遍历出来
-
 						} else if (value == computedValue) {
-
 							vistors.computed.handle(path.node);
 						} else if (value == watchValue) {
 							vistors.watch.handle(path.node);
 						} else {
 							vistors.methods.handle(path.node);
-
 						}
 						path.skip();
 					}

@@ -19,14 +19,17 @@ async function cssHandle(fileContent, file_wxss) {
 			//rpx不再转换
 			// let reg = /(\d+)rpx/g;
 			// fileContent = fileContent.replace(reg, "$1upx");
+			//删除掉import app.wxss的代码
+			fileContent = fileContent.replace(/@import ?["'].*?app.wxss["'];?/g, "");
 			fileContent = fileContent.replace(/.wxss/g, ".css");
 
-			let reg_import = /@import +"(.*?)"/g;  //应该没有写单引号的呗？
+			//wxss文件所在目录
+			let fileDir = path.dirname(file_wxss);
+			let reg_import = /@import +['"](.*?)['"]/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
 			fileContent = fileContent.replace(reg_import, function (match, pos, orginText) {
 				//先转绝对路径，再转相对路径
 				let filePath;
-				//wxss文件所在目录
-				let fileDir = path.dirname(file_wxss);
+				
 				if (/^\//.test(pos)) {
 					//如果是以/开头的，表示根目录
 					filePath = path.join(global.miniprogramRoot, pos);

@@ -106,7 +106,9 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 			fs.stat(fileDir, function (err, stats) {
 				if (stats.isDirectory()) {
 					//console.log(fileDir, fileName);
-					if (fileName == "images" || fileName == "image") {
+					//判断是否为页面文件所在的目录（这个判断仍然还不错十分完美~）
+					let isPageFileFolder = fs.existsSync(path.join(fileDir, fileName + ".wxml"));
+					if ( (fileName == "images" || fileName == "image") && !isPageFileFolder) {
 						//处理图片目录，复制到static目录里
 						fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
 						imagesFolder = fileDir;
@@ -200,7 +202,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 async function filesHandle(fileData, miniprogramRoot) {
 	// console.log("--------------", tFolder);
 	try {
-		await new Promise((resolve, reject) => {
+		return await new Promise((resolve, reject) => {
 			let total = Object.keys(fileData).length;
 			let count = 0;
 
@@ -230,21 +232,26 @@ async function filesHandle(fileData, miniprogramRoot) {
 					// * 单个js的情况-->直接复制
 					var extName = "";
 					var hasAllFile = false;
-					var hasJSFile = false;
-					var hasWxssFile = false;
+					var onlyJSFile = false;
+					var onlyWxssFile = false;
+					var onlyWxmlFile = false;
 
-					if ((file_wxml && file_js) || (file_wxss && file_js) || file_wxml) {
+					if ((file_wxml && file_js) || (file_wxss && file_js)) {
 						//当有wxml，那必然会有js文件，可能会有wxss文件，单独的.wxml，转为.vue
 						extName = ".vue";
 						hasAllFile = true;
+					} else if (file_wxml) {
+						//如果只有一个wxml，就当它是一个组件来处理
+						extName = ".vue";
+						onlyWxmlFile = true;
 					} else if (file_js) {
 						//除了上面至少两种文件存在的情况，那么这里就是单独存在的js文件
 						extName = ".js";
-						hasJSFile = true;
+						onlyJSFile = true;
 					} else if (file_wxss) {
 						//与js文件类似，这里只可能是单独存在的wxss文件
 						extName = ".css";
-						hasWxssFile = true;
+						onlyWxssFile = true;
 					}
 					targetFilePath = path.join(tFolder, fileName + extName);
 					if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
@@ -300,13 +307,34 @@ async function filesHandle(fileData, miniprogramRoot) {
 							console.log(`Convert ${fileName}.vue success!`);
 						});
 					} else {
-						if (hasJSFile) {
+						if (onlyWxmlFile) {
+							//只有wxml文件时，当组件来处理
+							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
+							if (data_wxml) {
+								let data = await wxmlHandle(data_wxml, file_wxml, onlyWxmlFile);
+								fileContent = data;
+								fileContent += `
+<script> 
+	export default {
+		props: [${global.props[file_wxml]}]
+	}
+</script> 
+									`;
+
+								//写入文件
+								fs.writeFile(targetFilePath, fileContent, () => {
+									console.log(`Convert component ${fileName}.vue success!`);
+								});
+							}
+						}
+						if (onlyJSFile) {
 							//如果是为单名的js文件，即同一个名字只有js文件，没有wxml或wxss文件，下同
 							if (file_js && fs.existsSync(file_js)) {
 								fs.copySync(file_js, targetFilePath);
 							}
 						}
-						if (hasWxssFile) {
+
+						if (onlyWxssFile) {
 							//读取.wxss文件
 							if (file_wxss && fs.existsSync(file_wxss)) {
 								let data_wxss = fs.readFileSync(file_wxss, 'utf8');
@@ -359,6 +387,12 @@ async function transform(sourceFolder, targetFolder) {
 	global.miniprogramRoot = miniprogramRoot;
 	global.sourceFolder = sourceFolder;
 	global.targetFolder = targetFolder;
+	global.globalUsingComponents = {};  //后面添加的全局组件
+	global.props = {};  //存储wxml组件页面里面，需要对外开放的参数(本想不做全局的，然而传参出现问题，还是全局一把梭)
+	//数据格式，简单粗爆
+	// {
+	// 	"文件路径":[]
+	// }
 
 	//
 	if (fs.existsSync(targetFolder)) {
@@ -379,10 +413,10 @@ async function transform(sourceFolder, targetFolder) {
 		// fs.writeJson("./log.log", log);
 
 		//处理文件组
-		filesHandle(fileData, miniprogramRoot);
-
-		//处理配置文件
-		configHandle(configData, routerData, miniprogramRoot, targetFolder);
+		filesHandle(fileData, miniprogramRoot).then(() => {
+			//处理配置文件
+			configHandle(configData, routerData, miniprogramRoot, targetFolder);
+		});
 	});
 }
 module.exports = transform;

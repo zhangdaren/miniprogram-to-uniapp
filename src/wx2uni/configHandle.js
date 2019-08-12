@@ -2,6 +2,10 @@ const fs = require('fs-extra');
 const path = require('path');
 const t = require('@babel/types');
 const generate = require('@babel/generator').default;
+const {
+	toCamel2
+} = require('../utils/utils.js');
+
 
 /**
  * 处理配置文件
@@ -21,6 +25,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			let appJson = fs.readJsonSync(json_app);
 			//app.json里面引用的全局组件
 			let globalUsingComponents = appJson.usingComponents;
+			globalUsingComponents = { ...globalUsingComponents, ...global.globalUsingComponents };
 
 			//将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
 			let pages = [];
@@ -70,8 +75,8 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 					 * 而 /pages/images下面的文件是用于页面里的
 					 * 其余情况后面发现再加入
 					 */
-					if (item.iconPath) item.iconPath = "static/" + item.iconPath;
-					if (item.selectedIconPath) item.selectedIconPath = "static/" + item.selectedIconPath;
+					if (item.iconPath) item.iconPath = "./static/" + item.iconPath;
+					if (item.selectedIconPath) item.selectedIconPath = "./static/" + item.selectedIconPath;
 				}
 			}
 
@@ -109,10 +114,13 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//import firstcompoent from '../firstcompoent/firstcompoent'
 			for (const key in globalUsingComponents) {
 				let filePath = globalUsingComponents[key];
+				let extname = path.extname(filePath);
+				filePath  = filePath.replace(extname, ".vue");
 				filePath = filePath.replace(/^\//g, "./"); //相对路径处理
 				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(key))], t.stringLiteral(filePath));
 				mainContent += `${generate(node).code}\r\n`;
 				let name = path.basename(filePath);
+				name = toCamel2(name);
 				mainContent += `Vue.component('${name}', ${key});\r\n\r\n`;
 			}
 			//

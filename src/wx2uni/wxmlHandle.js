@@ -40,13 +40,13 @@ function checkMultiTag(ast) {
  * @param {*} fileData wxml文件内容
  * @param {*} file_wxml 当前操作的文件路径
  */
-async function wxmlHandle(fileData, file_wxml) {
+async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 
 	let reg = /<template([\s\S]*?)<\/template>/g;
 
 	let tmpArr = fileData.match(reg) || [];
 	//
-	let isMultiTemplate = tmpArr.length > 1;
+	let isMultiTemplate = tmpArr.length > 0;
 
 	//生成语法树
 	let templateAst = await templateParser.parse(fileData);
@@ -55,7 +55,7 @@ async function wxmlHandle(fileData, file_wxml) {
 	let isMultiTag = checkMultiTag(templateAst);
 
 	//进行上述目标的转换
-	let convertedTemplate = templateConverter(templateAst, false, file_wxml);
+	let convertedTemplate = templateConverter(templateAst, false, file_wxml, onlyWxmlFile);
 
 	//把语法树转成文本
 	templateConvertedString = templateParser.astToString(convertedTemplate);
@@ -69,7 +69,7 @@ async function wxmlHandle(fileData, file_wxml) {
 			templateConvertedString = `<template>\r\n${templateConvertedString}\r\n</template>\r\n`;
 		}
 	}
-
+	
 	return templateConvertedString;
 }
 
