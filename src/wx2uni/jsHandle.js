@@ -4,17 +4,23 @@
  * 
  */
 const t = require('@babel/types');
-const path = require('path');
+const nodePath = require('path');
 const parse = require('@babel/parser').parse;
 const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
 const template = require('@babel/template').default;
 const JavascriptParser = require('./js/JavascriptParser');
 const componentConverter = require('./js/componentConverter');
-
 const {
+	isURL,
 	toCamel2
 } = require('../utils/utils.js');
+
+const {
+	getFileNameNoExt, getParentFolderName
+} = require('../utils/pathUtil.js');
+
+
 
 /**
  * 将ast属性数组组合为ast对象
@@ -267,6 +273,21 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 				if (path.node.value.properties.length == 0) path.remove();
 			}
 		},
+		CallExpression(path) {
+			let callee = path.node.callee;
+			//将wx.createWorker('workers/fib/index.js')转为wx.createWorker('./static/workers/fib/index.js');
+			if (t.isMemberExpression(callee)) {
+				let object = callee.object;
+				let property = callee.property;
+				if (t.isIdentifier(object, { name: "wx" }) && t.isIdentifier(property, { name: "createWorker" })) {
+					let arguments = path.node.arguments;
+					if (arguments && arguments.length > 0) {
+						let val = arguments[0].value;
+						arguments[0] = t.stringLiteral("./static/" + val);
+					}
+				}
+			}
+		},
 		MemberExpression(path) {
 			let object = path.get('object');
 			let property = path.get('property');
@@ -344,6 +365,48 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 }
 
 /**
+ * 处理js文件里面所有的符合条件的资源路径
+ * @param {*} ast 
+  * @param {*} file_js 
+ */
+function handleJSImage(ast, file_js) {
+	traverse(ast, {
+		noScope: true,
+		StringLiteral(path) {
+			let reg = /\.(jpg|jpeg|gif|svg|png)$/;  //test时不能加/g
+
+			//image标签，处理src路径
+			var src = path.node.value;
+
+			//这里取巧一下，如果路径不是以/开头，那么就在前面加上./
+			if (!/^\//.test(src)) {
+				src = "./" + src;
+			}
+
+			//忽略网络素材地址，不然会转换出错
+			if (src && !isURL(src) && reg.test(src)) {
+				//static路径
+				let staticPath = nodePath.join(global.miniprogramRoot, "static");
+
+				//当前处理文件所在目录
+				let jsFolder = nodePath.dirname(file_js);
+				var pFolderName = getParentFolderName(src);
+				var fileName = nodePath.basename(src);
+
+				let filePath = nodePath.resolve(staticPath, "./" + pFolderName + "/" + fileName);
+				let newImagePath = nodePath.relative(jsFolder, filePath);
+
+				path.node = t.stringLiteral(newImagePath);
+
+				console.log("newImagePath ", newImagePath);
+
+			}
+		},
+	});
+}
+
+
+/**
  * js 处理入口方法
  * @param {*} fileData          要处理的文件内容 
  * @param {*} isApp             是否为入口app.js文件
@@ -371,9 +434,12 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		declareStr
 	} = componentConverter(javascriptAst, miniprogramRoot, file_js);
 
+	//处理js里面的资源路径
+	handleJSImage(javascriptAst, file_js);
+
 	//引入自定义组件
 	//import firstcompoent from '../firstcompoent/firstcompoent'
-	let jsFolder = path.dirname(file_js);
+	let jsFolder = nodePath.dirname(file_js);
 	for (const key in usingComponents) {
 		let filePath = usingComponents[key];
 		filePath = filePath.replace(/^\//g, "./"); //相对路径处理
@@ -384,8 +450,8 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		}
 
 		//先转绝对路径，再转相对路径
-		filePath = path.join(miniprogramRoot, filePath);
-		filePath = path.relative(relativeFolder, filePath);
+		filePath = nodePath.join(miniprogramRoot, filePath);
+		filePath = nodePath.relative(relativeFolder, filePath);
 		//相对路径里\\替换为/
 		filePath = filePath.split("\\").join("/");
 

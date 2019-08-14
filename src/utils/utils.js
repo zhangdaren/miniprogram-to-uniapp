@@ -7,8 +7,13 @@ function log(msg, type = 'error') {
     console.log(chalk.green(msg));
 };
 
-//判断是否为url
+
+/**
+ * 判断是否为url
+ * @param {*} str_url 网址，支持http及各种协议
+ */
 function isURL(str_url) {
+    //TODO: 似乎//www.baidu.com/xx.png 不能通过校验？
     var reg = /^((https|http|ftp|rtsp|mms)?:\/\/)?(([0-9a-z_!~*'().&amp;=+$%-]+: )?[0-9a-z_!~*'().&amp;=+$%-]+@)?((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5]$)|([0-9a-z_!~*'()-]+\.)*([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\.[a-z]{2,6})(:[0-9]{1,4})?((\/?)|(\/[0-9a-zA-Z_!~*'().;?:@&amp;=+$,%#-]+)+\/?)$/;
     if (reg.test(str_url)) {
         return (true);

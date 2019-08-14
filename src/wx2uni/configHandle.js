@@ -62,6 +62,9 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 
 			//usingComponents节点，上面删除缓存，这里删除
 			delete appJson["usingComponents"];
+			
+			//workers处理，简单处理一下
+			if(appJson["workers"]) appJson["workers"] = "static/" + appJson["workers"];
 
 			//tabBar节点
 			//将iconPath引用的图标路径进行修复
@@ -115,7 +118,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			for (const key in globalUsingComponents) {
 				let filePath = globalUsingComponents[key];
 				let extname = path.extname(filePath);
-				filePath  = filePath.replace(extname, ".vue");
+				if(extname) filePath = filePath.replace(extname, ".vue");
 				filePath = filePath.replace(/^\//g, "./"); //相对路径处理
 				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(key))], t.stringLiteral(filePath));
 				mainContent += `${generate(node).code}\r\n`;

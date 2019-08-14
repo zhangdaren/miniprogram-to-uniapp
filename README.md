@@ -62,7 +62,7 @@ $ wtu -i miniprogramProject
    
     
 ## Todolist   
-* [todo] wxml含有import语法时(```<import src="../../../common/head.wxml" />```)，此行未转换，仅原样复制（尽量下一版将完善）   
+* [todo] wxml含有import语法时(```<import src="../../../common/head.wxml" />```)，此行未转换，仅原样复制   
 * [todo] 配置参数，支持指定目录、指定文件方式进行转换   
 * [todo] 文件操作的同步方法添加try catch    
 * [todo] 未去掉转换产生的空生命周期    
@@ -70,21 +70,29 @@ $ wtu -i miniprogramProject
 * [todo] 将pages下面的子目录所包含图片复制到static目录     
 * [todo] 增加参数-p 支持子目录转换     
 * [todo] template标签转换为vue文件     
+
+//TODO-1:
+// 复制workers目录到static
+// config: "workers": "static/workers",
+// 修改js里的路径
+
+//TODO-2:
+// 官方小程序DEMO资源路径不对的问题
+  
    
 
 ## 关于不支持转换的语法说明   
 
 见识过js的语法自由洒脱，没想到小程序的语法比js还要更自由奔放。   
 
-### <import src="*.wxml"/>支持部分语法处理   
+### ```<import src="*.wxml"/>```支持部分语法处理   
 
 常规我们见到的代码是这样的(摘自官方小程序示例demo)：   
 ```
 <import src="../../../common/head.wxml" />
 <view class="container">
     <template is="head" data="{{title: 'action-sheet'}}"/>
-</view02>3
-29
+</view>
 ```
 
 然后为了解决这个问题，我收集到一些```<template/>```的写法：   
@@ -96,7 +104,7 @@ $ wtu -i miniprogramProject
 *	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
 * ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>```
 
-前两个表示勉强可以处理，后面的简直毫无规律可言。以我对vue的粗浅理解，暂时没有好的处理方案。   
+目前仅针对第三种写法可以实现完美转换。而其它写法，以我对vue的粗浅理解，暂时没有好的处理方案。   
 如有大佬对此有完美解决方案，请不吝赐教，谢谢~~   
    
 目前的处理规则：   
@@ -104,17 +112,28 @@ $ wtu -i miniprogramProject
 2. 将模板里面{{}}所包含的变量提取生成到props里   
 3. 仅支持微信小程序官方DEMO里的写法(代码见上)   
 4. template标签名转失为is属性所对应的组件名，因为is属性里只能为组件名，并支持标签上面的其他属性，如wx:if、wx:for等   
-5. 不支持data里含有扩展运算符或无key的方式，现在只支持{key:value}这种对应方式的转换   
+5. 不支持data里含有扩展运算符或无key的方式，现在只支持{key:value}这种对应方式的转换  
+
 
 ### wxs标签/文件不支持转换   
-各种情况太多，需要具体分析   
+各种情况太多，需要具体分析，暂未有完善的方案   
    
-###  workers目录不支持转换   
-即，多线程不支持，也即官方demo，通过该工具转换后，实际是没有直接运行的，/摊手~~
-原因在于，虽然工具能将项目进行转换，但Uni-app打包为小程序后，会将在根目录里除pages/images/utils等目录外的其他目录里的文件进行合并，导致找不到文件了（提示：workers 字段需为 目录）    
-   
+### wxParse不支持转换   
+因uni-app有更好的同类组件，计划使用那个进行替换这个      
+
+      
    
 ## 更新记录   
+### v1.0.17(20190814)   
+* [新增] 新增支持workers目录转换(约定workers目录就位于小程序根目录，复制到static目录，并修复相关路径)   
+* [新增] 新增将所有资源文件全部移入到static目录下，并尽量保持目录结构，修复wxml和wxss文件里的相对路径(js文件里的资源路径情况太多，本版本暂不支持数组里面的资源路径转换)   
+* [修复] 修复生成组件时，props为[undefined]的bug   
+* [修复] 强化css里用来搜索资源路径的正则表达式   
+* [修复] 修复绑定属性增加了绑定属性而未能将原属性删除的bug   
+* [修复] 修复全局组件不含后缀名导致解析出错的bug   
+* [重要！！！] 现在已经能完美转换[微信小程序官方Demo]https://github.com/wechat-miniprogram/miniprogram-demo， (wxs标签暂不支持转换，需手动调整)   
+   
+
 ### v1.0.16(20190812)   
 * [修复] 修复App.vue里import路径不带./的问题   
 * [修复] 修复class="{{xxx}}"的情况   

@@ -3,8 +3,9 @@ const {
 	isURL
 } = require('../../utils/utils.js');
 const {
-	getFileNameNoExt
+	getFileNameNoExt, getParentFolderName
 } = require('../../utils/pathUtil.js');
+
 
 
 //html标签替换规则，可以添加更多
@@ -223,8 +224,78 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 			if (tagConverterConfig[node.name]) {
 				node.name = tagConverterConfig[node.name];
 			}
+
 			//进行属性替换
 			let attrs = {};
+
+			//处理template image标签下面的src路径(这里要先进行转换，免得后面src可能转换为:src了)
+			//e:\zpWork\Project_self\miniprogram-to-uniapp\test\test2\index\images\ic_detail_blue.png
+			//e:\zpWork\Project_self\miniprogram-to-uniapp\test\test2\static\images\ic_detail_blue.png
+			//处理规则：
+			//将所有素材转换为static目录下的路径，以当前正在处理的文件所在的目录作为参照，切为相对路径
+			//直接提取父目录的目标名加文件名作为static下面的相对路径
+			if (node.name == "image") {
+				let reg = /\.(jpg|jpeg|gif|svg|png)$/;  //test时不能加/g
+
+				//image标签，处理src路径
+				var src = node.attribs.src;
+				//这里取巧一下，如果路径不是以/开头，那么就在前面加上./
+				if (!/^\//.test(src)) {
+					src = "./" + src;
+				}
+				//忽略网络素材地址，不然会转换出错
+				if (src && !isURL(src) && reg.test(src)) {
+					//static路径
+					let staticPath = path.join(global.miniprogramRoot, "static");
+
+					// <image src="/page/cloud/resources/kind/database.png"
+
+					//当前处理文件所在目录
+					let wxmlFolder = path.dirname(file_wxml);
+					var pFolderName = getParentFolderName(src);
+					// console.log("pFolderName ", pFolderName)
+					var fileName = path.basename(src);
+					// console.log("fileName ", fileName)
+
+					//src资源完整路径
+					// let filePath = "";
+					// if (/^\//.test(src)) {
+					// 	console.log("-" + src)
+					// 	filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
+					// 	console.log("--" + filePath)
+					// } else if (/^\./.test(src)) {
+					// 	//以.开头表示为相对路径，直接将前面的..或../去掉
+					// 	console.log("-" + src)
+					// 	filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
+					// 	console.log("--" + filePath)
+
+					// 	//下面为以前的逻辑，先放在这里
+					// 	// filePath = path.resolve(wxmlFolder, src);
+					// 	// console.log("22-", filePath);
+					// 	// //src资源文件相对于src所在目录的相对路径
+					// 	// let relativePath = path.relative(global.miniprogramRoot, filePath);
+					// 	// //处理images或image目录在pages下面的情况 
+					// 	// relativePath = relativePath.replace(/^pages\\/, "");
+					// 	// //资源文件路径
+					// 	// let newImagePath = path.join(global.miniprogramRoot, "static/" + relativePath);
+					// 	// newImagePath = path.relative(wxmlFolder, newImagePath);
+					// 	// //修复路径
+					// 	// newImagePath = newImagePath.split("\\").join("/");
+					// 	// console.log("22--", newImagePath);
+					// } else {
+					// 	//既无/又无.，表示为当前路径
+					// 	filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
+					// }
+
+					filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
+					newImagePath = path.relative(wxmlFolder, filePath);
+
+					attrs.src = newImagePath;
+				} else {
+					console.log("wxml漏网之鱼: --> src=\"" + src + "\"，所在文件：" + path.relative(global.miniprogramRoot, file_wxml))
+				}
+			}
+
 			for (let k in node.attribs) {
 				let target = attrConverterConfigUni[k];
 				if (target) {
@@ -386,36 +457,10 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 						value = value.replace(/\"/g, "'");
 
 						attrs[":" + k] = value;
+						delete attrs[k];
 					} else {
 						attrs[k] = node.attribs[k];
 					}
-				}
-			}
-
-			//处理template image标签下面的src路径
-			//e:\zpWork\Project_self\miniprogram-to-uniapp\test\test2\index\images\ic_detail_blue.png
-			//e:\zpWork\Project_self\miniprogram-to-uniapp\test\test2\static\images\ic_detail_blue.png
-			if (node.name == "image") {
-				let reg = /.(jpg|jpeg|gif|svg|png)$/g;
-				//image标签，处理src路径
-				var src = attrs.src;
-				//忽略网络素材地址，不然会转换出错
-				if (!isURL(src) && reg.test(src)) {
-					//当前处理文件所在目录
-					let wxmlFolder = path.dirname(file_wxml);
-					//src资源完整路径
-					let filePath = path.resolve(wxmlFolder, src);
-					//src资源文件相对于src所在目录的相对路径
-					let relativePath = path.relative(global.miniprogramRoot, filePath);
-					//处理images或image目录在pages下面的情况 
-					relativePath = relativePath.replace(/^pages\\/, "");
-
-					//资源文件路径
-					let newImagePath = path.join(global.miniprogramRoot, "static/" + relativePath);
-					newImagePath = path.relative(wxmlFolder, newImagePath);
-					//修复路径
-					newImagePath = newImagePath.split("\\").join("/");
-					attrs.src = newImagePath;
 				}
 			}
 
