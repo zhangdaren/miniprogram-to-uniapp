@@ -209,8 +209,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 										if (isHasWxmlFile || isHasJsFile || isHasWxssFile) {
 											//直接复制到static目录里
 											let targetFile = path.join(targetFolder, "static" + "/" + fileName);
-											if(fs.existsSync(targetFile))
-											{
+											if (fs.existsSync(targetFile)) {
 												console.log("遇到同名文件：" + fileName + " 将直接覆盖！");
 											}
 											fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
@@ -307,6 +306,10 @@ async function filesHandle(fileData, miniprogramRoot) {
 					//解析json
 					if (file_json) {
 						let data = fs.readJsonSync(file_json);
+						//判断是否有引用自定义组件
+						if (!data.usingComponents || JSON.stringify(data.usingComponents) == "{}") {
+							data.usingComponents = {};
+						}
 						routerData[key] = {
 							navigationBarTitleText: data.navigationBarTitleText,
 							usingComponents: data.usingComponents,
@@ -322,6 +325,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 							if (data_wxml) {
 								let data = await wxmlHandle(data_wxml, file_wxml);
 								fileContent += data;
+								wxsHandle(tFolder, file_wxml);
 							}
 						}
 
@@ -363,8 +367,10 @@ async function filesHandle(fileData, miniprogramRoot) {
 								if (global.props[file_wxml] && global.props[file_wxml].length > 0) {
 									props = global.props[file_wxml];
 								}
+								let wxsImportStr = wxsHandle(tFolder, file_wxml);
 								fileContent += `
 <script> 
+	${wxsImportStr}
 	export default {
 		props: [${props}]
 	}
@@ -416,6 +422,37 @@ async function filesHandle(fileData, miniprogramRoot) {
 }
 
 /**
+ * wxs信息处理
+ * @param {*} tFolder   目录目录
+ * @param {*} file_wxml 当前处理的wxml文件
+ */
+function wxsHandle(tFolder, file_wxml) {
+	let wxmlFolder = path.dirname(file_wxml);
+	let key = path.join(wxmlFolder, getFileNameNoExt(file_wxml));
+
+	//提取wxml里面的wxs信息
+	let wxsInfoArr = global.wxsInfo[key];
+	let str = "";
+	if (wxsInfoArr && wxsInfoArr.length > 0) {
+		wxsInfoArr.forEach(obj => {
+			if (obj.type == "insert") {
+				let jsFilePath = path.join(tFolder, obj.name + ".js");
+				obj.type = "link"; //改为link
+				obj.src = "./" + obj.name + ".js"; //填充src
+
+				str += `import ${obj.name} from '${obj.src}'\r\n`;
+				//写入文件
+				fs.writeFile(jsFilePath, obj.content, () => {
+					console.log(`Convert wxs file ${obj.name}.js success!`);
+				});
+			}
+		});
+	}
+	return str;
+}
+
+
+/**
  * 转换入口
  * @param {*} sourceFolder 输入目录
  * @param {*} targetFolder 输出目录
@@ -443,7 +480,17 @@ async function transform(sourceFolder, targetFolder) {
 	// {
 	// 	"文件路径":[]
 	// }
-
+	global.wxsInfo = {}; //存储页面里的wxs信息，数据格式如上所示
+	//数据格式
+	// {
+	// 	"文件路径":[
+	//	   {
+	//		"name":"module name",
+	//		"type":"link or insert",
+	//		"content":"路径或内容",
+	//	   }
+	//  ]
+	// }
 	//
 	if (fs.existsSync(targetFolder)) {
 		//清空output目录

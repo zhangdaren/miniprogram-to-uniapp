@@ -58,27 +58,17 @@ $ wtu -i miniprogramProject
 * 区分app.js/component，两者解析规则略有不同   
 * 添加setData()函数于methods下，解决this.setData()   
 * App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx   
-
+* 支持wxs文件转换(语法转换下版更新)
    
     
 ## Todolist   
-* [todo] wxml含有import语法时(```<import src="../../../common/head.wxml" />```)，此行未转换，仅原样复制   
-* [todo] 配置参数，支持指定目录、指定文件方式进行转换   
+* [todo] 配置参数，支持指定目录、指定文件方式进行转换，增加参数-p 支持子目录转换   
 * [todo] 文件操作的同步方法添加try catch    
 * [todo] 未去掉转换产生的空生命周期    
 * [todo] 页面/组件里data(){}里面的变量，如含有图片素材，将进行替换    
-* [todo] 将pages下面的子目录所包含图片复制到static目录     
-* [todo] 增加参数-p 支持子目录转换     
-* [todo] template标签转换为vue文件     
-
-//TODO-1:
-// 复制workers目录到static
-// config: "workers": "static/workers",
-// 修改js里的路径
-
-//TODO-2:
-// 官方小程序DEMO资源路径不对的问题
-  
+* [todo] template标签转换为vue文件   
+* [todo] 浏览小程序文档，发现生命周期函数可以写在lifetimes或pageLifetimes字段时，需要兼容一下(https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/component.html)   
+* [todo] 小程序组件还有其他生命周期函数转换   
    
 
 ## 关于不支持转换的语法说明   
@@ -113,17 +103,27 @@ $ wtu -i miniprogramProject
 3. 仅支持微信小程序官方DEMO里的写法(代码见上)   
 4. template标签名转失为is属性所对应的组件名，因为is属性里只能为组件名，并支持标签上面的其他属性，如wx:if、wx:for等   
 5. 不支持data里含有扩展运算符或无key的方式，现在只支持{key:value}这种对应方式的转换  
-
-
-### wxs标签/文件不支持转换   
-各种情况太多，需要具体分析，暂未有完善的方案   
+   
    
 ### wxParse不支持转换   
 因uni-app有更好的同类组件，计划使用那个进行替换这个      
 
-      
+  
    
 ## 更新记录   
+### v1.0.18(20190821)   
+* [新增] 支持wxs文件转换(两种方式：module和src)。   
+wxs转换规则：   
+1.将wxs文件转换为.js文件   
+2.module标签里如果包含代码则生成为js文件   
+3.使用第二步的js文件地址或src属性，生成import代码插入到vue文件的```<script/>```里   
+4.给生命周期onLoad()/created()里添加一行代码：```this.xxx=xxx;```(关键代码！)   
+* [修复] 组件生命周期函数attached转换为beforeMount   
+* [修复] 修复转换```that.triggerEvent("action");```报错的bug   
+* [修复] 修复css里资源路径斜杠未转换的bug   
+* [注意!!] wxs转js语法下版完善~   
+   
+   
 ### v1.0.17(20190814)   
 * [新增] 新增支持workers目录转换(约定workers目录就位于小程序根目录，复制到static目录，并修复相关路径)   
 * [新增] 新增将所有资源文件全部移入到static目录下，并尽量保持目录结构，修复wxml和wxss文件里的相对路径(js文件里的资源路径情况太多，本版本暂不支持数组里面的资源路径转换)   
@@ -133,7 +133,7 @@ $ wtu -i miniprogramProject
 * [修复] 修复全局组件不含后缀名导致解析出错的bug   
 * [重要！！！] 现在已经能完美转换[微信小程序官方Demo]https://github.com/wechat-miniprogram/miniprogram-demo， (wxs标签暂不支持转换，需手动调整)   
    
-
+   
 ### v1.0.16(20190812)   
 * [修复] 修复App.vue里import路径不带./的问题   
 * [修复] 修复class="{{xxx}}"的情况   
@@ -239,9 +239,9 @@ this.setData({
 * 感谢转转大佬的文章：[[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)，* 本项目基于此文章里面的代码开发，在此表示感谢~   
 * 感谢网友[没有好名字了]给予帮助。   
 * 感谢官方大佬DCloud_heavensoft的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。   
-* 感谢为本项目提供建议以及帮助的热心网友们~~
+* 感谢为本项目提供建议以及帮助的热心网友们~~   
+* this.setData()代码出处：https://ask.dcloud.net.cn/article/35020，在些表示感谢~   
    
-
    
    
 ### 参考资料   

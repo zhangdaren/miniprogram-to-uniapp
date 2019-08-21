@@ -73,11 +73,11 @@ async function cssHandle(fileContent, file_wxss) {
 					// console.log("pFolderName ", pFolderName)
 					var fileName = path.basename(src);
 					// console.log("fileName ", fileName)
-
-
+					//
 					let filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
 					src = path.relative(wxssFolder, filePath);
-
+					// 修复路径
+					src = src.split("\\").join("/");
 
 					//忽略网络素材地址，不然会转换出错
 					// if (!isURL(src)) {

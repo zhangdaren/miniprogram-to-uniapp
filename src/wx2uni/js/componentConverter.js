@@ -39,17 +39,32 @@ let dataValue = {};
 let computedValue = {};
 //wacth对象
 let watchValue = {};
+//判断当前文件类型，true表示页面，false表示组件
+let isPage = true;
 
 //工作目录
 let miniprogramRoot = "";
 //当前处理的js文件路径
 let file_js = "";
+
+
+
 /*
  *
  * 注：为防止深层遍历，将直接路过子级遍历，所以使用enter进行全遍历时，孙级节点将跳过
  * 
  */
 const componentVistor = {
+	ExpressionStatement(path) {
+		//判断当前文件是Page还是Component(还有第三种可能->App，划分到Page)
+		if (t.isProgram(path.parent)) {
+			let callee = path.get('expression.callee');
+			//这里不严谨，有等于App的情况，按页面处理得了
+			if (callee && callee.node && t.isIdentifier(callee.node, { name: "Component" })) {
+				isPage = false;
+			}
+		}
+	},
 	ImportDeclaration(path) {
 		//定义的导入的模块
 		// vistors.importDec.handle(path.node);
@@ -137,10 +152,17 @@ const componentVistor = {
 				vistors.lifeCycle.handle(path.node);
 				break;
 			case 'attached':
-				//组件特有生命周期: attached-->onLoad
-				let newPath = clone(path);
-				newPath.node.key.name = "onLoad";
-				vistors.lifeCycle.handle(newPath.node);
+				//组件特有生命周期: attached-->beforeMount
+				let newPath_a = clone(path);
+				newPath_a.node.key.name = "beforeMount";
+				vistors.lifeCycle.handle(newPath_a.node);
+				path.skip();
+				break;
+			case 'moved':
+				//组件特有生命周期: moved-->moved  //这个vue没有对应的生命周期
+				let newPath_m = clone(path);
+				newPath_m.node.key.name = "moved";
+				vistors.lifeCycle.handle(newPath_m.node);
 				path.skip();
 				break;
 			case 'properties':
@@ -199,6 +221,8 @@ const componentConverter = function (ast, _miniprogramRoot, _file_js) {
 	//wacth对象
 	watchValue = {};
 	//
+	isPage = true;
+	//
 	miniprogramRoot = _miniprogramRoot;
 	file_js = _file_js;
 	//
@@ -216,7 +240,8 @@ const componentConverter = function (ast, _miniprogramRoot, _file_js) {
 	return {
 		convertedJavascript: traverse(ast, componentVistor),
 		vistors: vistors,
-		declareStr //定义的变量和导入的模块声明
+		declareStr, //定义的变量和导入的模块声明
+		isPage
 	}
 }
 

@@ -129,18 +129,18 @@ function findParentsWithFor(node) {
  * @param {Boolean} isChildren 是否正在遍历子项目
  */
 const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
-	var reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
-	var props = [];
+	let reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
+	let props = [];
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
 		//检测到是html节点
 		if (node.type === 'tag') {
+			//当前处理文件所在目录
+			let wxmlFolder = path.dirname(file_wxml);
+
 			//处理import标签
 			if (node.name == "import") {
 				let src = node.attribs["src"];
-
-				//当前处理文件所在目录
-				let wxmlFolder = path.dirname(file_wxml);
 				//src资源完整路径
 				let filePath = path.resolve(wxmlFolder, src);
 				//src资源文件相对于src所在目录的相对路径
@@ -159,6 +159,44 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 				global.globalUsingComponents[name] = relativePath;
 
 				// console.log(src, relativePath);
+				delete ast[i];
+				continue;
+			} else if (node.name == "wxs") {
+				//处理wxs标签 <wxs src="./../logic.wxs" module="logic" />
+				let module = node.attribs.module;
+				let src = node.attribs.src;  //src不一有值
+				
+				// key为文件路径 + 文件名(不含扩展名)组成
+				let key = path.join(wxmlFolder, getFileNameNoExt(file_wxml));
+				//
+				if (!global.wxsInfo[key]) global.wxsInfo[key] = [];
+				let obj = {};
+				if (src) {
+					//说明是外链的
+					// console.log("src---", src);
+					obj = {
+						"name": module,
+						"type": "link",
+						"src": src.split(".wxs").join(".js"),  //简单处理一下后缀名
+						"content": ""
+					};
+				} else {
+					//说明是有内容的，需要将内容写入到文件里
+					let content = "";
+					let children = node.children;
+					children.forEach(obj => {
+						content += (obj.data || "");
+					});
+					// console.log("content---", content);
+					obj = {
+						"name": module,
+						"type": "insert",
+						"src": "",
+						"content": content,
+					};
+				}
+				global.wxsInfo[key].push(obj);
+				//
 				delete ast[i];
 				continue;
 			}
@@ -200,7 +238,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 
 					// console.log(test);
 					try {
-						obj = JSON.parse("{" + test + "}");
+						let obj = JSON.parse("{" + test + "}");
 						for (const key in obj) {
 							let val = obj[key];
 							if (val.indexOf("\"") > -1) {
@@ -238,7 +276,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 				let reg = /\.(jpg|jpeg|gif|svg|png)$/;  //test时不能加/g
 
 				//image标签，处理src路径
-				var src = node.attribs.src;
+				let src = node.attribs.src;
 				//这里取巧一下，如果路径不是以/开头，那么就在前面加上./
 				if (!/^\//.test(src)) {
 					src = "./" + src;
@@ -292,7 +330,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 
 					attrs.src = newImagePath;
 				} else {
-					console.log("wxml漏网之鱼: --> src=\"" + src + "\"，所在文件：" + path.relative(global.miniprogramRoot, file_wxml))
+					console.log("wxml漏网之鱼: --> src=\"" + node.attribs.src + "\"，所在文件：" + path.relative(global.miniprogramRoot, file_wxml))
 				}
 			}
 
@@ -300,17 +338,17 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 				let target = attrConverterConfigUni[k];
 				if (target) {
 					//单独判断style的绑定情况
-					var key = target['key'];
-					var value = node.attribs[k];
+					let key = target['key'];
+					let value = node.attribs[k];
 					//将双引号转换单引号
 					value = value.replace(/\"/g, "'");
 
 					// if (k == 'style') {
-					// 	var hasBind = value.indexOf("{{") > -1;
+					// 	let hasBind = value.indexOf("{{") > -1;
 					// 	key = hasBind ? ':style' : this.key;
 					// } else 
 					if (k == 'url') {
-						var hasBind = value.indexOf("{{") > -1;
+						let hasBind = value.indexOf("{{") > -1;
 						key = hasBind ? ':url' : this.key;
 					}
 					attrs[key] = target['value'] ?
@@ -318,12 +356,12 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 						node.attribs[k];
 				} else if (k == 'class') {
 					//class单独处理
-					var value = node.attribs[k];
+					let value = node.attribs[k];
 					//将双引号转换单引号
 					value = value.replace(/\"/g, "'");
-					var hasBind = reg_tag.test(value);
+					let hasBind = reg_tag.test(value);
 					if (hasBind) {
-						var reg = /(.*?) +{{(.*?)}}/g;
+						let reg = /(.*?) +{{(.*?)}}/g;
 						let tempR = reg.exec(value);
 						if (tempR) {
 							attrs['class'] = tempR[1];
@@ -382,7 +420,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					let wx_forItem = node.attribs["wx:for-item"];
 					let wx_forItems = node.attribs["wx:for-items"];
 					//wx:for与wx:for-items互斥
-					var value = wx_for ? wx_for : wx_forItems;
+					let value = wx_for ? wx_for : wx_forItems;
 
 					//替换{{}}
 					if (wx_key) {
@@ -393,7 +431,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					//查找父级的key
 					let pKey = findParentsWithFor(node);
 					if (pKey && pKey.indexOf("index") > -1) {
-						var count = pKey.split("index").join("");
+						let count = pKey.split("index").join("");
 						if (count) {
 							count = parseInt(count);
 						} else {
@@ -431,13 +469,13 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					//其他属性
 					//处理下面这种嵌套关系的样式或绑定的属性
 					//style="background-image: url({{avatarUrl}});color:{{abc}};font-size:12px;"
-					var value = node.attribs[k];
-					var hasBind = reg_tag.test(value);
+					let value = node.attribs[k];
+					let hasBind = reg_tag.test(value);
 					if (hasBind) {
-						var reg1 = /(?!^){{ ?/g; //中间的{{
-						var reg2 = / ?}}(?!$)/g; //中间的}}
-						var reg3 = /^{{ ?/; //起始的{{
-						var reg4 = / ?}}$/; //文末的}}
+						let reg1 = /(?!^){{ ?/g; //中间的{{
+						let reg2 = / ?}}(?!$)/g; //中间的}}
+						let reg3 = /^{{ ?/; //起始的{{
+						let reg4 = / ?}}$/; //文末的}}
 						value = value.replace(reg1, "' + ").replace(reg2, " + '");
 
 						//单独处理前后是否有{{}}的情况

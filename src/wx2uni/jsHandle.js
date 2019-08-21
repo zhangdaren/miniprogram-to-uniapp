@@ -11,6 +11,7 @@ const traverse = require('@babel/traverse').default;
 const template = require('@babel/template').default;
 const JavascriptParser = require('./js/JavascriptParser');
 const componentConverter = require('./js/componentConverter');
+const clone = require('clone');
 const {
 	isURL,
 	toCamel2
@@ -132,7 +133,9 @@ function handleSetData(path, isThis) {
  * 获取setData()的AST
  * 暂未想到其他好的方式来实现将setData插入到methods里。
  */
-function getSetDataFun() {
+var setDataFunAST = null;
+function getSetDataFunAST() {
+	if (setDataFunAST) return clone(setDataFunAST);
 	const code = `
 	var setData = {
 	setData:function(obj){  
@@ -167,23 +170,60 @@ function getSetDataFun() {
 			result = path.node;
 		}
 	});
-
+	setDataFunAST = result;
 	return result;
 }
+
+
+/**
+ * 根据funName在liftCycleArr里查找生命周期函数，找不到就创建一个，给onLoad()里加入wxs所需要的代码
+ * @param {*} liftCycleArr  生命周期函数数组
+ * @param {*} key           用于查找当前编辑的文件组所对应的key
+ * @param {*} funName       函数名："onLoad" or "beforeMount"
+ */
+function handleOnLoadFun(liftCycleArr, key, funName) {
+	var node = null;
+	for (let i = 0; i < liftCycleArr.length; i++) {
+		const obj = liftCycleArr[i];
+		if (obj.key.name == funName) {
+			node = obj;
+			break;
+		}
+	}
+	let wxInfo = global.wxsInfo[key];
+	if (wxInfo) {
+		if (!node) {
+			node = t.objectMethod("method", t.identifier(funName), [], t.blockStatement([]));
+			liftCycleArr.unshift(node);
+		}
+		wxInfo.forEach(obj => {
+			let left = t.memberExpression(t.thisExpression(), t.identifier(obj.name));
+			let right = t.identifier(obj.name);
+			let exp = t.expressionStatement(t.assignmentExpression("=", left, right));
+			node.body.body.unshift(exp);
+		});
+	}
+	return node;
+}
+
+
 
 /**
  * 组件模板处理
  * @param {*} ast 
  * @param {*} vistors 
- * @param {*} isApp 是否为app.js文件
+ * @param {*} isApp            是否为app.js文件
  * @param {*} usingComponents  使用的自定义组件列表
+ * @param {*} isPage           判断当前文件是Page还是Component(还有第三种可能->App，划分到Page)
+ * @param {*} key              获取当前文件wxs信息的key
  */
-const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents) {
+const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, key) {
 	let buildRequire = null;
 
 	//插入setData()
-	const node = getSetDataFun();
+	const node = getSetDataFunAST();
 	vistors.methods.handle(node);
+
 	//
 	if (isApp) {
 		//是app.js文件,要单独处理
@@ -197,6 +237,18 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 		//非app.js文件
 		buildRequire = template(componentTemplate);
 
+		/**
+		 * ToDO
+		 * isPage()
+		 * 如果是页面就判断是否有onLoad生命周期函数
+		 * 如果不是页面就判断是否有created生命周期函数
+		 * 
+		 * 没有就加上 
+		 * 
+		 * 下面进行循环的时候，再进行加上相应的代码
+		 * 
+		 */
+
 		ast = buildRequire({
 			PROPS: arrayToObject(vistors.props.getData()),
 			DATA: arrayToObject(vistors.data.getData()),
@@ -204,10 +256,13 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 			COMPUTED: arrayToObject(vistors.computed.getData()),
 			WATCH: arrayToObject(vistors.watch.getData()),
 		});
+
+		//处理wxs里变量的引用问题
+		let liftCycleArr = vistors.lifeCycle.getData();
+		let funName = "beforeMount";
+		if (isPage) funName = "onLoad";
+		handleOnLoadFun(liftCycleArr, key, funName);
 	}
-
-
-
 
 	//久久不能遍历，搜遍google，template也没有回调，后面想着源码中应该会有蛛丝马迹，果然，在templateVisitor里找到了看到这么一个属性noScope，有点嫌疑
 	//noScope: 从babel-template.js中发现这么一个属性，因为直接转出来的ast进行遍历时会报错，找了官方文档，没有这个属性的介绍信息。。。
@@ -223,9 +278,9 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 		ObjectMethod(path) {
 			// console.log("--------", path.node.key.name);
 			if (path.node.key.name === 'data') {
-				var liftCycleArr = vistors.lifeCycle.getData();
+				let liftCycleArr = vistors.lifeCycle.getData();
 				for (let key in liftCycleArr) {
-					// console.log(liftCycleArr[key]);
+					console.log(liftCycleArr[key]);
 					path.insertAfter(liftCycleArr[key]);
 				}
 				//停止，不往后遍历了
@@ -292,14 +347,12 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents)
 			let object = path.get('object');
 			let property = path.get('property');
 
-			//this.triggerEvent()转换为this.$emit()
 			if (t.isIdentifier(property.node, { name: "triggerEvent" })) {
-				let obj = t.memberExpression(object, t.identifier("$emit"));
+				//this.triggerEvent()转换为this.$emit()
+				let obj = t.memberExpression(object.node, t.identifier("$emit"));
 				path.replaceWith(obj);
-			}
-
-			//将this.data.xxx转换为this.xxx
-			if (t.isIdentifier(property.node, { name: "data" })) {
+			} else if (t.isIdentifier(property.node, { name: "data" })) {
+				//将this.data.xxx转换为this.xxx
 				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" })) {
 					path.replaceWith(object);
 				}
@@ -397,9 +450,7 @@ function handleJSImage(ast, file_js) {
 				let newImagePath = nodePath.relative(jsFolder, filePath);
 
 				path.node = t.stringLiteral(newImagePath);
-
-				console.log("newImagePath ", newImagePath);
-
+				// console.log("newImagePath ", newImagePath);
 			}
 		},
 	});
@@ -431,11 +482,21 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	let {
 		convertedJavascript,
 		vistors,
-		declareStr
+		declareStr,
+		isPage
 	} = componentConverter(javascriptAst, miniprogramRoot, file_js);
 
 	//处理js里面的资源路径
 	handleJSImage(javascriptAst, file_js);
+
+	//添加wxs引用
+	let key = nodePath.join(nodePath.dirname(file_js), getFileNameNoExt(file_js));
+	let wxInfo = global.wxsInfo[key];
+	if (wxInfo) {
+		wxInfo.forEach(obj => {
+			if (obj.type == "link") declareStr += `import ${obj.name} from '${obj.src}'\r\n`;
+		});
+	}
 
 	//引入自定义组件
 	//import firstcompoent from '../firstcompoent/firstcompoent'
@@ -468,7 +529,7 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	}
 
 	//放到预先定义好的模板中
-	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents);
+	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents, isPage, key);
 
 
 	// console.log(`${generate(convertedJavascript).code}`);
