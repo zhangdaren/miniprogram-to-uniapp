@@ -10,7 +10,13 @@
 ```js
 $ npm install miniprogram-to-uniapp -g
 ```
-
+   
+## 升级版本   
+   
+```js
+$ npm update miniprogram-to-uniapp -g
+```
+   
 ## 使用方法
 
 ```sh
@@ -30,6 +36,7 @@ Examples:
 ```sh
 $ wtu -i miniprogramProject
 ```
+
 
 ## 使用指南
 
@@ -52,13 +59,13 @@ $ wtu -i miniprogramProject
 * 支持含云开发的小程序项目(有云开发与无云开发的项目的目录结构有差别)   
 * 支持['btn/btn.js', 'btn/btn.wxml', 'btn/btn.wxss']或['btn/btn.js', 'btn/btn.wxml' || 'btn/btn.wxss']转换为'btn/btn.vue' ，模板语法、生命周期函数等进行相应转换  
 * 支持['util/util.js']复制为['util/util.js']，原样复制   
-* 支持['1.wxss']复制为['1.css']，原样复制，仅对import的模块进行后缀名修改   
+* 解析wxss文件，修复import *.wxss语句及引用的资源路径修复   
 * 支持生命周期函数的转换   
 * 支持同一目录下有不同名js/wxml/wxss文件转换   
 * 区分app.js/component，两者解析规则略有不同   
-* 添加setData()函数于methods下，解决this.setData()   
+* 添加setData()函数于methods下，解决this.setData()【代码出处：https://ask.dcloud.net.cn/article/35020】  
 * App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx   
-* 支持wxs文件转换(语法转换下版更新)
+* 支持wxs文件转换
    
     
 ## Todolist   
@@ -102,7 +109,7 @@ $ wtu -i miniprogramProject
 2. 将模板里面{{}}所包含的变量提取生成到props里   
 3. 仅支持微信小程序官方DEMO里的写法(代码见上)   
 4. template标签名转失为is属性所对应的组件名，因为is属性里只能为组件名，并支持标签上面的其他属性，如wx:if、wx:for等   
-5. 不支持data里含有扩展运算符或无key的方式，现在只支持{key:value}这种对应方式的转换  
+5. 现在只支持{key:value}这种对应方式的转换，不支持data里含有扩展运算符或无key的方式  
    
    
 ### wxParse不支持转换   
@@ -111,6 +118,13 @@ $ wtu -i miniprogramProject
   
    
 ## 更新记录   
+### v1.0.19(20190822)   
+* [新增] 支持wxs语法转换，查阅文档仅看到正则和日期与js稍有不同，暂未发现其他   
+wxs语法转换规则：   
+1.getDate() --> new Date()   
+2.getRegExp("wxs", "img") --> new RegExp("wxs", "img")   
+
+
 ### v1.0.18(20190821)   
 * [新增] 支持wxs文件转换(两种方式：module和src)。   
 wxs转换规则：   

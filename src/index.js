@@ -10,6 +10,7 @@ const jsHandle = require('./wx2uni/jsHandle');
 const wxmlHandle = require('./wx2uni/wxmlHandle');
 const cssHandle = require('./wx2uni/cssHandle');
 const configHandle = require('./wx2uni/configHandle');
+const wxsHandle = require('./wx2uni/wxsHandle');
 
 //TODO: 日志，暂未来得及完善
 
@@ -193,11 +194,24 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 									obj["json"] = fileDir;
 									break;
 								case ".wxs":
-									fs.copySync(fileDir, path.join(tFolder, fileNameNoExt + ".js"));
+									//这里现场处理一下wxs文件
+									let data_wxs = fs.readFileSync(fileDir, 'utf8');
+									if (data_wxs) {
+										//处理一下
+										wxsHandle(data_wxs).then((fileContent) => {
+											let targetFile = path.join(tFolder, fileNameNoExt + ".js");
+											//写入文件
+											fs.writeFile(targetFile, fileContent, () => {
+												console.log(`Convert wxs file ${obj.name}.js success!`);
+											});
+										}).catch(error => {
+											console.log("wxsHandle", error);
+										});
+									}
 									break;
 								default:
-									console.log(extname, path.dirname(fileDir));
-									console.log(fileDir, path.basename(path.dirname(fileDir)));
+									// console.log(extname, path.dirname(fileDir));
+									// console.log(fileDir, path.basename(path.dirname(fileDir)));
 									if (/.(jpg|jpeg|gif|svg|png)$/.test(extname)) {
 										//当前文件上层目录
 										let pFolder = path.dirname(fileDir);
@@ -258,9 +272,9 @@ async function filesHandle(fileData, miniprogramRoot) {
 					let file_js = obj["js"];
 					let file_wxml = obj["wxml"];
 					let file_wxss = obj["wxss"];
+					let file_json = obj["json"];
 					let tFolder = obj["folder"];
 					let fileName = obj["fileName"];
-					let file_json = obj["json"];
 					let isAppFile = obj["isAppFile"];
 					//
 					if (!fs.existsSync(tFolder)) {
@@ -325,7 +339,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 							if (data_wxml) {
 								let data = await wxmlHandle(data_wxml, file_wxml);
 								fileContent += data;
-								wxsHandle(tFolder, file_wxml);
+								wxsInfoHandle(tFolder, file_wxml);
 							}
 						}
 
@@ -367,7 +381,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 								if (global.props[file_wxml] && global.props[file_wxml].length > 0) {
 									props = global.props[file_wxml];
 								}
-								let wxsImportStr = wxsHandle(tFolder, file_wxml);
+								let wxsImportStr = wxsInfoHandle(tFolder, file_wxml);
 								fileContent += `
 <script> 
 	${wxsImportStr}
@@ -406,8 +420,6 @@ async function filesHandle(fileData, miniprogramRoot) {
 						}
 					}
 
-
-
 					count++;
 					if (count >= total) {
 						//文件转换结束时
@@ -426,7 +438,7 @@ async function filesHandle(fileData, miniprogramRoot) {
  * @param {*} tFolder   目录目录
  * @param {*} file_wxml 当前处理的wxml文件
  */
-function wxsHandle(tFolder, file_wxml) {
+function wxsInfoHandle(tFolder, file_wxml) {
 	let wxmlFolder = path.dirname(file_wxml);
 	let key = path.join(wxmlFolder, getFileNameNoExt(file_wxml));
 
@@ -441,9 +453,15 @@ function wxsHandle(tFolder, file_wxml) {
 				obj.src = "./" + obj.name + ".js"; //填充src
 
 				str += `import ${obj.name} from '${obj.src}'\r\n`;
-				//写入文件
-				fs.writeFile(jsFilePath, obj.content, () => {
-					console.log(`Convert wxs file ${obj.name}.js success!`);
+
+				//处理一下
+				wxsHandle(obj.content).then((fileContent) => {
+					//写入文件
+					fs.writeFile(jsFilePath, fileContent, () => {
+						console.log(`Convert wxs file ${obj.name}.js success!`);
+					});
+				}).catch(error => {
+					console.log("wxsHandle", error);
 				});
 			}
 		});
@@ -500,7 +518,7 @@ async function transform(sourceFolder, targetFolder) {
 		fs.mkdirSync(targetFolder);
 	}
 
-	traverseFolder(miniprogramRoot, miniprogramRoot, targetFolder, function () {
+	traverseFolder(miniprogramRoot, miniprogramRoot, targetFolder, () => {
 		// console.log(JSON.stringify(fileData));
 		// log.data = {
 		// 	...log.data,
@@ -515,6 +533,7 @@ async function transform(sourceFolder, targetFolder) {
 			configHandle(configData, routerData, miniprogramRoot, targetFolder);
 		});
 	});
+
 }
 module.exports = transform;
 

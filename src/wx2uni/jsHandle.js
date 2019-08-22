@@ -280,7 +280,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			if (path.node.key.name === 'data') {
 				let liftCycleArr = vistors.lifeCycle.getData();
 				for (let key in liftCycleArr) {
-					console.log(liftCycleArr[key]);
+					// console.log(liftCycleArr[key]);
 					path.insertAfter(liftCycleArr[key]);
 				}
 				//停止，不往后遍历了
