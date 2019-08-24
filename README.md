@@ -109,7 +109,7 @@ $ wtu -i miniprogramProject
 2. 将模板里面{{}}所包含的变量提取生成到props里   
 3. 仅支持微信小程序官方DEMO里的写法(代码见上)   
 4. template标签名转失为is属性所对应的组件名，因为is属性里只能为组件名，并支持标签上面的其他属性，如wx:if、wx:for等   
-5. 现在只支持{key:value}这种对应方式的转换，不支持data里含有扩展运算符或无key的方式  
+5. 现在只支持键值对{key:value}这种对应方式的转换，不支持data里含有扩展运算符或无key的方式  
    
    
 ### wxParse不支持转换   
@@ -118,12 +118,19 @@ $ wtu -i miniprogramProject
   
    
 ## 更新记录   
+### v1.0.20(20190823)   
+* [修复] 去掉引用组件时的后缀名(如：Vue.component('navbar.vue', navBar))，转换组件名为驼峰全名    
+* [修复] 修改搜索资源路径的正则表达式，以兼容低版本Node.js   
+* [修复] 修复当页面里的onLoad为onLoad: function() {}时，处理wxs而报错的bug   
+* [修复] 转换结束后，增加template和image的提示   
+* [修复] 对于小程序目录，不存在project.config.json也可进行转换   
+   
+
 ### v1.0.19(20190822)   
 * [新增] 支持wxs语法转换，查阅文档仅看到正则和日期与js稍有不同，暂未发现其他   
 wxs语法转换规则：   
 1.getDate() --> new Date()   
-2.getRegExp("wxs", "img") --> new RegExp("wxs", "img")   
-
+2.getRegExp() --> new RegExp()   
 
 ### v1.0.18(20190821)   
 * [新增] 支持wxs文件转换(两种方式：module和src)。   

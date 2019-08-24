@@ -1,6 +1,9 @@
 const path = require('path');
 const fs = require('fs-extra');
 const {
+	log
+} = require('./utils/utils.js');
+const {
 	getFileNameNoExt,
 	getParentFolderName,
 	isInFolder
@@ -54,7 +57,7 @@ function wxProjectParse(folder, sourceFolder) {
 				//author用不到，先留着
 				projectConfig.author = packageJson.author;
 			} else {
-				console.log(`error： 找不到package.json文件`)
+				console.log(`error： 找不到package.json文件`);
 			}
 		} else {
 			//无云函数
@@ -64,8 +67,10 @@ function wxProjectParse(folder, sourceFolder) {
 		projectConfig.appid = data.appid;
 		projectConfig.compileType = data.compileType;
 	} else {
-		throw (`error： 这个目录${sourceFolder}应该不是小程序的目录`)
-		return false;
+		projectConfig.miniprogramRoot = sourceFolder;
+		console.log(`error： 找不到project.config.json文件`);
+		// throw (`error： 这个目录${sourceFolder}应该不是小程序的目录，找不到project.config.json文件`)
+		// return false;
 	}
 	return projectConfig;
 }
@@ -531,6 +536,12 @@ async function transform(sourceFolder, targetFolder) {
 		filesHandle(fileData, miniprogramRoot).then(() => {
 			//处理配置文件
 			configHandle(configData, routerData, miniprogramRoot, targetFolder);
+
+			//输出提示
+			setTimeout(()=>{
+				log('注意：当看到"image漏网之鱼"，意味着您需要手动调整对应代码，表示image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径\r\n'+
+				'另外，代码<template is="abc" data=""/>里data参数仅支持键值对{key:value}的形式，望知悉！')
+			}, 700);
 		});
 	});
 

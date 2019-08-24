@@ -49,10 +49,14 @@ async function cssHandle(fileContent, file_wxss) {
 			// background-image: url('../../images/bg_myaccount_top.png');
 			// background-image: url('https://www.jxddsx.com/wxImgs/myPage/bg_myaccount_top.png');
 
-			let reg_url = /url\(['"](?<filePath>.*?)\.(?<extname>jpg|jpeg|gif|svg|png)['"]\)/gi;
+			//低版本node不支持零宽断言这种写法，只能换成下面的写法(已测v10+是支持的)
+			// let reg_url = /url\(['"](?<filePath>.*?)\.(?<extname>jpg|jpeg|gif|svg|png)['"]\)/gi;
+			let reg_url = /url\(['"](.*?)\.(jpg|jpeg|gif|svg|png)['"]\)/gi;
 			fileContent = fileContent.replace(reg_url, function (...args) {
-				const groups = args.slice(-1)[0];
-				let src = groups.filePath + "." + groups.extname;
+				//const groups = args.slice(-1)[0];
+				//let src = groups.filePath + "." + groups.extname;
+
+				let src = args[1] + "." + args[2];
 
 				let reg = /\.(jpg|jpeg|gif|svg|png)$/;  //test时不能加/g
 

@@ -25,7 +25,7 @@ async function wxsHandle(fileData) {
 	/**
 	 * 替换代码
 	 * 1.getDate() --> new Date() 
-	 * 2.getRegExp("wxs", "img") --> new RegExp("wxs", "img")   
+	 * 2.getRegExp() --> new RegExp()   
 	 */
 	traverse(ast, {
 		CallExpression(path) {

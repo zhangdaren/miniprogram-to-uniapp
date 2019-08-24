@@ -330,7 +330,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 
 					attrs.src = newImagePath;
 				} else {
-					console.log("wxml漏网之鱼: --> src=\"" + node.attribs.src + "\"，所在文件：" + path.relative(global.miniprogramRoot, file_wxml))
+					console.log("image漏网之鱼: --> src=\"" + node.attribs.src + "\"，所在文件：" + path.relative(global.miniprogramRoot, file_wxml))
 				}
 			}
 

@@ -200,7 +200,13 @@ function handleOnLoadFun(liftCycleArr, key, funName) {
 			let left = t.memberExpression(t.thisExpression(), t.identifier(obj.name));
 			let right = t.identifier(obj.name);
 			let exp = t.expressionStatement(t.assignmentExpression("=", left, right));
-			node.body.body.unshift(exp);
+			if (node.body) {
+				//处理 onLoad() {}
+				node.body.body.unshift(exp);
+			} else {
+				//处理 onLoad: function() {}
+				node.value.body.body.unshift(exp);
+			}
 		});
 	}
 	return node;

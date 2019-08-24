@@ -116,15 +116,19 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//全局引入自定义组件
 			//import firstcompoent from '../firstcompoent/firstcompoent'
 			for (const key in globalUsingComponents) {
+				//key可能含有后缀名，也可能是用-连接的，统统转成驼峰
+				let newKey = toCamel2(key);
+				newKey = newKey.split(".vue").join(""); //去掉后缀名
 				let filePath = globalUsingComponents[key];
 				let extname = path.extname(filePath);
 				if(extname) filePath = filePath.replace(extname, ".vue");
 				filePath = filePath.replace(/^\//g, "./"); //相对路径处理
-				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(key))], t.stringLiteral(filePath));
+				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(newKey))], t.stringLiteral(filePath));
 				mainContent += `${generate(node).code}\r\n`;
 				let name = path.basename(filePath);
+				name = name.split(".vue").join(""); //去掉后缀名
 				name = toCamel2(name);
-				mainContent += `Vue.component('${name}', ${key});\r\n\r\n`;
+				mainContent += `Vue.component('${name}', ${newKey});\r\n\r\n`;
 			}
 			//
 			mainContent += "Vue.config.productionTip = false;\r\n\r\n";
@@ -138,7 +142,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			fs.writeFile(file_main, mainContent, () => {
 				console.log(`write ${file_main} success!`);
 			});
-
+					
 			//////////////////////////////////////////////////////////////////////
 			resolve();
 		});

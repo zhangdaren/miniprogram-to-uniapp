@@ -55,13 +55,13 @@ function toCamel(str) {
     });
 }
 /** 
- * 下划线和中划线转驼峰式
+ * 中划线转驼峰式
  * console.log(toCamel('test-to-camel')); //testToCamel
  * @param {*} str 
  */
 function toCamel2(str) {
     let ret = str.toLowerCase();
-    ret = ret.replace( /[_-]([\w+])/g, function( all, letter ) {
+    ret = ret.replace( /[-]([\w+])/g, function( all, letter ) {
         return letter.toUpperCase();
     });
     return ret;
