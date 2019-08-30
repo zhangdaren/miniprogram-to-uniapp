@@ -169,9 +169,7 @@ $ wtu -i miniprogramProject -w
 
 打赏一下的话就更好了~
 
-![微信支付](src/img/WeChanQR.png)
-
-![支付宝支付](src/img/AliPayQR.png)
+![微信支付](src/img/WeChanQR.png)![支付宝支付](src/img/AliPayQR.png)
 
 
 ## LICENSE
