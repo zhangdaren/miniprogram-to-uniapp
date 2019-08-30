@@ -12,16 +12,9 @@ const template = require('@babel/template').default;
 const JavascriptParser = require('./js/JavascriptParser');
 const componentConverter = require('./js/componentConverter');
 const clone = require('clone');
-const {
-	isURL,
-	toCamel2
-} = require('../utils/utils.js');
 
-const {
-	getFileNameNoExt, getParentFolderName
-} = require('../utils/pathUtil.js');
-
-
+const utils = require('../utils/utils.js');
+const pathUtil = require('../utils/pathUtil.js');
 
 /**
  * 将ast属性数组组合为ast对象
@@ -221,9 +214,9 @@ function handleOnLoadFun(liftCycleArr, key, funName) {
  * @param {*} isApp            是否为app.js文件
  * @param {*} usingComponents  使用的自定义组件列表
  * @param {*} isPage           判断当前文件是Page还是Component(还有第三种可能->App，划分到Page)
- * @param {*} key              获取当前文件wxs信息的key
+ * @param {*} wxsKey           获取当前文件wxs信息的key
  */
-const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, key) {
+const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, wxsKey) {
 	let buildRequire = null;
 
 	//插入setData()
@@ -243,18 +236,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 		//非app.js文件
 		buildRequire = template(componentTemplate);
 
-		/**
-		 * ToDO
-		 * isPage()
-		 * 如果是页面就判断是否有onLoad生命周期函数
-		 * 如果不是页面就判断是否有created生命周期函数
-		 * 
-		 * 没有就加上 
-		 * 
-		 * 下面进行循环的时候，再进行加上相应的代码
-		 * 
-		 */
-
 		ast = buildRequire({
 			PROPS: arrayToObject(vistors.props.getData()),
 			DATA: arrayToObject(vistors.data.getData()),
@@ -263,11 +244,13 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			WATCH: arrayToObject(vistors.watch.getData()),
 		});
 
-		//处理wxs里变量的引用问题
-		let liftCycleArr = vistors.lifeCycle.getData();
-		let funName = "beforeMount";
-		if (isPage) funName = "onLoad";
-		handleOnLoadFun(liftCycleArr, key, funName);
+		if (global.isTransformWXS) {
+			//处理wxs里变量的引用问题
+			let liftCycleArr = vistors.lifeCycle.getData();
+			let funName = "beforeMount";
+			if (isPage) funName = "onLoad";
+			handleOnLoadFun(liftCycleArr, wxsKey, funName);
+		}
 	}
 
 	//久久不能遍历，搜遍google，template也没有回调，后面想着源码中应该会有蛛丝马迹，果然，在templateVisitor里找到了看到这么一个属性noScope，有点嫌疑
@@ -317,7 +300,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				// }
 				for (const key in usingComponents) {
 					//中划线转驼峰
-					let componentName = toCamel2(key);
+					let componentName = utils.toCamel2(key);
 
 					//这里两个小优化空间
 					//1.是否有其他操作这个数组方式
@@ -443,13 +426,13 @@ function handleJSImage(ast, file_js) {
 			}
 
 			//忽略网络素材地址，不然会转换出错
-			if (src && !isURL(src) && reg.test(src)) {
+			if (src && !utils.isURL(src) && reg.test(src)) {
 				//static路径
 				let staticPath = nodePath.join(global.miniprogramRoot, "static");
 
 				//当前处理文件所在目录
 				let jsFolder = nodePath.dirname(file_js);
-				var pFolderName = getParentFolderName(src);
+				var pFolderName = pathUtil.getParentFolderName(src);
 				var fileName = nodePath.basename(src);
 
 				let filePath = nodePath.resolve(staticPath, "./" + pFolderName + "/" + fileName);
@@ -492,17 +475,23 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		isPage
 	} = componentConverter(javascriptAst, miniprogramRoot, file_js);
 
-	//处理js里面的资源路径
-	handleJSImage(javascriptAst, file_js);
-
-	//添加wxs引用
-	let key = nodePath.join(nodePath.dirname(file_js), getFileNameNoExt(file_js));
-	let wxInfo = global.wxsInfo[key];
-	if (wxInfo) {
-		wxInfo.forEach(obj => {
-			if (obj.type == "link") declareStr += `import ${obj.name} from '${obj.src}'\r\n`;
-		});
+	if (!global.isUniAppCliMode) {
+		//处理js里面的资源路径
+		handleJSImage(javascriptAst, file_js);
 	}
+
+	let wxsKey = "";
+	if (global.isTransformWXS) {
+		//添加wxs引用
+		wxsKey = nodePath.join(nodePath.dirname(file_js), pathUtil.getFileNameNoExt(file_js));
+		let wxInfo = global.wxsInfo[wxsKey];
+		if (wxInfo) {
+			wxInfo.forEach(obj => {
+				if (obj.type == "link") declareStr += `import ${obj.name} from '${obj.src}'\r\n`;
+			});
+		}
+	}
+
 
 	//引入自定义组件
 	//import firstcompoent from '../firstcompoent/firstcompoent'
@@ -528,14 +517,14 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		}
 
 		//中划线转驼峰
-		let componentName = toCamel2(key);
+		let componentName = utils.toCamel2(key);
 		//
 		let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
 		declareStr += `${generate(node).code}\r\n`;
 	}
 
 	//放到预先定义好的模板中
-	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents, isPage, key);
+	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents, isPage, wxsKey);
 
 
 	// console.log(`${generate(convertedJavascript).code}`);

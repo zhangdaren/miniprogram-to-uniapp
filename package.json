@@ -43,6 +43,7 @@
     "commander": "^2.15.1",
     "fs-extra": "^8.0.1",
     "htmlparser2": "^3.10.1",
+    "moment": "^2.24.0",
     "prettier": "^1.17.1"
   },
   "deprecated": false,
@@ -73,5 +74,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.20"
+  "version": "1.0.21"
 }

@@ -7,8 +7,13 @@
 * <import src="../../../common/foot.wxml" />
 * 
 */
+const path = require('path');
+
 const TemplateParser = require('./wxml/TemplateParser');
 const templateConverter = require('./wxml/templateConverter');
+
+const pathUtil = require('../utils/pathUtil.js');
+
 
 //初始化一个解析器
 templateParser = new TemplateParser();
@@ -64,12 +69,27 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 		templateConvertedString = `\r\n${templateConvertedString}\r\n`;
 	} else {
 		if (isMultiTag) {
-			templateConvertedString = `<template>\r\n<view>\r\n${templateConvertedString}\r\n</view>\r\n</template>\r\n`;
+			templateConvertedString = `<template>\r\n<view>\r\n${templateConvertedString}\r\n</view>\r\n</template>\r\n\r\n`;
 		} else {
-			templateConvertedString = `<template>\r\n${templateConvertedString}\r\n</template>\r\n`;
+			templateConvertedString = `<template>\r\n${templateConvertedString}\r\n</template>\r\n\r\n"`;
 		}
 	}
-	
+
+	//如果不进行转换wxs的话，那么需要把wxs标签移到template下面来
+	if (!global.isTransformWXS) {
+		//当前处理文件所在目录
+		let wxmlFolder = path.dirname(file_wxml);
+		// key为文件路径 + 文件名(不含扩展名)组成
+		let key = path.join(wxmlFolder, pathUtil.getFileNameNoExt(file_wxml));
+		let wxsInfoArr = global.wxsInfo[key];
+		if(wxsInfoArr)
+		{
+			const wxsInfoString = templateParser.astToString(wxsInfoArr);
+			let wxsStr = wxsInfoString + "\r\n";
+			templateConvertedString += wxsStr + "\r\n";
+		}
+	}
+
 	return templateConvertedString;
 }
 

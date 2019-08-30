@@ -61,10 +61,24 @@ function toCamel(str) {
  */
 function toCamel2(str) {
     let ret = str.toLowerCase();
-    ret = ret.replace( /[-]([\w+])/g, function( all, letter ) {
+    ret = ret.replace(/[-]([\w+])/g, function (all, letter) {
         return letter.toUpperCase();
     });
     return ret;
+}
+
+/**
+ * 暂停
+ * @param {*} numberMillis  毫秒
+ */
+function sleep(numberMillis) {
+    var now = new Date();
+    var exitTime = now.getTime() + numberMillis;
+    while (true) {
+        now = new Date();
+        if (now.getTime() > exitTime)
+            return;
+    }
 }
 
 module.exports = {
@@ -73,5 +87,6 @@ module.exports = {
     toLowerLine,
     toCamel,
     toCamel2,
+    sleep
 
 }

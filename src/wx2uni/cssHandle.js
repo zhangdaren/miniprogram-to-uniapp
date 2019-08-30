@@ -1,11 +1,10 @@
 const fs = require('fs-extra');
 const path = require('path');
-const {
-	isURL
-} = require('../utils/utils.js');
-const {
-	getParentFolderName
-} = require('../utils/pathUtil.js');
+
+const utils = require('../utils/utils.js');
+const pathUtil = require('../utils/pathUtil.js');
+
+
 
 /**
  * 处理css文件 
@@ -45,6 +44,7 @@ async function cssHandle(fileContent, file_wxss) {
 			});
 
 
+
 			//修复图片路径
 			// background-image: url('../../images/bg_myaccount_top.png');
 			// background-image: url('https://www.jxddsx.com/wxImgs/myPage/bg_myaccount_top.png');
@@ -67,43 +67,50 @@ async function cssHandle(fileContent, file_wxss) {
 				// 	src = "./" + src;
 				// }
 				//忽略网络素材地址，不然会转换出错
-				if (src && !isURL(src) && reg.test(src)) {
-					//static路径
-					let staticPath = path.join(global.miniprogramRoot, "static");
+				if (src && !utils.isURL(src) && reg.test(src)) {
+					if (global.isUniAppCliMode) {
+						//
+					} else {
+						//static路径
+						let staticPath = path.join(global.miniprogramRoot, "static");
 
-					//当前处理文件所在目录
-					let wxssFolder = path.dirname(file_wxss);
-					var pFolderName = getParentFolderName(src);
-					// console.log("pFolderName ", pFolderName)
-					var fileName = path.basename(src);
-					// console.log("fileName ", fileName)
-					//
-					let filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
-					src = path.relative(wxssFolder, filePath);
-					// 修复路径
-					src = src.split("\\").join("/");
+						//当前处理文件所在目录
+						let wxssFolder = path.dirname(file_wxss);
+						var pFolderName = pathUtil.getParentFolderName(src);
+						// console.log("pFolderName ", pFolderName)
+						var fileName = path.basename(src);
+						// console.log("fileName ", fileName)
+						//
+						let filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
+						src = path.relative(wxssFolder, filePath);
+						// 修复路径
+						src = src.split("\\").join("/");
 
-					//忽略网络素材地址，不然会转换出错
-					// if (!isURL(src)) {
-					// 	//当前处理文件所在目录
-					// 	let wxssFolder = path.dirname(file_wxss);
-					// 	//src资源完整路径
-					// 	let filePath = path.resolve(wxssFolder, src);
-					// 	//src资源文件相对于src所在目录的相对路径
-					// 	let relativePath = path.relative(global.miniprogramRoot, filePath);
-					// 	//处理images或image目录在pages下面的情况 
-					// 	relativePath = relativePath.replace(/^pages\\/, "");
-					// 	//资源文件路径
-					// 	let newImagePath = path.join(global.miniprogramRoot, "static/" + relativePath);
-					// 	newImagePath = path.relative(wxssFolder, newImagePath);
-					// 	//修复路径
-					// 	newImagePath = newImagePath.split("\\").join("/");
-					// 	src = newImagePath;
-					// }
+						//忽略网络素材地址，不然会转换出错
+						// if (!utils.isURL(src)) {
+						// 	//当前处理文件所在目录
+						// 	let wxssFolder = path.dirname(file_wxss);
+						// 	//src资源完整路径
+						// 	let filePath = path.resolve(wxssFolder, src);
+						// 	//src资源文件相对于src所在目录的相对路径
+						// 	let relativePath = path.relative(global.miniprogramRoot, filePath);
+						// 	//处理images或image目录在pages下面的情况 
+						// 	relativePath = relativePath.replace(/^pages\\/, "");
+						// 	//资源文件路径
+						// 	let newImagePath = path.join(global.miniprogramRoot, "static/" + relativePath);
+						// 	newImagePath = path.relative(wxssFolder, newImagePath);
+						// 	//修复路径
+						// 	newImagePath = newImagePath.split("\\").join("/");
+						// 	src = newImagePath;
+						// }
+					}
+					if (!/^\//.test(src)) {
+						src = "./" + src;
+					}
 				}
-
 				return 'url("' + src + '")';
 			});
+
 			// fileContent = fileContent.replace(/@import +"\//g, '@import "./');
 			resolve(fileContent);
 		});

@@ -15,7 +15,9 @@ program
     .version(pkg.version)
     .usage('[options]')
     .option('-i, --input', 'the input path for weixin miniprogram project')
-    .option('-o, --output', 'the output path for uni-app project, which default value is process.cwd()')
+    .option('-o, --output <value>', 'the output path for uni-app project, which default value is process.cwd()', "")
+    .option('-c, --cli [type]', 'the type of output project is uni-app cli, which default value is false', false)
+    .option('-w, --wxs [type]', 'transform wxs file to js file, which default value is true', true)
     .parse(process.argv);
 
 program.on('--help', function () {
@@ -28,6 +30,8 @@ program.on('--help', function () {
     console.log();
 }); 
 
+
+
 function help () {
     if (program.args.length < 1) {
         return program.help();
@@ -37,7 +41,9 @@ function help () {
 help();
 
 let src = program.args[0];
-let dist = program.args[1];
+let dist = program.output;
+let isUniAppCliMode = program.cli;
+let isTransformWXS = program.wxs;
 
 src = path.resolve(process.cwd(), src);
 
@@ -46,5 +52,5 @@ if (!fs.existsSync(src)) {
     process.exit();
 }
 
-transform(src, dist);
+transform(src, dist, isUniAppCliMode, isTransformWXS);
 

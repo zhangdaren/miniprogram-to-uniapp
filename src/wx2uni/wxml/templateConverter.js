@@ -1,11 +1,7 @@
 const path = require('path');
-const {
-	isURL
-} = require('../../utils/utils.js');
-const {
-	getFileNameNoExt, getParentFolderName
-} = require('../../utils/pathUtil.js');
 
+const utils = require('../../utils/utils.js');
+const pathUtil = require('../../utils/pathUtil.js');
 
 
 //html标签替换规则，可以添加更多
@@ -74,6 +70,12 @@ const attrConverterConfigUni = {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 		}
 	},
+	'bind:tap': {
+		key: '@tap',
+		value: (str) => {
+			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
+		}
+	},
 	'catchtap': {
 		key: '@click.stop',
 		value: (str) => {
@@ -92,18 +94,6 @@ const attrConverterConfigUni = {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 		}
 	},
-	// 'style': {
-	// 	key: 'style', //这里需要根据绑定情况来判断是否增加:
-	// 	value: (str) => {
-	// 		// var tmpStr = str.replace(/}}rpx/g, " + 'rpx'");
-	// 		// tmpStr = tmpStr.replace(/[({{)(}})]/g, '');
-	// 		// return '{' + tmpStr + '}';
-
-	// 		let reg = /"(.*?){{(.*?)}}(.*?)"/g;
-
-	// 		// style="background-image: url({{avatarUrl}})"
-	// 	}
-	// }
 }
 
 /**
@@ -154,7 +144,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					relativePath = "./" + relativePath;
 				}
 
-				let name = getFileNameNoExt(src);
+				let name = pathUtil.getFileNameNoExt(src);
 
 				global.globalUsingComponents[name] = relativePath;
 
@@ -162,41 +152,46 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 				delete ast[i];
 				continue;
 			} else if (node.name == "wxs") {
-				//处理wxs标签 <wxs src="./../logic.wxs" module="logic" />
-				let module = node.attribs.module;
-				let src = node.attribs.src;  //src不一有值
-				
 				// key为文件路径 + 文件名(不含扩展名)组成
-				let key = path.join(wxmlFolder, getFileNameNoExt(file_wxml));
+				let key = path.join(wxmlFolder, pathUtil.getFileNameNoExt(file_wxml));
 				//
 				if (!global.wxsInfo[key]) global.wxsInfo[key] = [];
-				let obj = {};
-				if (src) {
-					//说明是外链的
-					// console.log("src---", src);
-					obj = {
-						"name": module,
-						"type": "link",
-						"src": src.split(".wxs").join(".js"),  //简单处理一下后缀名
-						"content": ""
-					};
+				
+				if (global.isTransformWXS) {
+					//处理wxs标签 <wxs src="./../logic.wxs" module="logic" />
+					let module = node.attribs.module;
+					let src = node.attribs.src;  //src不一有值
+
+					//
+					let obj = {};
+					if (src) {
+						//说明是外链的
+						// console.log("src---", src);
+						obj = {
+							"name": module,
+							"type": "link",
+							"src": src.split(".wxs").join(".js"),  //简单处理一下后缀名
+							"content": ""
+						};
+					} else {
+						//说明是有内容的，需要将内容写入到文件里
+						let content = "";
+						let children = node.children;
+						children.forEach(obj => {
+							content += (obj.data || "");
+						});
+						// console.log("content---", content);
+						obj = {
+							"name": module,
+							"type": "insert",
+							"src": "",
+							"content": content,
+						};
+					}
+					global.wxsInfo[key].push(obj);
 				} else {
-					//说明是有内容的，需要将内容写入到文件里
-					let content = "";
-					let children = node.children;
-					children.forEach(obj => {
-						content += (obj.data || "");
-					});
-					// console.log("content---", content);
-					obj = {
-						"name": module,
-						"type": "insert",
-						"src": "",
-						"content": content,
-					};
+					global.wxsInfo[key].push(node);
 				}
-				global.wxsInfo[key].push(obj);
-				//
 				delete ast[i];
 				continue;
 			}
@@ -253,6 +248,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					} catch (e) {
 						console.log(e);
 						//如果报错，那就随意了，不管了。
+						global.log.push("试图转换template里data参数为Object时报错:     data--> " + data + "    file--> " + path.relative(global.miniprogramRoot, file_wxml));
 					}
 					// console.log(node);
 				}
@@ -282,55 +278,33 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					src = "./" + src;
 				}
 				//忽略网络素材地址，不然会转换出错
-				if (src && !isURL(src) && reg.test(src)) {
-					//static路径
-					let staticPath = path.join(global.miniprogramRoot, "static");
+				if (src && !utils.isURL(src) && reg.test(src)) {
+					if (global.isUniAppCliMode) {
+						//
+						attrs.src = src;
+					} else {
+						//static路径
+						let staticPath = path.join(global.miniprogramRoot, "static");
 
-					// <image src="/page/cloud/resources/kind/database.png"
+						// <image src="/page/cloud/resources/kind/database.png"
 
-					//当前处理文件所在目录
-					let wxmlFolder = path.dirname(file_wxml);
-					var pFolderName = getParentFolderName(src);
-					// console.log("pFolderName ", pFolderName)
-					var fileName = path.basename(src);
-					// console.log("fileName ", fileName)
+						//当前处理文件所在目录
+						let wxmlFolder = path.dirname(file_wxml);
+						var pFolderName = pathUtil.getParentFolderName(src);
+						// console.log("pFolderName ", pFolderName)
+						var fileName = path.basename(src);
+						// console.log("fileName ", fileName)
 
-					//src资源完整路径
-					// let filePath = "";
-					// if (/^\//.test(src)) {
-					// 	console.log("-" + src)
-					// 	filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
-					// 	console.log("--" + filePath)
-					// } else if (/^\./.test(src)) {
-					// 	//以.开头表示为相对路径，直接将前面的..或../去掉
-					// 	console.log("-" + src)
-					// 	filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
-					// 	console.log("--" + filePath)
+						filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
+						newImagePath = path.relative(wxmlFolder, filePath);
 
-					// 	//下面为以前的逻辑，先放在这里
-					// 	// filePath = path.resolve(wxmlFolder, src);
-					// 	// console.log("22-", filePath);
-					// 	// //src资源文件相对于src所在目录的相对路径
-					// 	// let relativePath = path.relative(global.miniprogramRoot, filePath);
-					// 	// //处理images或image目录在pages下面的情况 
-					// 	// relativePath = relativePath.replace(/^pages\\/, "");
-					// 	// //资源文件路径
-					// 	// let newImagePath = path.join(global.miniprogramRoot, "static/" + relativePath);
-					// 	// newImagePath = path.relative(wxmlFolder, newImagePath);
-					// 	// //修复路径
-					// 	// newImagePath = newImagePath.split("\\").join("/");
-					// 	// console.log("22--", newImagePath);
-					// } else {
-					// 	//既无/又无.，表示为当前路径
-					// 	filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
-					// }
-
-					filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
-					newImagePath = path.relative(wxmlFolder, filePath);
-
-					attrs.src = newImagePath;
+						attrs.src = newImagePath;
+					}
 				} else {
-					console.log("image漏网之鱼: --> src=\"" + node.attribs.src + "\"，所在文件：" + path.relative(global.miniprogramRoot, file_wxml))
+					if (!global.isUniAppCliMode) {
+						console.log("image漏网之鱼:    src--> \"" + node.attribs.src + "\"，   file--> " + path.relative(global.miniprogramRoot, file_wxml))
+						global.log.push("image漏网之鱼:    src--> \"" + node.attribs.src + "\"，   file--> " + path.relative(global.miniprogramRoot, file_wxml));
+					}
 				}
 			}
 
@@ -354,24 +328,29 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					attrs[key] = target['value'] ?
 						target['value'](node.attribs[k]) :
 						node.attribs[k];
-				} else if (k == 'class') {
-					//class单独处理
-					let value = node.attribs[k];
-					//将双引号转换单引号
-					value = value.replace(/\"/g, "'");
-					let hasBind = reg_tag.test(value);
-					if (hasBind) {
-						let reg = /(.*?) +{{(.*?)}}/g;
-						let tempR = reg.exec(value);
-						if (tempR) {
-							attrs['class'] = tempR[1];
-							attrs[':class'] = tempR[2];
-						} else {
-							attrs[':class'] = value.replace(/{{ ?(.*?) ?}}/, '$1');
-						}
-					} else {
-						attrs['class'] = node.attribs[k];
-					}
+					/**
+					 * class放到下面去处理了
+					 * 因为这种就不太好处理了
+					 * <view class="abc abc-d-{{item.id}} {{selectId===item.id?'active':''}}"></view>
+					 */
+					// } else if (k == 'class') {
+					// 	//class单独处理
+					// 	let value = node.attribs[k];
+					// 	//将双引号转换单引号
+					// 	value = value.replace(/\"/g, "'");
+					// 	let hasBind = reg_tag.test(value);
+					// 	if (hasBind) {
+					// 		let reg = /(.*?) +{{(.*?)}}/g;
+					// 		let tempR = reg.exec(value);
+					// 		if (tempR) {
+					// 			attrs['class'] = tempR[1];
+					// 			attrs[':class'] = tempR[2];
+					// 		} else {
+					// 			attrs[':class'] = value.replace(/{{ ?(.*?) ?}}/, '$1');
+					// 		}
+					// 	} else {
+					// 		attrs['class'] = node.attribs[k];
+					// 	}
 				} else if (k == 'wx:for' || k == 'wx:for-items') {
 					//wx:for单独处理
 					//wx:key="*item" -----不知道vue支持不
@@ -460,6 +439,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					attrs['v-for'] = value;
 					attrs[':key'] = newKey;
 					if (node.attribs.hasOwnProperty("wx:key")) delete node.attribs["wx:key"];
+					if (node.attribs.hasOwnProperty("wx:for-index")) delete node.attribs["wx:for-index"];
 					if (node.attribs.hasOwnProperty("wx:for-item")) delete node.attribs["wx:for-item"];
 					if (node.attribs.hasOwnProperty("wx:for-items")) delete node.attribs["wx:for-items"];
 				} else {
@@ -476,6 +456,16 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 						let reg2 = / ?}}(?!$)/g; //中间的}}
 						let reg3 = /^{{ ?/; //起始的{{
 						let reg4 = / ?}}$/; //文末的}}
+
+						//查找{{}}里是否有?，有就加个括号括起来
+						//处理这种情况：<view class="abc abc-d-{{item.id}} {{selectId===item.id?'active':''}}"></view>
+						value = value.replace(/{{(.*?)}}/g, function (match, $1) {
+							if (match.indexOf("?") > -1) {
+								match = "{{(" + $1 + ")}}";
+							}
+							return match;
+						});
+
 						value = value.replace(reg1, "' + ").replace(reg2, " + '");
 
 						//单独处理前后是否有{{}}的情况
