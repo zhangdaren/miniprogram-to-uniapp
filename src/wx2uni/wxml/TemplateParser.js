@@ -21,11 +21,11 @@ class TemplateParser {
       });
       //再初始化一个解析器
       const parser = new htmlparser.Parser(handler, {
-        xmlMode:true, 
+        xmlMode: true,
         //将所有标签小写，并不需要，设置为false, 如果xmlMode禁用，则默认为true。所以xmlMode为true。
-        lowerCaseTags:false,
+        lowerCaseTags: false,
         //自动识别关闭标签，并关闭，如<image /> ==> <image></image>,不加的话，会解析异常，导致关闭标签会出现在最后面
-        recognizeSelfClosing:true, 
+        recognizeSelfClosing: true,
       });
       //再通过write方法进行解析
       parser.write(scriptText);
@@ -48,7 +48,12 @@ class TemplateParser {
           Object.keys(item.attribs).forEach(attr => {
             let value = item.attribs[attr];
             if (value == "") {
-              str += ` ${attr}`;
+              //需要同时满足，
+              if (attr.indexOf(":") > -1) {
+                //key含冒号且value为空时，直接删除
+              } else {
+                str += ` ${attr}`;
+              }
             } else {
               str += ` ${attr}="${item.attribs[attr]}"`;
             }
@@ -59,7 +64,7 @@ class TemplateParser {
           str += this.astToString(item.children);
         }
         str += `</${item.name}>`;
-      }else if(item.type == "comment"){
+      } else if (item.type == "comment") {
         str += `<!--${item.data}-->`;
       }
     });

@@ -166,6 +166,27 @@ function isInFolder(folderArr, filePath) {
 	}
 	return result;
 }
+/**
+ * 路径转换，转换根路径(路径前面为/)和当前路径(无/开头)为相对路径
+ * @param {*} filePath  文件路径
+ * @param {*} root      根目录
+ * @param {*} fileDir   当前文件所在目录 
+ */
+function relativePath(filePath, root, fileDir) {
+	if(!filePath) return filePath;
+	if (/^\//.test(filePath)) {
+		//如果是以/开头的，表示根目录
+		filePath = path.join(root, filePath);
+	} else {
+		filePath = path.join(fileDir, filePath);
+	}
+
+	filePath = path.relative(fileDir, filePath);
+	if (!/^[\.\/]/.test(filePath)) {
+		filePath = "./" + filePath;
+	}
+	return filePath.split("\\").join("/");
+}
 
 module.exports = {
 	copyFile,
@@ -176,4 +197,5 @@ module.exports = {
 	rmdirsSync,
 	getParentFolderName,
 	isInFolder,
+	relativePath,
 };

@@ -23,27 +23,18 @@ async function cssHandle(fileContent, file_wxss) {
 			// fileContent = fileContent.replace(reg, "$1upx");
 			//删除掉import app.wxss的代码
 			fileContent = fileContent.replace(/@import ?["'].*?app.wxss["'];?/g, "");
-			fileContent = fileContent.replace(/\.wxss/g, ".css");
 
 			//wxss文件所在目录
 			let fileDir = path.dirname(file_wxss);
-			let reg_import = /@import +['"](.*?)['"]/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
+			let reg_import = /@import +['"](.*?).wxss['"]/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
 			fileContent = fileContent.replace(reg_import, function (match, pos, orginText) {
 				//先转绝对路径，再转相对路径
-				let filePath;
+				let filePath = pos;
+				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
 
-				if (/^\//.test(pos)) {
-					//如果是以/开头的，表示根目录
-					filePath = path.join(global.miniprogramRoot, pos);
-				} else {
-					filePath = path.join(fileDir, pos);
-				}
-				filePath = path.relative(fileDir, filePath);
 				//虽可用path.posix.前缀来固定为斜杠，然而改动有点小多，这里只单纯替换一下
-				return '@import "' + filePath.split("\\").join("/") + '"';
+				return '@import "' + filePath + '.css"';
 			});
-
-
 
 			//修复图片路径
 			// background-image: url('../../images/bg_myaccount_top.png');
@@ -61,14 +52,9 @@ async function cssHandle(fileContent, file_wxss) {
 				let reg = /\.(jpg|jpeg|gif|svg|png)$/;  //test时不能加/g
 
 				// //image标签，处理src路径
-				// var src = node.attribs.src;
-				// //这里取巧一下，如果路径不是以/开头，那么就在前面加上./
-				// if (!/^\//.test(src)) {
-				// 	src = "./" + src;
-				// }
 				//忽略网络素材地址，不然会转换出错
 				if (src && !utils.isURL(src) && reg.test(src)) {
-					if (global.isUniAppCliMode) {
+					if (global.isVueAppCliMode) {
 						//
 					} else {
 						//static路径
@@ -85,24 +71,6 @@ async function cssHandle(fileContent, file_wxss) {
 						src = path.relative(wxssFolder, filePath);
 						// 修复路径
 						src = src.split("\\").join("/");
-
-						//忽略网络素材地址，不然会转换出错
-						// if (!utils.isURL(src)) {
-						// 	//当前处理文件所在目录
-						// 	let wxssFolder = path.dirname(file_wxss);
-						// 	//src资源完整路径
-						// 	let filePath = path.resolve(wxssFolder, src);
-						// 	//src资源文件相对于src所在目录的相对路径
-						// 	let relativePath = path.relative(global.miniprogramRoot, filePath);
-						// 	//处理images或image目录在pages下面的情况 
-						// 	relativePath = relativePath.replace(/^pages\\/, "");
-						// 	//资源文件路径
-						// 	let newImagePath = path.join(global.miniprogramRoot, "static/" + relativePath);
-						// 	newImagePath = path.relative(wxssFolder, newImagePath);
-						// 	//修复路径
-						// 	newImagePath = newImagePath.split("\\").join("/");
-						// 	src = newImagePath;
-						// }
 					}
 					if (!/^\//.test(src)) {
 						src = "./" + src;

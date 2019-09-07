@@ -28,7 +28,7 @@ Options:
   -i, --input       the input path for weixin miniprogram project [输入目录]
   -o, --output      the output path for uni-app project, which default value is process.cwd() [输出目录]
   -h, --help        output usage information [帮助信息]
-  -c, --cli         the type of output project is uni-app cli, which default value is false [是否转换为uni-app cli项目，默认false]
+  -c, --cli         the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -w, --wxs         transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
 
 ```
@@ -39,12 +39,12 @@ Examples:
 $ wtu -i miniprogramProject
 ```
 
-Uni-app cli mode:
+vue-cli mode [转换为vue-cli项目]:
 ```sh
 $ wtu -i miniprogramProject -c
 ```
 
-Transform wxs file to js file:
+Transform wxs file to js file [将wxs文件转换为js文件]:
 ```sh
 $ wtu -i miniprogramProject -w
 ```
@@ -77,8 +77,9 @@ $ wtu -i miniprogramProject -w
 * 区分app.js/component，两者解析规则略有不同   
 * 添加setData()函数于methods下，解决this.setData()【代码出处：https://ask.dcloud.net.cn/article/35020】  
 * App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚)   
-* 支持wxs文件转换，可以通过参数配置(-w)，默认为true
-* 支持uni-app cli模式，即生成为uni-app cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发
+* 支持wxs文件转换，可以通过参数配置(-w)，默认为false
+* 支持vue-cli模式，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发  
+* 导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件
    
     
 ## Todolist   
@@ -87,11 +88,23 @@ $ wtu -i miniprogramProject -w
 * [todo] template标签转换为vue文件   
 * [todo] 浏览小程序文档，发现生命周期函数可以写在lifetimes或pageLifetimes字段时，需要兼容一下(https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/component.html)   
 * [todo] 小程序组件还有其他生命周期函数转换   
+* [todo] 组件批量注册   
+* [todo] 删除生成目录里的空白目录   
+
+[TODO： 下一版实现]
++ 支持解析下面这种写法   
+···
+"usingComponents": {
+   "pwdPay": "plugin://bbgPay/pwdPay"
+}
+···
++ 支持subPackages节点，目前有点小问题，已经被干掉了   
++ 支持含双引号代码的转换，如```<view class='citem' style='background-image:url("{{item.photo}}")'>```   
++ 转换前先格式化代码   
+   
    
 
 ## 关于不支持转换的语法说明   
-
-见识过js的语法自由洒脱，没想到小程序的语法比js还要更自由奔放。   
 
 ### ```<import src="*.wxml"/>```支持部分语法处理   
 
@@ -103,33 +116,48 @@ $ wtu -i miniprogramProject -w
 </view>
 ```
 
-然后为了解决这个问题，我收集到一些```<template/>```的写法：   
+为了解决这个问题，我收集到一些```<template/>```的写法：   
 
 *	```<template is="msgItem"  data="{{'这是一个参数'}}"/>```
-*	```<template is="t1" data="{{newsList,type}}"/>```
+*	```<template is="t1" data="{{newsList, type}}"/>``` 【目前支持转换的写法】  
 *	```<template is="head" data="{{title: 'action-sheet'}}"/>``` 【目前支持转换的写法】   
+*	```<template is="head" wx:if="{{index%2 === 0}}" data="{{title: 'action-sheet'}}"/>``` 【目前支持转换的写法】   
 *	```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
 *	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
 * ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>```
 
-目前仅针对第三种写法可以实现完美转换。而其它写法，以我对vue的粗浅理解，暂时没有好的处理方案。   
+目前仅针对第二、三、四种写法可以实现完美转换。而其它写法，目前uni-app并不支持v-bind=""语法，暂无法支持。   
 如有大佬对此有完美解决方案，请不吝赐教，谢谢~~   
    
 目前的处理规则：   
-1. 当某组文件仅包含wxml文件时，就将它转换为全局组件   
-2. 将模板里面{{}}所包含的变量提取生成到props里   
-3. 仅支持微信小程序官方DEMO里的写法(代码见上)   
-4. template标签名转失为is属性所对应的组件名，因为is属性里只能为组件名，并支持标签上面的其他属性，如wx:if、wx:for等   
-5. 现在只支持键值对{key:value}这种对应方式的转换，不支持data里含有扩展运算符或无key的方式  
+1. 将wxml里```<tempate name="abc">```内容提取，生成vue文件，并注册为全局组件   
+2. 将```<template is="head" data="{{title: 'action-sheet'}}"/>```转换为```<component :is="head" title="'action-sheet'"`/>``   
+3. 删除```<import src="../../../common/head.wxml" />```   
+
       
 ### wxParse不支持转换   
 因uni-app有更好的同类组件，计划使用那个进行替换这个      
   
    
 ## 更新记录   
+### v1.0.22(20190907)   
+* [新增] 完善template标签转换，除了不支持data里含...扩展运算符外(因uni-app现还不支持v-bind="")，其他都已支持(含...的data，已重名为error-data，需手工调整：换一种方式导入自定义组件或显式调用组件)  
+* [新增] 将含有内置关键字的组件名替换为别名   
+* [修复] -c模式下，输出目录不存在而报错的bug   
+* [修复] 增加解析js文件错误提示   
+* [修复] 修复当同一组文件(js/wxml/wxss)内容都为空时，影响后面流程不能生成pages.json等配置文件的bug   
+* [修复] 无遗漏处理bind前缀事件名称   
+* [修复] 将manifest.json里的name字段，如果为中文，转换为拼音。修复含中文导致HBX识别不到manifest.json的bug   
+* [修复] 转换wxss代码import *.wxss里的文件路径为相对路径   
+* [修复] 转换js代码import xxx from "*.js"里的文件路径为相对路径   
+* [修复] 转换js代码require('./util')里的文件路径为相对路径   
+* [修复] 删除绑定的值为空的标签属性(如```<view value={{}}>```)   
+[注意！！！] 如HBX运行时提示“项目下缺少manifest.json文件”，请在项目上右键【重新识别项目类型】  
+   
+   
 ### v1.0.21(20190830)   
-* [新增] 【-c】命令，支持生成uni-app cli项目，默认为【false】，生成后请在生成目录里执行 npm i 安装npm包(大概需要200+s)，然后可以直接将整个目录拖入到HBuilderX里二次开发或运行，如HBX运行时提示“项目下缺少manifest.json文件”，请在项目上右键【重新识别项目类型】   
-* [新增] uni-app cli项目，支持配置静态目录(在vue.config.js里alias节点设置)，目前已配置【'@' --> './src'】和 【'assets' --> './src/static'】   
+* [新增] 【-c】命令，支持生成vue-cli项目，默认为【false】，生成后请在生成目录里执行 npm i 安装npm包(大概需要200+s)，然后可以直接将整个目录拖入到HBuilderX里二次开发或运行，如HBX运行时提示“项目下缺少manifest.json文件”，请在项目上右键【重新识别项目类型】   
+* [新增] vue-cli项目，支持配置静态目录(在vue.config.js里alias节点设置)，目前已配置【'@' --> './src'】和 【'assets' --> './src/static'】   
 * [新增] 【-w】命令，支持转换wxs为js文件，默认为【false】，因uni-app已在app和小程序平台支持wxs标签，而wxs近期也将支持H5平台，所以默认不再转换(还有一个原因是因为遇到同一个目录里，同时包含utils.js和utils.wxss，显然转换为js文件时，两个文件会合为一个，so……)   
 * [新增] 处理属性bind:tap-->@tap   
 * [新增] 转换完成后，在生成目录里，生成transform_log.log文件(每次转换都会重新生成！)   

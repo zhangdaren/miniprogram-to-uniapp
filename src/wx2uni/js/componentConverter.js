@@ -4,6 +4,7 @@ const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
 const Vistor = require("./Vistor");
 const clone = require('clone');
+const pathUtil = require('../../utils/pathUtil');
 
 
 const lifeCycleFunction = {
@@ -46,7 +47,8 @@ let isPage = true;
 let miniprogramRoot = "";
 //当前处理的js文件路径
 let file_js = "";
-
+//当前文件所在目录
+let fileDir = "";
 
 
 /*
@@ -69,13 +71,35 @@ const componentVistor = {
 		//定义的导入的模块
 		// vistors.importDec.handle(path.node);
 		//
+		//处理import模板的路径，转换当前路径以及根路径为相对路径
+		let filePath = path.node.source.value;
+		filePath = nodePath.join(nodePath.dirname(filePath), pathUtil.getFileNameNoExt(filePath)); //去掉扩展名
+		filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+		path.node.source.value = filePath;
+
 		//处理导入的是wxss的情况，替换.wxss为.css即可。
 		var str = `${generate(path.node).code}\r\n`;
-		str = str.split(".wxss").join(".css");
 		//
 		declareStr += str;
 	},
 	VariableDeclaration(path) {
+		//将require()里的地址都处理一遍
+		traverse(path.node, {
+			noScope: true,
+			CallExpression(path) {
+				let callee = path.node.callee;
+				if (t.isIdentifier(callee, { name: "require" })) {
+					let arguments = path.node.arguments;
+					if (arguments && arguments.length) {
+						if (t.isStringLiteral(arguments[0])) {
+							let filePath = arguments[0].value;
+							filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+							path.node.arguments[0] = t.stringLiteral(filePath);
+						}
+					}
+				}
+			}
+		});
 		const parent = path.parentPath.parent;
 		if (t.isFile(parent)) {
 			//定义的外部变量
@@ -225,6 +249,7 @@ const componentConverter = function (ast, _miniprogramRoot, _file_js) {
 	//
 	miniprogramRoot = _miniprogramRoot;
 	file_js = _file_js;
+	fileDir = nodePath.dirname(file_js);
 	//
 	vistors = {
 		props: new Vistor(),

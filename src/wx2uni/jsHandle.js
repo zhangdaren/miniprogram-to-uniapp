@@ -215,44 +215,49 @@ function handleOnLoadFun(liftCycleArr, key, funName) {
  * @param {*} usingComponents  使用的自定义组件列表
  * @param {*} isPage           判断当前文件是Page还是Component(还有第三种可能->App，划分到Page)
  * @param {*} wxsKey           获取当前文件wxs信息的key
+ * @param {*} file_js          当前转换的文件路径
+ * @param {*} isSingleFile     表示是否为单个js文件，而不是vue文件一部分
  */
-const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, wxsKey) {
+const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile) {
 	let buildRequire = null;
 
-	//插入setData()
-	const node = getSetDataFunAST();
-	vistors.methods.handle(node);
+	if (!isSingleFile) {
+		//插入setData()
+		const node = getSetDataFunAST();
+		vistors.methods.handle(node);
 
-	//
-	if (isApp) {
-		//是app.js文件,要单独处理
-		buildRequire = template(componentTemplateApp);
-		//app.js目前看到有data属性的，其余的还未看到。
-		ast = buildRequire({
-			DATA: arrayToObject(vistors.data.getData()),
-			METHODS: arrayToObject(vistors.methods.getData())
-		});
-	} else {
-		//非app.js文件
-		buildRequire = template(componentTemplate);
+		//
+		if (isApp) {
+			//是app.js文件,要单独处理
+			buildRequire = template(componentTemplateApp);
+			//app.js目前看到有data属性的，其余的还未看到。
+			ast = buildRequire({
+				DATA: arrayToObject(vistors.data.getData()),
+				METHODS: arrayToObject(vistors.methods.getData())
+			});
+		} else {
+			//非app.js文件
+			buildRequire = template(componentTemplate);
 
-		ast = buildRequire({
-			PROPS: arrayToObject(vistors.props.getData()),
-			DATA: arrayToObject(vistors.data.getData()),
-			METHODS: arrayToObject(vistors.methods.getData()),
-			COMPUTED: arrayToObject(vistors.computed.getData()),
-			WATCH: arrayToObject(vistors.watch.getData()),
-		});
+			ast = buildRequire({
+				PROPS: arrayToObject(vistors.props.getData()),
+				DATA: arrayToObject(vistors.data.getData()),
+				METHODS: arrayToObject(vistors.methods.getData()),
+				COMPUTED: arrayToObject(vistors.computed.getData()),
+				WATCH: arrayToObject(vistors.watch.getData()),
+			});
 
-		if (global.isTransformWXS) {
-			//处理wxs里变量的引用问题
-			let liftCycleArr = vistors.lifeCycle.getData();
-			let funName = "beforeMount";
-			if (isPage) funName = "onLoad";
-			handleOnLoadFun(liftCycleArr, wxsKey, funName);
+			if (global.isTransformWXS) {
+				//处理wxs里变量的引用问题
+				let liftCycleArr = vistors.lifeCycle.getData();
+				let funName = "beforeMount";
+				if (isPage) funName = "onLoad";
+				handleOnLoadFun(liftCycleArr, wxsKey, funName);
+			}
 		}
 	}
 
+	let fileDir = nodePath.dirname(file_js);
 	//久久不能遍历，搜遍google，template也没有回调，后面想着源码中应该会有蛛丝马迹，果然，在templateVisitor里找到了看到这么一个属性noScope，有点嫌疑
 	//noScope: 从babel-template.js中发现这么一个属性，因为直接转出来的ast进行遍历时会报错，找了官方文档，没有这个属性的介绍信息。。。
 	//Error: You must pass a scope and parentPath unless traversing a Program/File. Instead of that you tried to traverse a ExportDefaultDeclaration node without passing scope and parentPath.
@@ -330,6 +335,16 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						arguments[0] = t.stringLiteral("./static/" + val);
 					}
 				}
+			} else if (t.isIdentifier(callee, { name: "require" })) {
+				//处理require()路径
+				let arguments = path.node.arguments;
+				if (arguments && arguments.length) {
+					if (t.isStringLiteral(arguments[0])) {
+						let filePath = arguments[0].value;
+						filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+						path.node.arguments[0] = t.stringLiteral(filePath);
+					}
+				}
 			}
 		},
 		MemberExpression(path) {
@@ -342,8 +357,12 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				path.replaceWith(obj);
 			} else if (t.isIdentifier(property.node, { name: "data" })) {
 				//将this.data.xxx转换为this.xxx
-				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" })) {
-					path.replaceWith(object);
+				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" })) {
+					let parent = path.parent;
+					//如果父级是AssignmentExpression，则不需再进行转换
+					if (!t.isAssignmentExpression(parent)) {
+						path.replaceWith(object);
+					}
 				}
 			}
 
@@ -453,8 +472,9 @@ function handleJSImage(ast, file_js) {
  * @param {*} usingComponents   使用的自定义组件列表
  * @param {*} miniprogramRoot   小程序目录
  * @param {*} file_js           当前处理的文件路径
+ * @param {*} isSingleFile      表示是否为单个js文件，而不是vue文件一部分
  */
-async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_js) {
+async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_js, isSingleFile) {
 	//先反转义
 	let javascriptContent = fileData;
 
@@ -464,8 +484,14 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	//去除无用代码
 	javascriptContent = javascriptParser.beforeParse(javascriptContent);
 
-	//解析成AST
-	let javascriptAst = await javascriptParser.parse(javascriptContent);
+	let javascriptAst = null;
+	try {
+		//解析成AST
+		javascriptAst = await javascriptParser.parse(javascriptContent);
+	} catch (error) {
+		console.log("Error: 解析文件出错: ", file_js);
+		global.log.push("Error: 解析文件出错: ", file_js);
+	}
 
 	//进行代码转换
 	let {
@@ -475,7 +501,7 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		isPage
 	} = componentConverter(javascriptAst, miniprogramRoot, file_js);
 
-	if (!global.isUniAppCliMode) {
+	if (!global.isVueAppCliMode) {
 		//处理js里面的资源路径
 		handleJSImage(javascriptAst, file_js);
 	}
@@ -524,15 +550,18 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	}
 
 	//放到预先定义好的模板中
-	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents, isPage, wxsKey);
+	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile);
 
 
 	// console.log(`${generate(convertedJavascript).code}`);
 
-
 	//生成文本并写入到文件
-	let codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
-
+	let codeText = "";
+	if (isSingleFile) {
+		codeText = `${generate(convertedJavascript).code}`;
+	} else {
+		codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
+	}
 
 	// console.log(codeText);
 	return codeText;

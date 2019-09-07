@@ -118,7 +118,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 					//简单判断是否为workers目录，严格判断需要从app.json里取出workers的路径来(后续再议)
 					let isWorkersFolder = path.relative(miniprogramRoot, fileDir) === "workers";
 
-					if (global.isUniAppCliMode) {
+					if (global.isVueAppCliMode) {
 						/**
 						 * 规则
 						 * 1.保持原目录不变
@@ -165,7 +165,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 					} else {
 						//判断是否为素材目录或workers目录里面的文件
 						let isInIgnoreFolder = pathUtil.isInFolder(imagesFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
-						if (isInIgnoreFolder && !global.isUniAppCliMode) {
+						if (isInIgnoreFolder && !global.isVueAppCliMode) {
 							//
 						} else {
 							//非素材目录里的文件
@@ -248,7 +248,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 										//当前文件上层目录
 										let pFolder = path.dirname(fileDir);
 
-										if (global.isUniAppCliMode) {
+										if (global.isVueAppCliMode) {
 											let relFolder = path.relative(miniprogramRoot, pFolder);
 											let key = relFolder.replace(/\\/g, "/");
 											global.assetsFolderObject.add(key);
@@ -331,22 +331,27 @@ async function filesHandle(fileData, miniprogramRoot) {
 					var onlyWxssFile = false;
 					var onlyWxmlFile = false;
 
-					if ((file_wxml && file_js) || (file_wxss && file_js)) {
+					if ((file_wxml && file_js)) {
 						//当有wxml，那必然会有js文件，可能会有wxss文件，单独的.wxml，转为.vue
 						extName = ".vue";
 						hasAllFile = true;
-					} else if (file_wxml) {
-						//如果只有一个wxml，就当它是一个组件来处理
-						extName = ".vue";
-						onlyWxmlFile = true;
-					} else if (file_js) {
-						//除了上面至少两种文件存在的情况，那么这里就是单独存在的js文件
-						extName = ".js";
-						onlyJSFile = true;
-					} else if (file_wxss) {
-						//与js文件类似，这里只可能是单独存在的wxss文件
-						extName = ".css";
-						onlyWxssFile = true;
+					} else {
+						if (file_wxml) {
+							//如果只有一个wxml，就当它是一个组件来处理
+							extName = ".vue";
+							onlyWxmlFile = true;
+						}
+						if (file_js) {
+							//除了上面至少两种文件存在的情况，那么这里就是单独存在的js文件
+							extName = ".js";
+							onlyJSFile = true;
+						}
+
+						if (file_wxss) {
+							//与js文件类似，这里只可能是单独存在的wxss文件
+							extName = ".css";
+							onlyWxssFile = true;
+						}
 					}
 					targetFilePath = path.join(tFolder, fileName + extName);
 					if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
@@ -406,8 +411,8 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 						if (!fileContent) {
 							console.log(fileName + " is empty");
-
 							global.log.push(fileName + " is empty");
+							count++;
 							return;
 						}
 
@@ -418,34 +423,50 @@ async function filesHandle(fileData, miniprogramRoot) {
 					} else {
 						if (onlyWxmlFile) {
 							//只有wxml文件时，当组件来处理
+
 							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
 							if (data_wxml) {
 								let data = await wxmlHandle(data_wxml, file_wxml, onlyWxmlFile);
 								fileContent = data;
-								let props = [];
-								if (global.props[file_wxml] && global.props[file_wxml].length > 0) {
-									props = global.props[file_wxml];
-								}
-								let wxsImportStr = wxsInfoHandle(tFolder, file_wxml);
-								fileContent += `
-<script> 
-	${wxsImportStr}
-	export default {
-		props: [${props}]
-	}
-</script> 
-								`;
+								if (fileContent) {
+									let props = [];
+									if (global.props[file_wxml] && global.props[file_wxml].length > 0) {
+										props = global.props[file_wxml];
+									}
+									let wxsImportStr = wxsInfoHandle(tFolder, file_wxml);
+									fileContent += `
+	<script> 
+		${wxsImportStr}
+		export default {
+			props: [${props}]
+		}
+	</script> 
+									`;
 
-								//写入文件
-								fs.writeFile(targetFilePath, fileContent, () => {
-									console.log(`Convert component ${fileName}.vue success!`);
-								});
+									//写入文件
+									targetFilePath = path.join(tFolder, fileName + ".vue");
+									fs.writeFile(targetFilePath, fileContent, () => {
+										console.log(`Convert component ${fileName}.wxml success!`);
+									});
+								}
 							}
 						}
 						if (onlyJSFile) {
 							//如果是为单名的js文件，即同一个名字只有js文件，没有wxml或wxss文件，下同
 							if (file_js && fs.existsSync(file_js)) {
-								fs.copySync(file_js, targetFilePath);
+								let data_js = fs.readFileSync(file_js, 'utf8');
+								if (data_js) {
+									let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js, true);
+									fileContent = data;
+
+									//写入文件
+									targetFilePath = path.join(tFolder, fileName + ".js");
+									if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
+									//
+									fs.writeFile(targetFilePath, fileContent, () => {
+										console.log(`Convert component ${fileName}.js success!`);
+									});
+								}
 							}
 						}
 
@@ -457,8 +478,9 @@ async function filesHandle(fileData, miniprogramRoot) {
 									data_wxss = await cssHandle(data_wxss, file_wxss);
 									let content = `${data_wxss}`;
 									//写入文件
+									targetFilePath = path.join(tFolder, fileName + ".css");
 									fs.writeFile(targetFilePath, content, () => {
-										console.log(`Convert ${fileName}.vue success!`);
+										console.log(`Convert ${fileName}.wxss success!`);
 									});
 								}
 							}
@@ -535,14 +557,14 @@ function writeLog(folder) {
  * 转换入口
  * @param {*} sourceFolder    输入目录
  * @param {*} targetFolder    输出目录
- * @param {*} isUniAppCliMode 是否需要生成uni-app cli项目，默认为false
+ * @param {*} isVueAppCliMode 是否需要生成vue-cli项目，默认为false
  * @param {*} isTransformWXS  是否需要转换wxs文件，默认为true，目前uni-app已支持wxs文件，仅支持app和小程序
  */
-async function transform(sourceFolder, targetFolder, isUniAppCliMode, isTransformWXS) {
+async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransformWXS) {
 	fileData = {};
 	routerData = {};
 	imagesFolderArr = [];
-	
+
 	global.log = []; //记录转换日志，最终生成文件
 
 	let miniprogramRoot = sourceFolder;
@@ -558,14 +580,19 @@ async function transform(sourceFolder, targetFolder, isUniAppCliMode, isTransfor
 	global.miniprogramRoot = miniprogramRoot;
 	global.sourceFolder = sourceFolder;
 
-	//是否需要生成为uni-app cli项目
-	global.isUniAppCliMode = isUniAppCliMode;
+	//是否需要生成为vue-cli项目
+	global.isVueAppCliMode = isVueAppCliMode;
 
 	//是否需要转换wxs文件，默认为true
 	global.isTransformWXS = isTransformWXS || false;
 
+	//记录<template name="abc"></template>内容
+	global.globalTemplateComponents = {
+		//name: ast
+	};
+
 	//两个目录类型和作用不同
-	if (global.isUniAppCliMode) {
+	if (global.isVueAppCliMode) {
 		//输出目录
 		global.outputFolder = targetFolder;
 		//src目录
@@ -585,7 +612,7 @@ async function transform(sourceFolder, targetFolder, isUniAppCliMode, isTransfor
 	global.log.push("");
 	global.log.push("---基本信息---");
 	global.log.push("时间: " + moment().format('YYYY-MM-DD HH:mm:ss'));
-	global.log.push("转换模式: " + (global.isUniAppCliMode ? "uni-app cli" : "Hbuilder X"));
+	global.log.push("转换模式: " + (global.isVueAppCliMode ? "vue-cli" : "Hbuilder X"));
 	global.log.push("是否转换wxs文件: " + global.isTransformWXS);
 	global.log.push("");
 	global.log.push("---小程序基本信息---");
@@ -633,31 +660,62 @@ async function transform(sourceFolder, targetFolder, isUniAppCliMode, isTransfor
 	//   ]
 	// }
 	//
-	if (fs.existsSync(global.outputFolder)) {
-		//清空output或src目录，如果之前有下载过node_modules将被保留
-		//下截node_modules这一堆文件花了200+s，所以能不删除就不删除吧。
-		if (global.isUniAppCliMode && fs.existsSync(path.join(global.outputFolder, "node_modules"))) {
-			fs.emptyDirSync(global.targetFolder);
+
+	try {
+		if (fs.existsSync(global.outputFolder)) {
+			//清空output或src目录，如果之前有下载过node_modules将被保留
+			//下截node_modules这一堆文件花了200+s，所以能不删除就不删除吧。
+			if (global.isVueAppCliMode && fs.existsSync(path.join(global.outputFolder, "node_modules"))) {
+				fs.emptyDirSync(global.targetFolder);
+			} else {
+				fs.emptyDirSync(global.outputFolder);
+			}
 		} else {
-			fs.emptyDirSync(global.outputFolder);
+			fs.mkdirSync(global.outputFolder);
 		}
+	} catch (error) {
+		utils.log(`Error: ${global.outputFolder}可能被其他文件占用，请手动删除再试`);
+		return;
 	}
 
 	utils.sleep(300);
 
 	if (!fs.existsSync(global.targetFolder)) {
-		//创建输出目录，如果是uni-app cli模式，那就直接创建src目录，这样输出目录也会一并创建
+		//创建输出目录，如果是vue-cli模式，那就直接创建src目录，这样输出目录也会一并创建
 		fs.mkdirSync(global.targetFolder);
 	}
 
 	traverseFolder(miniprogramRoot, miniprogramRoot, targetFolder, () => {
 		//处理文件组
 		filesHandle(fileData, miniprogramRoot).then(() => {
+
+			//将<template name="abc"/>标签全部存为component组件
+			let componentFolder = path.join(targetFolder, "components");
+			if (!fs.existsSync(componentFolder)) {
+				fs.mkdirSync(componentFolder);
+			}
+			//
+			for (const name in global.globalTemplateComponents) {
+				const componentData = global.globalTemplateComponents[name];
+				const fileContent = componentData.data;
+				const alias = componentData.alias;  //有可能组件名与内置关键字冲突，这里使用别名
+
+				let componentFile = path.join(componentFolder, alias + ".vue");
+
+				//写入到全局组件
+				global.globalUsingComponents[alias] = "./components/" + alias + ".vue";
+
+				//写入文件
+				fs.writeFile(componentFile, fileContent, () => {
+					console.log(`write component file ${alias} success!`);
+				});
+			}
+
 			//处理配置文件
 			configHandle(configData, routerData, miniprogramRoot, targetFolder);
 
-			//生成uni-app cli项目所需要的文件
-			if (global.isUniAppCliMode) {
+			//生成vue-cli项目所需要的文件
+			if (global.isVueAppCliMode) {
 				uniAppCliHandle(configData, global.outputFolder, global.assetsFolderObject, true);
 			}
 
@@ -665,15 +723,15 @@ async function transform(sourceFolder, targetFolder, isUniAppCliMode, isTransfor
 			setTimeout(() => {
 				let str = "\r\n";
 
-				if (global.isUniAppCliMode) {
-					str += "当前转换模式：【uni-app cli】，生成uni-app cli项目。\r\n优点：所有资源文件位置与原项目一致，资源引用完美；\r\n缺点：上手有点点难度，转换完成后，需要运行命令：npm i\r\n";
+				if (global.isVueAppCliMode) {
+					str += "当前转换模式：【vue-cli】，生成vue-cli项目。\r\n优点：所有资源文件位置与原项目一致，资源引用完美；\r\n缺点：上手有点点难度，转换完成后，需要运行命令：npm i\r\n";
 				} else {
-					str += "当前转换模式：【Hbuilder X】，生成HbuilderX项目。\r\n优点：上手快，项目结构较简单；\r\n缺点：资源路径会因为表达式而无法全部被修复(推荐uni-app cli模式)\r\n";
-					str += '注意：当看到"image漏网之鱼"，意味着您需要手动调整对应代码，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径(使用uni-app cli模式可以解决，参数：-c)\r\n';
+					str += "当前转换模式：【Hbuilder X】，生成HbuilderX项目。\r\n优点：上手快，项目结构较简单；\r\n缺点：资源路径会因为表达式而无法全部被修复(推荐vue-cli模式)\r\n";
+					str += '注意：当看到"image漏网之鱼"，意味着您需要手动调整对应代码，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径(使用vue-cli模式可以解决，参数：-c)\r\n';
 				}
-				str += '另外，代码<template is="abc" data=""/>里data参数仅支持键值对{key:value}的形式，望知悉！\r\n';
+				str += '另外，代码<template is="abc" data=""/>里data属性，除了不支持...扩展运算符(因uni-app现在还不支持v-bind="")，其余参数形式都支持，望知悉！\r\n';
 				str += '日志说明：';
-				str += '试图转换template里data参数为Object时报错 --> 表示<template data="abc">里data的参数非{key:value}形式，转换出错，需要手工修改\r\n';
+				str += '试图转换template里data参数为Object时报错 --> 表示<template data="abc">里data的属性可能含有...扩展运算符，已将data重命为error-data=""，需转换后手工调整\r\n';
 				str += 'image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
 
 				global.log.push("\r\n转换完成: " + str);
@@ -682,7 +740,7 @@ async function transform(sourceFolder, targetFolder, isUniAppCliMode, isTransfor
 
 				writeLog(global.outputFolder);
 
-			}, 700);
+			}, 3000);
 		});
 	});
 }

@@ -1,5 +1,5 @@
 const path = require('path');
-
+const clone = require('clone');
 const utils = require('../../utils/utils.js');
 const pathUtil = require('../../utils/pathUtil.js');
 
@@ -94,6 +94,52 @@ const attrConverterConfigUni = {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 		}
 	},
+
+	//太多情况了，下面有个函数专门来处理这种情况
+	// 'bindconfirm': {
+	// 	key: '@confirm'
+	// },
+	// 'bindreset': {
+	// 	key: '@reset'
+	// },
+	// 'bindlongtap': {
+	// 	key: '@longtap'
+	// },
+	// 'bindchange': {
+	// 	key: '@change'
+	// },
+	// 'bindblur': {
+	// 	key: '@blur'
+	// },
+	// 'bindtouchstart': {
+	// 	key: '@touchstart'
+	// },
+	// 'bindtouchmove': {
+	// 	key: '@touchmove'
+	// },
+	// 'bindtouchend': {
+	// 	key: '@touchend'
+	// },
+	// 'bindscroll': {
+	// 	key: '@scroll'
+	// },
+	// 'bindmessage': {
+	// 	key: '@message'
+	// },
+}
+
+/**
+ * 替换bind为@，有两种情况：bindtap="" 和 bind:tap=""
+ */
+function replaceBindToAt(attr) {
+	return attr.replace(/^bind:*/, "@");
+}
+
+/**
+ * 替换wx:abc为:abc
+ */
+function replaceWxBind(attr) {
+	return attr.replace(/^wx:*/, ":");
 }
 
 /**
@@ -118,7 +164,7 @@ function findParentsWithFor(node) {
  * @param {*} ast 抽象语法树
  * @param {Boolean} isChildren 是否正在遍历子项目
  */
-const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
+const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, templateParser) {
 	let reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
 	let props = [];
 	for (let i = 0; i < ast.length; i++) {
@@ -130,23 +176,25 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 
 			//处理import标签
 			if (node.name == "import") {
-				let src = node.attribs["src"];
-				//src资源完整路径
-				let filePath = path.resolve(wxmlFolder, src);
-				//src资源文件相对于src所在目录的相对路径
-				let relativePath = path.relative(global.miniprogramRoot, filePath);
-				relativePath = relativePath.replace(/^\//g, "./"); //相对路径处理
-				//相对路径里\\替换为/
-				relativePath = relativePath.split("\\").join("/");
+				//<import src="../plugin/plugin.wxml"/>这类标签，直接删除
 
-				if (!/^\./.test(relativePath)) {
-					//路径前面不是以.开始，总不能是网络路径和绝对路径吧！
-					relativePath = "./" + relativePath;
-				}
+				// let src = node.attribs["src"];
+				// //src资源完整路径
+				// let filePath = path.resolve(wxmlFolder, src);
+				// //src资源文件相对于src所在目录的相对路径
+				// let relativePath = path.relative(global.miniprogramRoot, filePath);
+				// relativePath = relativePath.replace(/^\//g, "./"); //相对路径处理
+				// //相对路径里\\替换为/
+				// relativePath = relativePath.split("\\").join("/");
 
-				let name = pathUtil.getFileNameNoExt(src);
+				// if (!/^\./.test(relativePath)) {
+				// 	//路径前面不是以.开始，总不能是网络路径和绝对路径吧！
+				// 	relativePath = "./" + relativePath;
+				// }
 
-				global.globalUsingComponents[name] = relativePath;
+				// let name = pathUtil.getFileNameNoExt(src);
+
+				// global.globalUsingComponents[name] = relativePath;
 
 				// console.log(src, relativePath);
 				delete ast[i];
@@ -156,7 +204,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 				let key = path.join(wxmlFolder, pathUtil.getFileNameNoExt(file_wxml));
 				//
 				if (!global.wxsInfo[key]) global.wxsInfo[key] = [];
-				
+
 				if (global.isTransformWXS) {
 					//处理wxs标签 <wxs src="./../logic.wxs" module="logic" />
 					let module = node.attribs.module;
@@ -201,56 +249,108 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 			if (node.name == "template") {
 				// 	//包含is属性的才是页面里面的<template/>标签，否则为被引入的那个组件
 				let componentName = node.attribs.is;
-				// console.log(componentName);
 				if (componentName) {
-					node.name = componentName;
+					console.log("component is=", componentName);
+					//有is属性的<template/>是用来渲染的元素
+					node.name = "component";
 
 					let data = node.attribs.data;
 					if (!data) continue;
-					// 		//这里分两种情况，有:号和没:号的
-					// 		//有:号-->转为object对象传过去
-					// 		//没:号-->转为数组传过去
-					// 		data = data.replace(/{{ ?(.*?) ?}}/, '$1').replace(/'/g, "\"");
-					// 		if (data.indexOf(":") > -1) {
-					// 			data = JSON.parse("{" + data + "}");
-					// 			console.log(data);
-					// 		} else {
 
-					// 		}
-
-					/* *	```<template is="msgItem"  data="{{'这是一个参数'}}"/>```
+					/* *
+					*	```<template is="msgItem"  data="{{'这是一个参数'}}"/>```
 					*	```<template is="t1" data="{{newsList,type}}"/>```
 					*	```<template is="head" data="{{title: 'action-sheet'}}"/>```
 					*	```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
 					*	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
-					* ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>``` */
+					*   ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>``` 
+					*/
 
-					//目前仅支持语法 data="{{title: 'action-sheet'}}" ，JSON.parse转换不成功的，保持原样
-					// console.log(data);
+					//目前除了...扩展运算符不支持，其他全支持(因为uni-app还不支持v-bind=""语法)
 
-					//替换{{xxx}}为xxx-->替换'为"-->为key添加双引号
-					let test = data.replace(/{{ ?(.*?) ?}}/, '$1').replace(/'/g, "\"").replace(/([a-zA-Z_-]+):/g, '"$1":');
+					if (!global.globalTemplateComponents[componentName]) global.globalTemplateComponents[componentName] = {};
+
+					if (data.indexOf("...") > -1) {
+						let str = 'template里data属性包含...扩展运算符时，不支持转换(因uni-app还不支持v-bind="")，请预先手动修改:     data--> ' + data + "    file--> " + path.relative(global.miniprogramRoot, file_wxml);
+						console.log(str);
+						global.log.push(str);
+						//////////////////////////
+						global.globalTemplateComponents[componentName].props = '';
+						//这里简单处理一下，因为data不能作为props名，这里重名一下
+						node.attribs["error-data"] = data.replace(/{{(.*?)}}/, '$1');
+						delete node.attribs["data"];
+					} else {
+						let str = data.replace(/{{(.*?)}}/, '$1');
+						let obj = utils.stringToObject(str);
+						let logStr = "template里的data属性转换前 ==> \"" + str + "\"     转换后 ==> " + JSON.stringify(obj);
+						console.log(logStr);
+						//
+						let props = [];
+						for (const objKey in obj) {
+							const value = obj[objKey];
+							if (value.indexOf("\"") > -1 || value.indexOf("'") > -1) {
+								node.attribs[objKey] = value;
+							} else {
+								node.attribs[":" + objKey] = value;
+							}
+							props.push('"' + objKey + '"');
+						}
+						// global.globalTemplateComponents[componentName].path = file_wxml;
+						// global.globalTemplateComponents[componentName].alias = utils.getComponentAlias(componentName);
+						global.globalTemplateComponents[componentName].props = props.join(",");
+						//删除
+						delete node.attribs["data"];
+					}
+					node.attribs[":is"] = node.attribs["is"];
+					delete node.attribs["is"];
 
 					// console.log(test);
-					try {
-						let obj = JSON.parse("{" + test + "}");
-						for (const key in obj) {
-							let val = obj[key];
-							if (val.indexOf("\"") > -1) {
-								node.attribs[":" + key] = val;
-							} else {
-								node.attribs[key] = val;
-							}
-						}
-						//删除data属性
-						delete node.attribs["data"];
-						continue;
-					} catch (e) {
-						console.log(e);
-						//如果报错，那就随意了，不管了。
-						global.log.push("试图转换template里data参数为Object时报错:     data--> " + data + "    file--> " + path.relative(global.miniprogramRoot, file_wxml));
-					}
+					// try {
+					// 	let obj = JSON.parse("{" + test + "}");
+					// 	for (const key in obj) {
+					// 		let val = obj[key];
+					// 		if (val.indexOf("\"") > -1) {
+					// 			node.attribs[":" + key] = val;
+					// 		} else {
+					// 			node.attribs[key] = val;
+					// 		}
+					// 	}
+					// 	//删除data属性
+					// 	delete node.attribs["data"];
+					// 	continue;
+					// } catch (e) {
+					// 	// console.log(e);
+					// 	//如果报错，那就随意了，不管了。
+					// 	let str = "试图转换template里data属性为Object时报错:     data--> " + data + "    file--> " + path.relative(global.miniprogramRoot, file_wxml);
+					// 	console.log(str);
+					// 	global.log.push(str);
+					// }
 					// console.log(node);
+				} else {
+					//没有is属性的是被引用的<template/>本身，转换为vue组件，添加到全局变量里
+					//必须要有name属性才是一个自定义组件，否则应该是正常页面里面的template
+					const name = node.attribs.name;
+					if (name) {
+						if (!global.globalTemplateComponents[name]) global.globalTemplateComponents[name] = {};
+						//
+						global.globalTemplateComponents[name].path = file_wxml;
+						const alias = utils.getComponentAlias(name);
+						global.globalTemplateComponents[name].alias = alias;
+						// console.log(node, node.children)
+						global.globalTemplateComponents[name].ast = clone(node.children);
+
+						//删除
+						if(node.prev && node.prev.type === "text") ast[i-1] = {};
+						ast[i] = {};
+						continue;
+						//保留一个别名在template上，并且name属性删除
+						// if(node.attribs["alias"])
+						// {
+						// 	delete node.attribs["name"];
+						// }else{
+						// 	node.attribs["alias"] = alias;
+						// }
+					}
 				}
 			}
 
@@ -273,13 +373,14 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 
 				//image标签，处理src路径
 				let src = node.attribs.src;
+
 				//这里取巧一下，如果路径不是以/开头，那么就在前面加上./
-				if (!/^\//.test(src)) {
+				if (src && !/^\//.test(src)) {
 					src = "./" + src;
 				}
 				//忽略网络素材地址，不然会转换出错
-				if (src && !utils.isURL(src) && reg.test(src)) {
-					if (global.isUniAppCliMode) {
+				if (!utils.isURL(src) && reg.test(src)) {
+					if (global.isVueAppCliMode) {
 						//
 						attrs.src = src;
 					} else {
@@ -301,9 +402,10 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 						attrs.src = newImagePath;
 					}
 				} else {
-					if (!global.isUniAppCliMode) {
-						console.log("image漏网之鱼:    src--> \"" + node.attribs.src + "\"，   file--> " + path.relative(global.miniprogramRoot, file_wxml))
-						global.log.push("image漏网之鱼:    src--> \"" + node.attribs.src + "\"，   file--> " + path.relative(global.miniprogramRoot, file_wxml));
+					if (src && !global.isVueAppCliMode) {
+						let logStr = "image漏网之鱼:    src--> \"" + node.attribs.src + "\"     file--> " + path.relative(global.miniprogramRoot, file_wxml);
+						console.log(logStr);
+						global.log.push(logStr);
 					}
 				}
 			}
@@ -328,30 +430,8 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					attrs[key] = target['value'] ?
 						target['value'](node.attribs[k]) :
 						node.attribs[k];
-					/**
-					 * class放到下面去处理了
-					 * 因为这种就不太好处理了
-					 * <view class="abc abc-d-{{item.id}} {{selectId===item.id?'active':''}}"></view>
-					 */
-					// } else if (k == 'class') {
-					// 	//class单独处理
-					// 	let value = node.attribs[k];
-					// 	//将双引号转换单引号
-					// 	value = value.replace(/\"/g, "'");
-					// 	let hasBind = reg_tag.test(value);
-					// 	if (hasBind) {
-					// 		let reg = /(.*?) +{{(.*?)}}/g;
-					// 		let tempR = reg.exec(value);
-					// 		if (tempR) {
-					// 			attrs['class'] = tempR[1];
-					// 			attrs[':class'] = tempR[2];
-					// 		} else {
-					// 			attrs[':class'] = value.replace(/{{ ?(.*?) ?}}/, '$1');
-					// 		}
-					// 	} else {
-					// 		attrs['class'] = node.attribs[k];
-					// 	}
-				} else if (k == 'wx:for' || k == 'wx:for-items') {
+
+				} else if (k == 'wx:key' || k == 'wx:for' || k == 'wx:for-items') {
 					//wx:for单独处理
 					//wx:key="*item" -----不知道vue支持不
 					/**
@@ -427,29 +507,42 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 					//设置for-item默认值
 					wx_forItem = wx_forItem ? wx_forItem : "item";
 
-					//将双引号转换单引号
-					value = value.replace(/\"/g, "'");
-					value = value.replace(/{{ ?(.*?) ?}}/, '(' + wx_forItem + ', ' + newKey + ') in $1');
-					if (value == node.attribs[k]) {
-						//奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
-						//这里处理无{{}}的情况
-						value = '(' + wx_forItem + ', ' + newKey + ') in ' + value;
-					}
+					if (value) {
+						//将双引号转换单引号
+						value = value.replace(/\"/g, "'");
+						value = value.replace(/{{ ?(.*?) ?}}/, '(' + wx_forItem + ', ' + newKey + ') in $1');
 
-					attrs['v-for'] = value;
-					attrs[':key'] = newKey;
-					if (node.attribs.hasOwnProperty("wx:key")) delete node.attribs["wx:key"];
-					if (node.attribs.hasOwnProperty("wx:for-index")) delete node.attribs["wx:for-index"];
-					if (node.attribs.hasOwnProperty("wx:for-item")) delete node.attribs["wx:for-item"];
-					if (node.attribs.hasOwnProperty("wx:for-items")) delete node.attribs["wx:for-items"];
+						if (value == node.attribs[k]) {
+							//奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
+							//这里处理无{{}}的情况
+							value = '(' + wx_forItem + ', ' + newKey + ') in ' + value;
+						}
+
+						attrs['v-for'] = value;
+						attrs[':key'] = newKey;
+						if (node.attribs.hasOwnProperty("wx:key")) delete node.attribs["wx:key"];
+						if (node.attribs.hasOwnProperty("wx:for-index")) delete node.attribs["wx:for-index"];
+						if (node.attribs.hasOwnProperty("wx:for-item")) delete node.attribs["wx:for-item"];
+						if (node.attribs.hasOwnProperty("wx:for-items")) delete node.attribs["wx:for-items"];
+					}
 				} else {
 					// "../list/list?type={{ item.key }}&title={{ item.title }}"
 					// "'../list/list?type=' + item.key ' + '&title=' + item.title"
+					//
+
+					//替换带有bind前缀的key，避免漏网之鱼，因为实在太多情况了。
+					let newKey = replaceBindToAt(k);
+					attrs[newKey] = node.attribs[k];
+
+					if (newKey == k) {
+						newKey = replaceWxBind(k);
+						attrs[newKey] = node.attribs[k];
+					}
 
 					//其他属性
 					//处理下面这种嵌套关系的样式或绑定的属性
 					//style="background-image: url({{avatarUrl}});color:{{abc}};font-size:12px;"
-					let value = node.attribs[k];
+					let value = attrs[newKey];
 					let hasBind = reg_tag.test(value);
 					if (hasBind) {
 						let reg1 = /(?!^){{ ?/g; //中间的{{
@@ -481,13 +574,11 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 						} else {
 							value = value + "'";
 						}
-						//将双引号转换单引号
+						//将双引号转换单引号（这里还有问题----------------------------）
 						value = value.replace(/\"/g, "'");
 
-						attrs[":" + k] = value;
-						delete attrs[k];
-					} else {
-						attrs[k] = node.attribs[k];
+						attrs[":" + newKey] = value;
+						delete attrs[newKey];
 					}
 				}
 			}
@@ -500,14 +591,14 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile) {
 			// 	node.data = '{{' + tmpStr + '}}';
 			// }
 
-			if (onlyWxmlFile) {
-				let value = node.data;
-				if (reg_tag.test(value)) {
-					value = value.replace(/{{ ?(.*?) ?}}/, '$1');
-					if (!global.props[file_wxml]) global.props[file_wxml] = [];
-					global.props[file_wxml].push('"' + value + '"');
-				}
-			}
+			// if (onlyWxmlFile) {
+			// 	let value = node.data;
+			// 	if (reg_tag.test(value)) {
+			// 		value = value.replace(/{{ ?(.*?) ?}}/, '$1');
+			// 		if (!global.props[file_wxml]) global.props[file_wxml] = [];
+			// 		global.props[file_wxml].push('"' + value + '"');
+			// 	}
+			// }
 
 		} else if (node.type === 'Literal') {
 			//处理wxml里导入wxml的情况

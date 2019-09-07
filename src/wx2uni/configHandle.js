@@ -6,6 +6,8 @@ const generate = require('@babel/generator').default;
 const utils = require('../utils/utils.js');
 const pathUtil = require('../utils/pathUtil.js');
 
+const pinyin = require("node-pinyin");
+
 
 /**
  * 处理配置文件
@@ -60,6 +62,9 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//sitemap.json似乎在uniapp用不上，删除！
 			delete appJson["sitemapLocation"];
 
+			//subPackages显示配置错误，这里删除！
+			delete appJson["subPackages"];
+
 			//usingComponents节点，上面删除缓存，这里删除
 			delete appJson["usingComponents"];
 			
@@ -78,8 +83,8 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 					 * 而 /pages/images下面的文件是用于页面里的
 					 * 其余情况后面发现再加入
 					 */
-					if (item.iconPath) item.iconPath = "./static/" + item.iconPath;
-					if (item.selectedIconPath) item.selectedIconPath = "./static/" + item.selectedIconPath;
+					if (item.iconPath) item.iconPath = "./static" + item.iconPath;
+					if (item.selectedIconPath) item.selectedIconPath = "./static" + item.selectedIconPath;
 				}
 			}
 
@@ -95,7 +100,8 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			let file_manifest = path.join(__dirname, "/template/manifest.json");
 			let manifestJson = fs.readJsonSync(file_manifest);
 			//
-			manifestJson.name = configData.name;
+			let name = pinyin(configData.name, { style: "normal" }).join("");
+			manifestJson.name = name;
 			manifestJson.description = configData.description;
 			manifestJson.versionName = configData.version || "1.0.0";
 			manifestJson["mp-weixin"].appid = configData.appid;

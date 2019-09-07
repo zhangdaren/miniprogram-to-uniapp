@@ -16,7 +16,7 @@ program
     .usage('[options]')
     .option('-i, --input', 'the input path for weixin miniprogram project')
     .option('-o, --output <value>', 'the output path for uni-app project, which default value is process.cwd()', "")
-    .option('-c, --cli [type]', 'the type of output project is uni-app cli, which default value is false', false)
+    .option('-c, --cli [type]', 'the type of output project is vue-cli, which default value is false', false)
     .option('-w, --wxs [type]', 'transform wxs file to js file, which default value is true', true)
     .parse(process.argv);
 
@@ -42,7 +42,7 @@ help();
 
 let src = program.args[0];
 let dist = program.output;
-let isUniAppCliMode = program.cli;
+let isVueAppCliMode = program.cli;
 let isTransformWXS = program.wxs;
 
 src = path.resolve(process.cwd(), src);
@@ -52,5 +52,5 @@ if (!fs.existsSync(src)) {
     process.exit();
 }
 
-transform(src, dist, isUniAppCliMode, isTransformWXS);
+transform(src, dist, isVueAppCliMode, isTransformWXS);
 
