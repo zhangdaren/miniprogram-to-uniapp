@@ -40,6 +40,12 @@ const attrConverterConfigUni = {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 		}
 	},
+	'wx-if': {
+		key: 'v-if',
+		value: (str) => {
+			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
+		}
+	},
 	// 'wx:key': {
 	// 	key: ':key',
 	// 	value: (str) => {
@@ -59,10 +65,16 @@ const attrConverterConfigUni = {
 		}
 	},
 	'scrollX': {
-		key: 'scroll-x'
+		key: 'scroll-x',
+		value: (str) => {
+			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
+		}
 	},
 	'scrollY': {
-		key: 'scroll-y'
+		key: 'scroll-y',
+		value: (str) => {
+			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
+		}
 	},
 	'bindtap': {
 		key: '@tap',
@@ -164,9 +176,10 @@ function findParentsWithFor(node) {
  * @param {*} ast 抽象语法树
  * @param {Boolean} isChildren 是否正在遍历子项目
  */
-const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, templateParser) {
+const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, templateParser, templateNum) {
 	let reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
 	let props = [];
+	const fileName = pathUtil.getFileNameNoExt(file_wxml);
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
 		//检测到是html节点
@@ -201,7 +214,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 				continue;
 			} else if (node.name == "wxs") {
 				// key为文件路径 + 文件名(不含扩展名)组成
-				let key = path.join(wxmlFolder, pathUtil.getFileNameNoExt(file_wxml));
+				let key = path.join(wxmlFolder, fileName);
 				//
 				if (!global.wxsInfo[key]) global.wxsInfo[key] = [];
 
@@ -250,59 +263,74 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 				// 	//包含is属性的才是页面里面的<template/>标签，否则为被引入的那个组件
 				let componentName = node.attribs.is;
 				if (componentName) {
-					console.log("component is=", componentName);
+					// console.log("component is=", componentName);
 					//有is属性的<template/>是用来渲染的元素
 					node.name = "component";
 
 					let data = node.attribs.data;
-					if (!data) continue;
+					if (data) {
+						/* *
+						*	```<template is="msgItem"  data="{{'这是一个参数'}}"/>```
+						*	```<template is="t1" data="{{newsList,type}}"/>```
+						*	```<template is="head" data="{{title: 'action-sheet'}}"/>```
+						*	```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
+						*	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
+						*   ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>``` 
+						*/
 
-					/* *
-					*	```<template is="msgItem"  data="{{'这是一个参数'}}"/>```
-					*	```<template is="t1" data="{{newsList,type}}"/>```
-					*	```<template is="head" data="{{title: 'action-sheet'}}"/>```
-					*	```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
-					*	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
-					*   ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>``` 
-					*/
+						//目前除了...扩展运算符不支持，其他全支持(因为uni-app还不支持v-bind=""语法)
 
-					//目前除了...扩展运算符不支持，其他全支持(因为uni-app还不支持v-bind=""语法)
+						if (!global.globalTemplateComponents[componentName]) global.globalTemplateComponents[componentName] = {};
 
-					if (!global.globalTemplateComponents[componentName]) global.globalTemplateComponents[componentName] = {};
-
-					if (data.indexOf("...") > -1) {
-						let str = 'template里data属性包含...扩展运算符时，不支持转换(因uni-app还不支持v-bind="")，请预先手动修改:     data--> ' + data + "    file--> " + path.relative(global.miniprogramRoot, file_wxml);
-						console.log(str);
-						global.log.push(str);
-						//////////////////////////
-						global.globalTemplateComponents[componentName].props = '';
-						//这里简单处理一下，因为data不能作为props名，这里重名一下
-						node.attribs["error-data"] = data.replace(/{{(.*?)}}/, '$1');
-						delete node.attribs["data"];
-					} else {
-						let str = data.replace(/{{(.*?)}}/, '$1');
-						let obj = utils.stringToObject(str);
-						let logStr = "template里的data属性转换前 ==> \"" + str + "\"     转换后 ==> " + JSON.stringify(obj);
-						console.log(logStr);
-						//
-						let props = [];
-						for (const objKey in obj) {
-							const value = obj[objKey];
-							if (value.indexOf("\"") > -1 || value.indexOf("'") > -1) {
-								node.attribs[objKey] = value;
-							} else {
-								node.attribs[":" + objKey] = value;
+						if (data.indexOf("...") > -1) {
+							let str = 'template里data属性包含...扩展运算符时，不支持转换(因uni-app还不支持v-bind="")，请预先手动修改:     data--> ' + data + "    file--> " + path.relative(global.miniprogramRoot, file_wxml);
+							console.log(str);
+							global.log.push(str);
+							//////////////////////////
+							global.globalTemplateComponents[componentName].props = '';
+							//这里简单处理一下，因为data不能作为props名，这里重名一下
+							node.attribs["error-data"] = data.replace(/{{(.*?)}}/, '$1');
+							delete node.attribs["data"];
+						} else {
+							let str = data.replace(/{{(.*?)}}/, '$1');
+							let obj = utils.stringToObject(str);
+							let logStr = "template里的data属性转换前 ==> \"" + str + "\"     转换后 ==> " + JSON.stringify(obj);
+							console.log(logStr);
+							//
+							let props = [];
+							for (const objKey in obj) {
+								const value = obj[objKey];
+								if (value.indexOf("\"") > -1 || value.indexOf("'") > -1) {
+									node.attribs[objKey] = value;
+								} else {
+									node.attribs[":" + objKey] = value;
+								}
+								props.push('"' + objKey + '"');
 							}
-							props.push('"' + objKey + '"');
+							// global.globalTemplateComponents[componentName].path = file_wxml;
+							// global.globalTemplateComponents[componentName].alias = utils.getComponentAlias(componentName);
+							global.globalTemplateComponents[componentName].props = props.join(",");
+							//删除
+							delete node.attribs["data"];
 						}
-						// global.globalTemplateComponents[componentName].path = file_wxml;
-						// global.globalTemplateComponents[componentName].alias = utils.getComponentAlias(componentName);
-						global.globalTemplateComponents[componentName].props = props.join(",");
-						//删除
-						delete node.attribs["data"];
 					}
-					node.attribs[":is"] = node.attribs["is"];
-					delete node.attribs["is"];
+
+					if (reg_tag.test(componentName)) {
+						node.attribs[":is"] = componentName.replace(/{{ ?(.*?) ?}}/, '$1');
+						delete node.attribs["is"];
+
+						//将当前行注释，因为现在对于动态组件并无解决方案，uni-app官方是说平台限制了，没法动态创建组件
+						const code = templateParser.astToString([node]);
+						const comment = "uni-app不支持动态组件，因此注释下行代码。请手动修改为显式声明组件\r";
+						ast[i] = {
+							type: "comment",
+							data: comment + code
+						};
+
+						let logStr = '因uni-app不支持动态组件，已注释代码，请手动修改。    code--> ' + code + "    file--> " + path.relative(global.miniprogramRoot, file_wxml);
+						console.log(logStr);
+						global.log.push(logStr);
+					}
 
 					// console.log(test);
 					// try {
@@ -331,25 +359,30 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 					//必须要有name属性才是一个自定义组件，否则应该是正常页面里面的template
 					const name = node.attribs.name;
 					if (name) {
-						if (!global.globalTemplateComponents[name]) global.globalTemplateComponents[name] = {};
-						//
-						global.globalTemplateComponents[name].path = file_wxml;
-						const alias = utils.getComponentAlias(name);
-						global.globalTemplateComponents[name].alias = alias;
-						// console.log(node, node.children)
-						global.globalTemplateComponents[name].ast = clone(node.children);
+						if (templateNum > 1 || name != fileName) {
+							if (!global.globalTemplateComponents[name]) global.globalTemplateComponents[name] = {};
+							//
+							global.globalTemplateComponents[name].path = file_wxml;
+							const alias = utils.getComponentAlias(name);
+							global.globalTemplateComponents[name].alias = alias;
+							// console.log(node, node.children)
+							global.globalTemplateComponents[name].ast = clone(node.children);
 
-						//删除
-						if(node.prev && node.prev.type === "text") ast[i-1] = {};
-						ast[i] = {};
-						continue;
-						//保留一个别名在template上，并且name属性删除
-						// if(node.attribs["alias"])
-						// {
-						// 	delete node.attribs["name"];
-						// }else{
-						// 	node.attribs["alias"] = alias;
-						// }
+							//删除
+							if (node.prev && node.prev.type === "text") ast[i - 1] = {};
+							ast[i] = {};
+							continue;
+							//保留一个别名在template上，并且name属性删除
+							// if(node.attribs["alias"])
+							// {
+							// 	delete node.attribs["name"];
+							// }else{
+							// 	node.attribs["alias"] = alias;
+							// }
+						} else {
+							//如果只有一个template，且template的name与wxml的文件名一致，则将标签名由template改为view
+							node.name = "view";
+						}
 					}
 				}
 			}
@@ -391,15 +424,15 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 
 						//当前处理文件所在目录
 						let wxmlFolder = path.dirname(file_wxml);
-						var pFolderName = pathUtil.getParentFolderName(src);
+						let pFolderName = pathUtil.getParentFolderName(src);
 						// console.log("pFolderName ", pFolderName)
-						var fileName = path.basename(src);
+						let fileName = path.basename(src);
 						// console.log("fileName ", fileName)
 
 						filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
 						newImagePath = path.relative(wxmlFolder, filePath);
 
-						attrs.src = newImagePath;
+						node.attribs.src = newImagePath.split("\\").join("/");;
 					}
 				} else {
 					if (src && !global.isVueAppCliMode) {
@@ -577,7 +610,11 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						//将双引号转换单引号（这里还有问题----------------------------）
 						value = value.replace(/\"/g, "'");
 
-						attrs[":" + newKey] = value;
+						if (newKey == k) {
+							attrs[":" + newKey] = value;
+						} else {
+							attrs[newKey] = value;
+						}
 						delete attrs[newKey];
 					}
 				}
@@ -634,7 +671,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 		}
 		//因为是树状结构，所以需要进行递归
 		if (node.children) {
-			templateConverter(node.children, true, file_wxml, onlyWxmlFile);
+			templateConverter(node.children, true, file_wxml, onlyWxmlFile, templateParser);
 		}
 	}
 	return ast;

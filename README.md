@@ -54,7 +54,7 @@ $ wtu -i miniprogramProject -w
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
 
-### 转换注意事项   
+#### 转换注意事项   
 
 * 小程序并不能与uni-app完全对应，转换也并非100%，只希望能尽量减少大家的工作量。我一直在努力，也许有那么一天可以完美转换~~~   
 * 小程序使用wxParse组件时，转换难度挺大，建议手动替换为uni-app所对应的插件   
@@ -91,14 +91,7 @@ $ wtu -i miniprogramProject -w
 * [todo] 组件批量注册   
 * [todo] 删除生成目录里的空白目录   
 
-[TODO： 下一版实现]
-+ 支持解析下面这种写法   
-···
-"usingComponents": {
-   "pwdPay": "plugin://bbgPay/pwdPay"
-}
-···
-+ 支持subPackages节点，目前有点小问题，已经被干掉了   
+[TODO： 待实现]
 + 支持含双引号代码的转换，如```<view class='citem' style='background-image:url("{{item.photo}}")'>```   
 + 转换前先格式化代码   
    
@@ -126,51 +119,56 @@ $ wtu -i miniprogramProject -w
 *	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
 * ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>```
 
-目前仅针对第二、三、四种写法可以实现完美转换。而其它写法，目前uni-app并不支持v-bind=""语法，暂无法支持。   
+目前仅针对第二、三、四种写法可以实现完美转换。而其它写法，目前uni-app并不支持v-bind=""和动态组件语法，暂无法支持。   
 如有大佬对此有完美解决方案，请不吝赐教，谢谢~~   
    
 目前的处理规则：   
 1. 将wxml里```<tempate name="abc">```内容提取，生成vue文件，并注册为全局组件   
 2. 将```<template is="head" data="{{title: 'action-sheet'}}"/>```转换为```<component :is="head" title="'action-sheet'"`/>``   
 3. 删除```<import src="../../../common/head.wxml" />```   
+4. 因uni-app暂时还不支持动态组件，导致:is="xxx"这种语法并不能支持，为保证转换后能跑起来，已经屏蔽相关代码，且写入日志，方便查看   
 
       
 ### wxParse不支持转换   
-因uni-app有更好的同类组件，计划使用那个进行替换这个      
-  
+目前能跑起来，未详测。但因uni-app有更好的同类组件，计划使用那个进行替换这个      
+
+
+### 变量名与函数名重名
+报错：[Vue warn]: Method "xxx" has already been defined as a data property.
+解决：在小程序里，data里变量与函数可以同名，而在vue里当场报错，需手动将函数名重名，并修改template里所绑定的函数名。
+
+
+### 未在data里声明，而直接使用setData赋值   
+报错：Avoid adding reactive properties to a Vue instance or its root $data at runtime - declare it upfront in the data option.
+解决：工具尽可能的收集了页面里的setData({})里的参数，与data里的变量进行对比，并添加，一般情况不会报这个错。出现这个错，可能是页面里将this传到其他文件里，并调用了setData()函数导致的，需手动修改。
+   
+
    
 ## 更新记录   
-### v1.0.22(20190907)   
-* [新增] 完善template标签转换，除了不支持data里含...扩展运算符外(因uni-app现还不支持v-bind="")，其他都已支持(含...的data，已重名为error-data，需手工调整：换一种方式导入自定义组件或显式调用组件)  
-* [新增] 将含有内置关键字的组件名替换为别名   
-* [修复] -c模式下，输出目录不存在而报错的bug   
-* [修复] 增加解析js文件错误提示   
-* [修复] 修复当同一组文件(js/wxml/wxss)内容都为空时，影响后面流程不能生成pages.json等配置文件的bug   
-* [修复] 无遗漏处理bind前缀事件名称   
-* [修复] 将manifest.json里的name字段，如果为中文，转换为拼音。修复含中文导致HBX识别不到manifest.json的bug   
-* [修复] 转换wxss代码import *.wxss里的文件路径为相对路径   
-* [修复] 转换js代码import xxx from "*.js"里的文件路径为相对路径   
-* [修复] 转换js代码require('./util')里的文件路径为相对路径   
-* [修复] 删除绑定的值为空的标签属性(如```<view value={{}}>```)   
-[注意！！！] 如HBX运行时提示“项目下缺少manifest.json文件”，请在项目上右键【重新识别项目类型】  
+### v1.0.24(20190918)   
+* [新增] 支持wx-if转换(对，你没看错，wx:if和wx-if都能用……)   
+* [新增] 支持wx:else="{{xxx}}"转换   
+* [新增] 支持subPackages分包加载   
+* [新增] 识别app.js里exports.default = App({});结构   
+* [新增] 识别js文件是否为vue文件结构，通过结构export default {}识别   
+* [新增] 增加_.data.xxx转换为_.xxx(定义_为this副本)   
+* [新增] 忽略组件plugin:/calendar转换   
+* [新增] 收集页面里setData()里参数与data里的变量进行对比，并将差异增加到data里，尽可能修改因未定义变量而直接使用setData()报错的问题(无法100%修复，详见“关于不支持转换的语法说明”)   
+* [修复] 修复json文件里定义的usingComponents路径转换   
+* [修复] 修复app.json里tabbar里的路径转换   
+* [修复] 修复因为找不到```<template is="abc"/>```这里面的abc组件，而出现undefined.vue组件的bug   
+* [修复] app.js里，所以非生命周期函数或变量，均放入到globalData里   
+* [修复] var app = getApp(); 替换为 var app = getApp().globalData;   
+* [修复] 目前uni-app对于非H5平台，暂无法支持动态组件。因此，转换时，将显式引用的组件使用转换为显式组件引用(如```<template is="abc"/>```)，隐式声明的组件(如```<template is="{{item.id}}"/>```)，暂时无法支持，为了保证转换后能正常运行，将直接注释，并存入转换日志，方便后续修改。   
+* [修复] css由"内嵌"改为import方式导入，防止vue文件代码行数过长   
+
+
+  
+### v1.0.23(20190907)   
+* [修复] @tap前面被添加冒号的bug   
+* [修复] app.js没有被转换的bug   
+* [修复] 当解析js报错时(如js里使用了重载)，将返回原文件内容   
    
-   
-### v1.0.21(20190830)   
-* [新增] 【-c】命令，支持生成vue-cli项目，默认为【false】，生成后请在生成目录里执行 npm i 安装npm包(大概需要200+s)，然后可以直接将整个目录拖入到HBuilderX里二次开发或运行，如HBX运行时提示“项目下缺少manifest.json文件”，请在项目上右键【重新识别项目类型】   
-* [新增] vue-cli项目，支持配置静态目录(在vue.config.js里alias节点设置)，目前已配置【'@' --> './src'】和 【'assets' --> './src/static'】   
-* [新增] 【-w】命令，支持转换wxs为js文件，默认为【false】，因uni-app已在app和小程序平台支持wxs标签，而wxs近期也将支持H5平台，所以默认不再转换(还有一个原因是因为遇到同一个目录里，同时包含utils.js和utils.wxss，显然转换为js文件时，两个文件会合为一个，so……)   
-* [新增] 处理属性bind:tap-->@tap   
-* [新增] 转换完成后，在生成目录里，生成transform_log.log文件(每次转换都会重新生成！)   
-* [修复] 处理标签class属性含多个{{}}或有三元表达式的情况(如：```<view class="abc abc-{{item.id}} {{selId===item.id?'active':''}}"></view>```)   
-* [修复] 删除page.json里的usingComponents节点。通过import导入组件时，不需要在page.json里重复注册   
-* [修复] 删除wx:for-index标签   
-      
-### v1.0.20(20190823)   
-* [修复] 去掉引用组件时的后缀名(如：Vue.component('navbar.vue', navBar))，转换组件名为驼峰全名    
-* [修复] 修改搜索资源路径的正则表达式，以兼容低版本Node.js   
-* [修复] 修复当页面里的onLoad为onLoad: function() {}时，处理wxs而报错的bug   
-* [修复] 转换结束后，增加template和image的提示   
-* [修复] 对于小程序目录，project.config.json不存在也可进行转换   
 
 ### 历史更新记录已移入ReleaseNote.md   
     
@@ -179,9 +177,9 @@ $ wtu -i miniprogramProject -w
 * 感谢转转大佬的文章：[[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)，* 本项目基于此文章里面的代码开发，在此表示感谢~   
 * 感谢网友[没有好名字了]给予帮助。   
 * 感谢官方大佬DCloud_heavensoft的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。   
+* this.setData()代码出处：https://ask.dcloud.net.cn/article/35020，在些表示感谢~  
 * 感谢为本项目提供建议以及帮助的热心网友们~~   
-* this.setData()代码出处：https://ask.dcloud.net.cn/article/35020，在些表示感谢~   
-   
+    
       
 ## 参考资料   
 0. [[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)   此文获益良多   

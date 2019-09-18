@@ -48,8 +48,7 @@ function checkEmptyTag(ast) {
 		}
 	});
 
-	if(count === 0)
-	{
+	if (count === 0) {
 		ast = [];
 	}
 	return ast;
@@ -67,6 +66,10 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 
 	let reg = /<template([\s\S]*?)<\/template>/g;
 
+	//查找有多少个template
+	let tmpArr = fileData.match(reg) || [];
+	let templateNum = tmpArr.length;
+
 	//生成语法树
 	let templateAst = await templateParser.parse(fileData);
 
@@ -74,7 +77,7 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	let isMultiTag = checkMultiTag(templateAst);
 
 	//进行上述目标的转换
-	let convertedTemplate = templateConverter(templateAst, false, file_wxml, onlyWxmlFile, templateParser);
+	let convertedTemplate = templateConverter(templateAst, false, file_wxml, onlyWxmlFile, templateParser, templateNum);
 
 	//判断ast是否没有tag，是的话就全删除
 	convertedTemplate = checkEmptyTag(convertedTemplate);
@@ -84,10 +87,6 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 
 	//去掉首尾空，有可能文件内容都删除完了。
 	templateConvertedString = templateConvertedString.trim();
-
-	//查找有多少个template
-	// let tmpArr = templateConvertedString.match(reg) || [];
-	// let isMultiTemplate = tmpArr.length > 1;
 
 	//
 	const globalTemplateComponents = global.globalTemplateComponents;
@@ -113,8 +112,6 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 			componentData.data = tempComponentString;
 		}
 	}
-
-
 
 	if (templateConvertedString) {
 		if (isMultiTag) {

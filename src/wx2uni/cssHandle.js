@@ -22,18 +22,18 @@ async function cssHandle(fileContent, file_wxss) {
 			// let reg = /(\d+)rpx/g;
 			// fileContent = fileContent.replace(reg, "$1upx");
 			//删除掉import app.wxss的代码
-			fileContent = fileContent.replace(/@import ?["'].*?app.wxss["'];?/g, "");
+			// fileContent = fileContent.replace(/@import ?["'].*?app.wxss["'];?/g, "");
 
 			//wxss文件所在目录
 			let fileDir = path.dirname(file_wxss);
-			let reg_import = /@import +['"](.*?).wxss['"]/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
+			let reg_import = /@import +['"](.*?).wxss['"];*/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
 			fileContent = fileContent.replace(reg_import, function (match, pos, orginText) {
 				//先转绝对路径，再转相对路径
 				let filePath = pos;
 				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
 
 				//虽可用path.posix.前缀来固定为斜杠，然而改动有点小多，这里只单纯替换一下
-				return '@import "' + filePath + '.css"';
+				return '@import "' + filePath + '.css";';
 			});
 
 			//修复图片路径

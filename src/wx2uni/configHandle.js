@@ -10,6 +10,32 @@ const pinyin = require("node-pinyin");
 
 
 /**
+ * 将小程序subPackages节点处理为uni-app所需要的节点
+ * @param {*} subPackages 
+ */
+function subPackagesHandle(subPackages) {
+	let reuslt = [];
+	for (const key in subPackages) {
+		const obj = subPackages[key];
+		const root = obj.root;
+		const pages = obj.pages;
+		let newPages = [];
+		for (const subKey in pages) {
+			const subObj = pages[subKey];
+			newPages.push({
+				"path": subObj
+			})
+		}
+
+		reuslt.push({
+			"root": root,
+			"pages": newPages
+		});
+	}
+	return reuslt;
+}
+
+/**
  * 处理配置文件
  * 生成配置文件: pages.json、manifest.json、main.js
  * @param {*} configData        小程序配置数据
@@ -26,7 +52,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			let json_app = path.join(miniprogramRoot, "app.json");
 			let appJson = fs.readJsonSync(json_app);
 			//app.json里面引用的全局组件
-			let globalUsingComponents = appJson.usingComponents;
+			let globalUsingComponents = appJson.usingComponents || {};
 			globalUsingComponents = { ...globalUsingComponents, ...global.globalUsingComponents };
 
 			//将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
@@ -62,14 +88,16 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//sitemap.json似乎在uniapp用不上，删除！
 			delete appJson["sitemapLocation"];
 
-			//subPackages显示配置错误，这里删除！
-			delete appJson["subPackages"];
+			//处理分包加载subPackages
+			let subPackages = appJson["subPackages"];
+			appJson["subPackages"] = subPackagesHandle(subPackages);
+			
 
 			//usingComponents节点，上面删除缓存，这里删除
 			delete appJson["usingComponents"];
-			
+
 			//workers处理，简单处理一下
-			if(appJson["workers"]) appJson["workers"] = "static/" + appJson["workers"];
+			if (appJson["workers"]) appJson["workers"] = "static/" + appJson["workers"];
 
 			//tabBar节点
 			//将iconPath引用的图标路径进行修复
@@ -83,8 +111,20 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 					 * 而 /pages/images下面的文件是用于页面里的
 					 * 其余情况后面发现再加入
 					 */
-					if (item.iconPath) item.iconPath = "./static" + item.iconPath;
-					if (item.selectedIconPath) item.selectedIconPath = "./static" + item.selectedIconPath;
+					const iconPath = item.iconPath;
+					if (iconPath) {
+						if (iconPath.indexOf("static/") == -1) {
+							item.iconPath = "./static/" + iconPath;
+						}
+						item.iconPath = pathUtil.relativePath(item.iconPath, global.miniprogramRoot, global.miniprogramRoot);
+					}
+					const selectedIconPath = item.selectedIconPath;
+					if (selectedIconPath) {
+						if (selectedIconPath.indexOf("static/") == -1) {
+							item.selectedIconPath = "./static/" + selectedIconPath;
+						}
+						item.selectedIconPath = pathUtil.relativePath(item.selectedIconPath, global.miniprogramRoot, global.miniprogramRoot);
+					}
 				}
 			}
 
@@ -127,7 +167,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				newKey = newKey.split(".vue").join(""); //去掉后缀名
 				let filePath = globalUsingComponents[key];
 				let extname = path.extname(filePath);
-				if(extname) filePath = filePath.replace(extname, ".vue");
+				if (extname) filePath = filePath.replace(extname, ".vue");
 				filePath = filePath.replace(/^\//, "./"); //相对路径处理
 				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(newKey))], t.stringLiteral(filePath));
 				mainContent += `${generate(node).code}\r\n`;
@@ -148,7 +188,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			fs.writeFile(file_main, mainContent, () => {
 				console.log(`write ${file_main} success!`);
 			});
-					
+
 			//////////////////////////////////////////////////////////////////////
 			resolve();
 		});

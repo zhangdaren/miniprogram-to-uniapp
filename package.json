@@ -2,7 +2,6 @@
   "_from": "miniprogram-to-uniapp",
   "_id": "miniprogram-to-uniapp@1.0.0",
   "_inBundle": false,
-  "_integrity": "sha512-S0DRqDTKn+48flxH9rIa4ov2NRXLOjWXyKiTZw6lhEfpHQ3Itwbih/lKeea5rRWkRynPEJID+H/GaORvPbeFXQ==",
   "_location": "/miniprogram-to-uniapp",
   "_phantomChildren": {},
   "_requested": {
@@ -19,9 +18,7 @@
     "#USER"
   ],
   "_resolved": "https://registry.npmjs.org/miniprogram-to-uniapp/-/miniprogram-to-uniapp-1.0.0.tgz",
-  "_shasum": "705f13dcbdc835010e077bc7d6f56b5a229559cd",
   "_spec": "miniprogram-to-uniapp",
-  "_where": "E:\\zpWork\\Project_self\\wx2uni",
   "author": {
     "name": "375890534@qq.com"
   },
@@ -75,5 +72,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.22"
+  "version": "1.0.24"
 }

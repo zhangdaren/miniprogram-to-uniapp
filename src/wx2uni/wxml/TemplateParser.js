@@ -13,6 +13,7 @@ class TemplateParser {
       //先初始化一个domHandler
       const handler = new htmlparser.DomHandler((error, dom) => {
         if (error) {
+          console.log("parse wxml error: " + error);
           reject(error);
         } else {
           //在回调里拿到AST对象  
@@ -48,8 +49,8 @@ class TemplateParser {
           Object.keys(item.attribs).forEach(attr => {
             let value = item.attribs[attr];
             if (value == "") {
-              //需要同时满足，
-              if (attr.indexOf(":") > -1) {
+              //需要同时满足；如果attr=data，且没有value时，也删除
+              if (attr.indexOf(":") > -1 || attr == "data") {
                 //key含冒号且value为空时，直接删除
               } else {
                 str += ` ${attr}`;

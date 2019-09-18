@@ -47,9 +47,6 @@ export default {
 const componentTemplateApp =
 	`
 export default {
-  data() {
-    return DATA
-  },
   methods: METHODS
 }
 `;
@@ -205,7 +202,96 @@ function handleOnLoadFun(liftCycleArr, key, funName) {
 	return node;
 }
 
+/**
+ * 处理require()里的路径
+ * @param {*} path      CallExpression类型的path，未做校验
+ * @param {*} fileDir   当前文件所在目录
+ */
+function requireHandle(path, fileDir) {
+	let callee = path.node.callee;
+	if (t.isIdentifier(callee, { name: "require" })) {
+		//处理require()路径
+		let arguments = path.node.arguments;
+		if (arguments && arguments.length) {
+			if (t.isStringLiteral(arguments[0])) {
+				let filePath = arguments[0].value;
+				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+				path.node.arguments[0] = t.stringLiteral(filePath);
+			}
+		}
+	}
+}
 
+
+/**
+ * 处理未在data里面声明的变量
+ * @param {*} ast 
+ * @param {*} vistors 
+ * @param {*} file_js 
+ */
+function defineValueHandle(ast, vistors, file_js) {
+	//处理没有在data里面声明的变量
+	var dataArr = vistors.data.getData();
+	//转为json对象，这样方便查找
+	let dataJson = {};
+	dataArr.forEach(obj => {
+		dataJson[obj.key.name] = obj.value.name;
+	});
+	traverse(ast, {
+		noScope: true,
+		CallExpression(path) {
+			let callee = path.node.callee;
+			if (t.isMemberExpression(callee)) {
+				let object = callee.object;
+				let property = callee.property;
+				if (t.isIdentifier(property, { name: "setData" })) {
+					let arguments = path.node.arguments;
+					for (const key in arguments) {
+						const element = arguments[key];
+						for (const key2 in element.properties) {
+							const subElement = element.properties[key2];
+							if (t.isIdentifier(subElement.key)) {
+								const name = subElement.key.name;
+								const value = subElement.value;
+								//与data对比
+								if (!dataJson.hasOwnProperty(name)) {
+									const logStr = "data里没有的变量:    " + name + " -- " + value.type + "    file: " + nodePath.relative(global.miniprogramRoot, file_js);
+									utils.log(logStr);
+									global.log.push(logStr);
+
+									//设置默认值
+									let initialValue;
+									switch (value.type) {
+										case "BooleanLiteral":
+											initialValue = t.booleanLiteral(false);
+											break;
+										case "NumericLiteral":
+											initialValue = t.numericLiteral(0);
+											break;
+										case "ArrayExpression":
+											initialValue = t.arrayExpression();
+											break;
+										case "ObjectExpression":
+											initialValue = t.objectExpression([]);
+											break;
+										default:
+											//其余全是空
+											initialValue = t.stringLiteral("");
+											break;
+									}
+
+									vistors.data.handle(t.objectProperty(t.identifier(name), initialValue));
+									dataJson[name] = name;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	});
+
+}
 
 /**
  * 组件模板处理
@@ -222,6 +308,8 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 	let buildRequire = null;
 
 	if (!isSingleFile) {
+		defineValueHandle(ast, vistors, file_js);
+
 		//插入setData()
 		const node = getSetDataFunAST();
 		vistors.methods.handle(node);
@@ -232,7 +320,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			buildRequire = template(componentTemplateApp);
 			//app.js目前看到有data属性的，其余的还未看到。
 			ast = buildRequire({
-				DATA: arrayToObject(vistors.data.getData()),
 				METHODS: arrayToObject(vistors.methods.getData())
 			});
 		} else {
@@ -272,13 +359,13 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 		ObjectMethod(path) {
 			// console.log("--------", path.node.key.name);
 			if (path.node.key.name === 'data') {
-				let liftCycleArr = vistors.lifeCycle.getData();
-				for (let key in liftCycleArr) {
-					// console.log(liftCycleArr[key]);
-					path.insertAfter(liftCycleArr[key]);
-				}
-				//停止，不往后遍历了
-				path.skip();
+				//将require()里的地址都处理一遍
+				traverse(path.node, {
+					noScope: true,
+					CallExpression(path2) {
+						requireHandle(path2, fileDir);
+					}
+				});
 
 				if (isApp) {
 					var methodsArr = vistors.methods.getData();
@@ -290,6 +377,8 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						}
 					}
 				}
+				//停止，不往后遍历了
+				path.skip();
 			}
 		},
 		ObjectProperty(path) {
@@ -320,6 +409,14 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			} else if (path.node.key.name === 'computed' || path.node.key.name === 'watch') {
 				//这两个为空的话，会报错，所以删除，其他的不管先
 				if (path.node.value.properties.length == 0) path.remove();
+			} else if (path.node.key.name === 'methods') {
+				let liftCycleArr = vistors.lifeCycle.getData();
+				for (let key in liftCycleArr) {
+					// console.log(liftCycleArr[key]);
+					path.insertBefore(liftCycleArr[key]);
+				}
+				//这里不能停止，否则后面的this.data.xxx不会被转换 20190918
+				//path.skip();
 			}
 		},
 		CallExpression(path) {
@@ -335,14 +432,25 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						arguments[0] = t.stringLiteral("./static/" + val);
 					}
 				}
-			} else if (t.isIdentifier(callee, { name: "require" })) {
-				//处理require()路径
+			} else {
+				requireHandle(path, fileDir);
+			}
+
+			if (t.isIdentifier(callee, { name: "getApp" })) {
+				/**
+				 * var app = getApp(); 
+				 * 替换为:
+				 * var app = getApp().globalData;
+				 */
 				let arguments = path.node.arguments;
-				if (arguments && arguments.length) {
-					if (t.isStringLiteral(arguments[0])) {
-						let filePath = arguments[0].value;
-						filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
-						path.node.arguments[0] = t.stringLiteral(filePath);
+				if (arguments.length == 0) {
+					const parent = path.parent;
+					if (parent && parent.property && t.isIdentifier(parent.property, { name: "globalData" })) {
+						//如果已经getApp().globalData就不进行处理了
+					} else {
+						//一般来说getApp()是没有参数的。
+						path.replaceWith(t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData")));
+						path.skip();
 					}
 				}
 			}
@@ -357,7 +465,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				path.replaceWith(obj);
 			} else if (t.isIdentifier(property.node, { name: "data" })) {
 				//将this.data.xxx转换为this.xxx
-				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" })) {
+				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" }) || t.isIdentifier(object.node, { name: "_" })) {
 					let parent = path.parent;
 					//如果父级是AssignmentExpression，则不需再进行转换
 					if (!t.isAssignmentExpression(parent)) {
@@ -464,6 +572,23 @@ function handleJSImage(ast, file_js) {
 	});
 }
 
+/**
+ * 判断是否为vue文件，小程序项目里，有可能会有含vue语法的文件，如https://github.com/dmego/together/
+ * @param {*} ast 
+ */
+function checkVueFile(ast) {
+	let isVueFile = false;
+	if (ast && ast.program && ast.program.body) {
+		const body = ast.program.body;
+		for (const key in body) {
+			const obj = body[key];
+			if (t.isExportDefaultDeclaration(obj)) {
+				isVueFile = true;
+			}
+		}
+	}
+	return isVueFile;
+}
 
 /**
  * js 处理入口方法
@@ -485,13 +610,18 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	javascriptContent = javascriptParser.beforeParse(javascriptContent);
 
 	let javascriptAst = null;
+	let isParseError = false; //标识是否解析报错
 	try {
 		//解析成AST
 		javascriptAst = await javascriptParser.parse(javascriptContent);
 	} catch (error) {
-		console.log("Error: 解析文件出错: ", file_js);
-		global.log.push("Error: 解析文件出错: ", file_js);
+		isParseError = true;
+		utils.log("Error: 解析文件出错: " + error + "      file: " + file_js);
+		global.log.push("Error: 解析文件出错: " + error + "      file: " + file_js);
 	}
+
+	//是否为vue文件
+	const isVueFile = checkVueFile(javascriptAst);
 
 	//进行代码转换
 	let {
@@ -499,7 +629,7 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		vistors,
 		declareStr,
 		isPage
-	} = componentConverter(javascriptAst, miniprogramRoot, file_js);
+	} = componentConverter(javascriptAst, miniprogramRoot, file_js, isVueFile);
 
 	if (!global.isVueAppCliMode) {
 		//处理js里面的资源路径
@@ -524,23 +654,26 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	let jsFolder = nodePath.dirname(file_js);
 	for (const key in usingComponents) {
 		let filePath = usingComponents[key];
-		filePath = filePath.replace(/^\//g, "./"); //相对路径处理
 
-		let relativeFolder = miniprogramRoot;
-		if (/^\//.test(filePath)) {
-			relativeFolder = jsFolder;
-		}
+		// filePath = filePath.replace(/^\//g, "./"); //相对路径处理
 
-		//先转绝对路径，再转相对路径
-		filePath = nodePath.join(miniprogramRoot, filePath);
-		filePath = nodePath.relative(relativeFolder, filePath);
-		//相对路径里\\替换为/
-		filePath = filePath.split("\\").join("/");
+		// let relativeFolder = miniprogramRoot;
+		// if (/^\//.test(filePath)) {
+		// 	relativeFolder = jsFolder;
+		// }
 
-		if (!/^\./.test(filePath)) {
-			//路径前面不是以.开始，总不能是网络路径和绝对路径吧！
-			filePath = "./" + filePath;
-		}
+		// //先转绝对路径，再转相对路径
+		// filePath = nodePath.join(miniprogramRoot, filePath);
+		// filePath = nodePath.relative(relativeFolder, filePath);
+		// //相对路径里\\替换为/
+		// filePath = filePath.split("\\").join("/");
+
+		// if (!/^\./.test(filePath)) {
+		// 	//路径前面不是以.开始，总不能是网络路径和绝对路径吧！
+		// 	filePath = "./" + filePath;
+		// }
+
+		filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, jsFolder);
 
 		//中划线转驼峰
 		let componentName = utils.toCamel2(key);
@@ -549,9 +682,10 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		declareStr += `${generate(node).code}\r\n`;
 	}
 
-	//放到预先定义好的模板中
-	convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile);
-
+	if (!isVueFile) {
+		//放到预先定义好的模板中
+		convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile);
+	}
 
 	// console.log(`${generate(convertedJavascript).code}`);
 
@@ -563,6 +697,10 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
 	}
 
+	//如果解析报错，那么还是返回原文件内容
+	if (!codeText && isParseError) {
+		codeText = fileData;
+	}
 	// console.log(codeText);
 	return codeText;
 }

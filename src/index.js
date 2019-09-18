@@ -151,7 +151,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 							if (isInIgnoreFolder) {
 								//
 							} else {
-								fs.mkdirSync(newFileDir);
+								if (!fs.existsSync(newFileDir)) fs.mkdirSync(newFileDir);
 							}
 						}
 					}
@@ -331,7 +331,8 @@ async function filesHandle(fileData, miniprogramRoot) {
 					var onlyWxssFile = false;
 					var onlyWxmlFile = false;
 
-					if ((file_wxml && file_js)) {
+					//如果是app，满足js和wxss也行，且wxParse将不会进行合并转换
+					if (((file_wxml && file_js) || (isAppFile && (file_js && file_wxss))) && fileName != "wxParse") {
 						//当有wxml，那必然会有js文件，可能会有wxss文件，单独的.wxml，转为.vue
 						extName = ".vue";
 						hasAllFile = true;
@@ -353,8 +354,10 @@ async function filesHandle(fileData, miniprogramRoot) {
 							onlyWxssFile = true;
 						}
 					}
+					//
 					targetFilePath = path.join(tFolder, fileName + extName);
 					if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
+
 					//当前文件引用的自定义组件
 					let usingComponents = {};
 
@@ -368,8 +371,15 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 						//处理根路径
 						for (const kk in data.usingComponents) {
-							const value = data.usingComponents[kk];
-							data.usingComponents[kk] = value.replace(/^\//, "./"); //相对路径处理
+							let value = data.usingComponents[kk];
+							//plugin是微信自定义组件
+							if (value.indexOf("plugin:") > -1) {
+								delete data.usingComponents[kk];
+							} else {
+								let fileDir = path.dirname(file_json);
+								value = pathUtil.relativePath(value, global.miniprogramRoot, fileDir);
+								data.usingComponents[kk] = value;
+							}
 						}
 
 						routerData[key] = {
@@ -405,7 +415,16 @@ async function filesHandle(fileData, miniprogramRoot) {
 							let data_wxss = fs.readFileSync(file_wxss, 'utf8');
 							if (data_wxss) {
 								data_wxss = await cssHandle(data_wxss, file_wxss);
-								fileContent += `<style>\r\n${data_wxss}\r\n</style>`;
+								//
+								const content = `${data_wxss}`;
+								//写入文件
+								const cssFilePath = path.join(tFolder, fileName + ".css");
+								fs.writeFile(cssFilePath, content, () => {
+									console.log(`Convert ${fileName}.wxss success!`);
+								});
+
+								//css文件改为导入方式
+								fileContent += `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
 							}
 						}
 
@@ -456,7 +475,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 							if (file_js && fs.existsSync(file_js)) {
 								let data_js = fs.readFileSync(file_js, 'utf8');
 								if (data_js) {
-									let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js, true);
+									let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js, !isAppFile);
 									fileContent = data;
 
 									//写入文件
@@ -699,6 +718,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 				const componentData = global.globalTemplateComponents[name];
 				const fileContent = componentData.data;
 				const alias = componentData.alias;  //有可能组件名与内置关键字冲突，这里使用别名
+				if (!alias) continue;
 
 				let componentFile = path.join(componentFolder, alias + ".vue");
 

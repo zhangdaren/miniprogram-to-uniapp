@@ -1,5 +1,20 @@
 # Miniprogram to uni-app - Release Notes   
 ======================================
+## v1.0.22(20190907)   
+* [新增] 完善template标签转换，除了不支持data里含...扩展运算符外(因uni-app现还不支持v-bind="")，其他都已支持(含...的data，已重名为error-data，需手工调整：换一种方式导入自定义组件或显式调用组件)  
+* [新增] 将含有内置关键字的组件名替换为别名   
+* [修复] -c模式下，输出目录不存在而报错的bug   
+* [修复] 增加解析js文件错误提示   
+* [修复] 修复当同一组文件(js/wxml/wxss)内容都为空时，影响后面流程不能生成pages.json等配置文件的bug   
+* [修复] 无遗漏处理bind前缀事件名称   
+* [修复] 将manifest.json里的name字段，如果为中文，转换为拼音。修复含中文导致HBX识别不到manifest.json的bug   
+* [修复] 转换wxss代码import *.wxss里的文件路径为相对路径   
+* [修复] 转换js代码import xxx from "*.js"里的文件路径为相对路径   
+* [修复] 转换js代码require('./util')里的文件路径为相对路径   
+* [修复] 删除绑定的值为空的标签属性(如```<view value={{}}>```)   
+[注意！！！] 如HBX运行时提示“项目下缺少manifest.json文件”，请在项目上右键【重新识别项目类型】  
+   
+   
 ## v1.0.21(20190830)   
 * [新增] 【-c】命令，支持生成vue-cli项目，默认为【false】，生成后请在生成目录里执行 npm i 安装npm包(大概需要200+s)，然后可以直接将整个目录拖入到HBuilderX里二次开发或运行，如HBX运行时提示“项目下缺少manifest.json文件”，请在项目上右键【重新识别项目类型】   
 * [新增] vue-cli项目，支持配置静态目录(在vue.config.js里alias节点设置)，目前已配置【'@' --> './src'】和 【'assets' --> './src/static'】   
@@ -10,7 +25,6 @@
 * [修复] 删除page.json里的usingComponents节点。通过import导入组件时，不需要在page.json里重复注册   
 * [修复] 删除wx:for-index标签   
       
-   
 ## v1.0.20(20190823)   
 * [修复] 去掉引用组件时的后缀名(如：Vue.component('navbar.vue', navBar))，转换组件名为驼峰全名    
 * [修复] 修改搜索资源路径的正则表达式，以兼容低版本Node.js   
