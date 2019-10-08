@@ -15,7 +15,11 @@ class JavascriptParser {
   beforeParse(code) {
     // return code.replace(/this\.\$apply\(\);?/gm, '').replace(/import\s+wepy\s+from\s+['"]wepy['"]/gm, '')
     // return code.replace(/const\s+app\s+=\s+getApp\(\)/gm, '');  //保留getApp()
-    return code;
+    //干掉这一行，防止干扰
+    return code.replace(/export default App;?/gm, '')
+    .replace(/const\s+app\s+=\s+getApp\(\)/gm, '')
+    .replace(/var\s+app\s+=\s+getApp\(\)/gm, '');
+    // return code;
   }
 
    /**

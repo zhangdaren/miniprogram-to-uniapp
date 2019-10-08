@@ -11,7 +11,7 @@ const wxmlHandle = require('./wx2uni/wxmlHandle');
 const cssHandle = require('./wx2uni/cssHandle');
 const configHandle = require('./wx2uni/configHandle');
 const wxsHandle = require('./wx2uni/wxsHandle');
-const uniAppCliHandle = require('./wx2uni/uniAppCliHandle');
+const vueCliHandle = require('./wx2uni/vueCliHandle');
 
 /**
  * 解析小程序项目的配置
@@ -208,7 +208,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 								case ".json":
 									//粗暴获取上层目录的名称~~~
 									let pFolderName = pathUtil.getParentFolderName(fileDir);
-									if (fileNameNoExt !== pFolderName && fileName != "app.json") {
+									if (fileNameNoExt !== pFolderName && fileName != "app.json" && fileName != "index.json") {
 										fs.copySync(fileDir, newFileDir);
 									}
 
@@ -382,21 +382,21 @@ async function filesHandle(fileData, miniprogramRoot) {
 							}
 						}
 
-						routerData[key] = {
-							navigationBarTitleText: data.navigationBarTitleText,
-							usingComponents: data.usingComponents,
-						};
+						routerData[key] = data;
 						usingComponents = data.usingComponents;
 						// console.log(key + " -- ", data.navigationBarTitleText)
 					}
 
 					if (hasAllFile) {
+						let fileContentWxml = "";
+						let fileContentJs = "";
+						let fileContentCss = "";
 						//读取.wxml文件
 						if (file_wxml && fs.existsSync(file_wxml)) {
 							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
 							if (data_wxml) {
-								let data = await wxmlHandle(data_wxml, file_wxml);
-								fileContent += data;
+								let data = await wxmlHandle(data_wxml, file_wxml, false);
+								fileContentWxml = data;
 								wxsInfoHandle(tFolder, file_wxml);
 							}
 						}
@@ -406,7 +406,10 @@ async function filesHandle(fileData, miniprogramRoot) {
 							let data_js = fs.readFileSync(file_js, 'utf8');
 							if (data_js) {
 								let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js);
-								fileContent += data;
+								fileContentJs = data;
+
+								//根据与data变量重名的函数名，将wxml里引用的地方进行替换
+								fileContentWxml = replaceFunName(fileContentWxml, file_js);
 							}
 						}
 
@@ -424,16 +427,18 @@ async function filesHandle(fileData, miniprogramRoot) {
 								});
 
 								//css文件改为导入方式
-								fileContent += `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
+								fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
 							}
 						}
 
-						if (!fileContent) {
+						if (!fileContentWxml && !fileContentJs && !fileContentCss) {
 							console.log(fileName + " is empty");
 							global.log.push(fileName + " is empty");
 							count++;
 							return;
 						}
+
+						fileContent = fileContentWxml + fileContentJs + fileContentCss;
 
 						//写入文件
 						fs.writeFile(targetFilePath, fileContent, () => {
@@ -474,18 +479,19 @@ async function filesHandle(fileData, miniprogramRoot) {
 							//如果是为单名的js文件，即同一个名字只有js文件，没有wxml或wxss文件，下同
 							if (file_js && fs.existsSync(file_js)) {
 								let data_js = fs.readFileSync(file_js, 'utf8');
-								if (data_js) {
-									let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js, !isAppFile);
-									fileContent = data;
+								//可能文件为空，但它也存在。。。所以
+								// if (data_js) {
+								let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js, !isAppFile);
+								fileContent = data;
 
-									//写入文件
-									targetFilePath = path.join(tFolder, fileName + ".js");
-									if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
-									//
-									fs.writeFile(targetFilePath, fileContent, () => {
-										console.log(`Convert component ${fileName}.js success!`);
-									});
-								}
+								//写入文件
+								targetFilePath = path.join(tFolder, fileName + ".js");
+								if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
+								//
+								fs.writeFile(targetFilePath, fileContent, () => {
+									console.log(`Convert component ${fileName}.js success!`);
+								});
+								// }
 							}
 						}
 
@@ -493,15 +499,16 @@ async function filesHandle(fileData, miniprogramRoot) {
 							//读取.wxss文件
 							if (file_wxss && fs.existsSync(file_wxss)) {
 								let data_wxss = fs.readFileSync(file_wxss, 'utf8');
-								if (data_wxss) {
-									data_wxss = await cssHandle(data_wxss, file_wxss);
-									let content = `${data_wxss}`;
-									//写入文件
-									targetFilePath = path.join(tFolder, fileName + ".css");
-									fs.writeFile(targetFilePath, content, () => {
-										console.log(`Convert ${fileName}.wxss success!`);
-									});
-								}
+								//可能文件为空，但它也存在。。。所以
+								// if (data_wxss) {
+								data_wxss = await cssHandle(data_wxss, file_wxss);
+								let content = `${data_wxss}`;
+								//写入文件
+								targetFilePath = path.join(tFolder, fileName + ".css");
+								fs.writeFile(targetFilePath, content, () => {
+									console.log(`Convert ${fileName}.wxss success!`);
+								});
+								// }
 							}
 						}
 					}
@@ -518,6 +525,25 @@ async function filesHandle(fileData, miniprogramRoot) {
 		console.log(err);
 	}
 }
+
+/**
+ * 根据与data变量重名的函数名，将wxml里引用的地方进行替换
+ * @param {*} fileContentWxml 转换后的template内容
+ * @param {*} key 当前文件的key，替换为去掉后缀名的绝对路径
+ */
+function replaceFunName(fileContentWxml, key) {
+	//这里使用正则替换先，精确的弄要改动的太多了。
+	//根据与data变量重名的函数名，将wxml里引用的地方进行替换
+	let result = fileContentWxml;
+	if (global.pageData[key] && global.pageData[key].replaceFunNameList) {
+		const replaceFunNameList = global.pageData[key].replaceFunNameList;
+		// let reg_funName = /="(abc|xyz)"/g;
+		let reg_funName = new RegExp('=\"(' + replaceFunNameList.join('|') + ')\"', "mg");
+		result = fileContentWxml.replace(reg_funName, '="$1Fun"');
+	}
+	return result;
+}
+
 
 /**
  * wxs信息处理
@@ -655,6 +681,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	utils.log("outputFolder = " + global.outputFolder, "log");
 	utils.log("targetFolder = " + global.targetFolder, "log");
 
+	global.pageData = {};  //页面数据(可能包含代码等，现用于收集replaceFunNameList)
 	global.globalUsingComponents = {};  //后面添加的全局组件
 	global.props = {};  //存储wxml组件页面里面，需要对外开放的参数(本想不做全局的，然而传参出现问题，还是全局一把梭)
 	//数据格式，简单粗爆
@@ -682,13 +709,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 
 	try {
 		if (fs.existsSync(global.outputFolder)) {
-			//清空output或src目录，如果之前有下载过node_modules将被保留
-			//下截node_modules这一堆文件花了200+s，所以能不删除就不删除吧。
-			if (global.isVueAppCliMode && fs.existsSync(path.join(global.outputFolder, "node_modules"))) {
-				fs.emptyDirSync(global.targetFolder);
-			} else {
-				fs.emptyDirSync(global.outputFolder);
-			}
+			pathUtil.emptyDirSyncEx(global.targetFolder, "node_modules");
 		} else {
 			fs.mkdirSync(global.outputFolder);
 		}
@@ -736,23 +757,28 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 
 			//生成vue-cli项目所需要的文件
 			if (global.isVueAppCliMode) {
-				uniAppCliHandle(configData, global.outputFolder, global.assetsFolderObject, true);
+				vueCliHandle(configData, global.outputFolder, global.assetsFolderObject, true);
 			}
 
 			//输出提示
 			setTimeout(() => {
 				let str = "\r\n";
 
+				let tmpStr = "";
 				if (global.isVueAppCliMode) {
-					str += "当前转换模式：【vue-cli】，生成vue-cli项目。\r\n优点：所有资源文件位置与原项目一致，资源引用完美；\r\n缺点：上手有点点难度，转换完成后，需要运行命令：npm i\r\n";
+					str += "当前转换模式：【vue-cli】，生成vue-cli项目。\r\n优点：所有资源文件位置与原项目一致，资源引用完美；\r\n缺点：上手有点点难度，转换完成后，需要运行命令：npm i\r\n\r\n";
+					tmpStr = "注意：\r\n1.";
 				} else {
-					str += "当前转换模式：【Hbuilder X】，生成HbuilderX项目。\r\n优点：上手快，项目结构较简单；\r\n缺点：资源路径会因为表达式而无法全部被修复(推荐vue-cli模式)\r\n";
-					str += '注意：当看到"image漏网之鱼"，意味着您需要手动调整对应代码，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径(使用vue-cli模式可以解决，参数：-c)\r\n';
+					str += "当前转换模式：【Hbuilder X】，生成HbuilderX项目。\r\n优点：上手快，项目结构较简单；\r\n缺点：资源路径会因为表达式而无法全部被修复(推荐vue-cli模式)\r\n\r\n";
+					str += '注意：\r\n1.当看到"image漏网之鱼"，意味着您需要手动调整对应代码，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径(使用vue-cli模式可以解决，参数：-c)\r\n';
+					tmpStr = "2.";
 				}
-				str += '另外，代码<template is="abc" data=""/>里data属性，除了不支持...扩展运算符(因uni-app现在还不支持v-bind="")，其余参数形式都支持，望知悉！\r\n';
-				str += '日志说明：';
-				str += '试图转换template里data参数为Object时报错 --> 表示<template data="abc">里data的属性可能含有...扩展运算符，已将data重命为error-data=""，需转换后手工调整\r\n';
-				str += 'image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
+				str += tmpStr;
+				str += '代码<template is="abc" data=""/>里data属性，除了不支持...扩展运算符(因uni-app现在还不支持v-bind="")，其余参数形式都支持，望知悉！\r\n';
+				str += '\r\n日志说明：\r\n';
+				str += '1. image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
+				str += '2. 暂不支持include标签，请手动修复 --> include标签没有一个明显的记号，工具确实可以替换这部分事，只是会导致工具代码交错复杂，暂时不支持转换。建议转换完，自行拷贝相应的文件内容，替换对应的include标签\r\n';
+				str += '3. 试图转换template里data参数为Object时报错 --> 表示<template data="abc">里data的属性可能含有...扩展运算符，已将data重命为error-data=""，需转换后手工调整\r\n';
 
 				global.log.push("\r\n转换完成: " + str);
 

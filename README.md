@@ -56,7 +56,8 @@ $ wtu -i miniprogramProject -w
 
 #### 转换注意事项   
 
-* 小程序并不能与uni-app完全对应，转换也并非100%，只希望能尽量减少大家的工作量。我一直在努力，也许有那么一天可以完美转换~~~   
+* 小程序并不能与uni-app完全对应，转换也并非100%，只希望能尽量减少大家的工作量。
+* 此工具基于语法转换，一定会有部分代码是uni-app没法支持，或暂时没有找到替代方案，请手动调整。   
 * 小程序使用wxParse组件时，转换难度挺大，建议手动替换为uni-app所对应的插件   
 
 
@@ -92,9 +93,8 @@ $ wtu -i miniprogramProject -w
 * [todo] 删除生成目录里的空白目录   
 
 [TODO： 待实现]
-+ 支持含双引号代码的转换，如```<view class='citem' style='background-image:url("{{item.photo}}")'>```   
 + 转换前先格式化代码   
-   
+  
    
 
 ## 关于不支持转换的语法说明   
@@ -130,7 +130,10 @@ $ wtu -i miniprogramProject -w
 
       
 ### wxParse不支持转换   
-目前能跑起来，未详测。但因uni-app有更好的同类组件，计划使用那个进行替换这个      
+建议手动替换为插件市场里的wxParse      
+
+### wxaSortPicker不支持转换   
+建议手动替换为插件市场里的wxaSortPicker      
 
 
 ### 变量名与函数名重名
@@ -140,11 +143,83 @@ $ wtu -i miniprogramProject -w
 
 ### 未在data里声明，而直接使用setData赋值   
 报错：Avoid adding reactive properties to a Vue instance or its root $data at runtime - declare it upfront in the data option.
-解决：工具尽可能的收集了页面里的setData({})里的参数，与data里的变量进行对比，并添加，一般情况不会报这个错。出现这个错，可能是页面里将this传到其他文件里，并调用了setData()函数导致的，需手动修改。
-   
+解决：工具尽可能的收集了页面里的setData({})里的参数，与data里的变量进行对比，并添加，一般情况不会报这个错。出现这个错，可能是页面里将this传到其他文件里，并调用了setData()函数导致的，需手动修改。   
+
+
+### 使用别名代替this，导致this.data.xxx没法替换   
+报错： Cannot read property 'xxx' of undefined   
+解决：可能是使用了o、a、i、e等变量缓存了this，导致工具没法转换o.data.xxx为o.xxx。   
+btw：碰到一个源码就是这种单个字符，应该是被工具压缩过代码。   
+目前工具已经支持转换的变量关键字为：   
+this.data.xxx   ==>  this.xxx   
+that.data.xxx   ==>  that.xxx   
+self.data.xxx   ==>  self.xxx   
+_.data.xxx      ==>  _.xxx   
+_this.data.xxx  ==>  _this.xxx   
+
+
+### include标签
+include标签不是蛮好转换，看过几份源代码，仅有一份代码里，使用了它。
+建议手动将内容拷贝进来。
+
+### wx:if="{{}}"
+遇到这种，建议手动修复   
+
+### main.js加入的组件，里面包含getApp()
+遇到这种，建议手动修复，因为main里加载的时候，还没有getApp()   
+
+### <view @tap="delete"/> 
+编译报错：语法错误: Unexpected token   
+这种在uni-app里没法编译过去    
+因未能找到关键字列表及相关文档，建议手动重名(工具针对delete已经处理)   
+
+### var appInstance = getApp(); 
+建议手动处理 
+
+### 运行wtu -V报错
+$ wtu -v
+/usr/local/lib/node_modules/miniprogram-to-uniapp/src/index.js:297
+async function filesHandle(fileData, miniprogramRoot) {
+^^^^^^^^
+SyntaxError: Unexpected token function
+......
+原因：当前nodejs版本不支持es6语法
+解决：升级nodejs版本，建议v9以上
 
    
 ## 更新记录   
+### v1.0.25(20190928)   
+* [新增] 处理一则代码非常规写法(没法描述……类似:Page((_defineProperty(_Page = {})))   
+* [修复] 优化函数与data里变量重名，导致编译报错的bug(重名的函数名在后面添加后缀Fun，如abc() --> abcFun())   
+* [修复] 不复制index.json到生成目录   
+* [修复] 完善pages.json页面的style(之前只写了标题，这次将页面属性都写入)   
+* [修复] 当attr={{true}}或attr={{false}}，则不添加v-bind(如```<scroll-view scroll-x="{{false}}"/>```)   
+* [修复] 替换style="xx:'{{}}'" --> style="xx:{{}}"   
+* [修复] 替换style="background-image: url('{{iconURL}}/abc.png')" --> style="background-image: url({{iconURL}}/abc.png)"
+* [修复] 当单个js或wxss内容为空时，也创建相应文件，防止编译报错。   
+* [修复] style里包含表达式时(+-*/和三元表达式)，使用括号包起来(如style="height:{{info.screenHeight * 105}}px")   
+* [修复] 解析前替换掉"export default App;"，防止干扰，导致app.js没有转换成功   
+* [修复] wx:key="{{item}}"转换为:key="item"的bug   
+* [修复] 转换```<view style="display:{{}}"></view>```时末尾为+的bug   
+* [修复] wxml里template连环嵌套引用，导致生成vue代码时template为空的bug   
+* [修复] app.js已含globalData，导致重复嵌套的bug   
+* [修复] app.js已含data时，移入到globalData   
+* [修复] app.js，支持替换that.globalData.xx为that.$options.globalData.xxx   
+* [修复] app.js里所有移动到globalData里的函数及变量的引用关系   
+* [修复] app.js里getApp().data.xxx --  this.$options.globalData.xxx   
+* [修复] app.js引用的组件，初始化时getApp()为undefined的bug   
+* [修复] 外部定义的含require()的变量里的路径(如：var md5 = require('md5.js'))   
+规则：   
+1.删除var app = getApp()或const app = getApp()，作用：不让一加载就引用getApp()   
+2.app.globalData.xxx --> getApp().globalData.xxx   
+2.app.xxx --> getApp().globalData.xxx   
+4.getApp().xxx --> getApp().globalData.xxx   
+5.var icon_url = app.dataBase.iconURL; --> var icon_url = getApp().globalData.dataBase.iconURL;   
+6.getApp().globalData.xxx保持原样   
+注意：如外部定义的变量引用了getApp()，仍会报错，需手动修复   
+   
+   
+
 ### v1.0.24(20190918)   
 * [新增] 支持wx-if转换(对，你没看错，wx:if和wx-if都能用……)   
 * [新增] 支持wx:else="{{xxx}}"转换   

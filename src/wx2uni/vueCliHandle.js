@@ -28,44 +28,44 @@ function createStaticPlugin(assetsFolderObject) {
  * @param {*} assetsFolderObject   包含有静态文件的目录列表的对象
  * @param {*} isVueAppCliMode      是否为vue-cli模式，这里默认为true
  */
-async function uniAppCliHandle(configData, outputFolder, assetsFolderObject, isVueAppCliMode) {
+async function vueCliHandle(configData, outputFolder, assetsFolderObject, isVueAppCliMode) {
 
 	try {
 		await new Promise((resolve, reject) => {
 			if (isVueAppCliMode) {
 				const pathArray = [
 					{
-						source: "vue_app_cli/public/index.html",
+						source: "vue_cli/public/index.html",
 						target: "public/index.html"
 					},
 					{
-						source: "vue_app_cli/.gitignore",
+						source: "vue_cli/.gitignore",
 						target: ".gitignore"
 					},
 					{
-						source: "vue_app_cli/babel.config.js",
+						source: "vue_cli/babel.config.js",
 						target: "babel.config.js"
 					},
 					{
-						source: "vue_app_cli/package.json",
+						source: "vue_cli/package.json",
 						target: "package.json",
 						raplaceArray: [
 							"<%= PROJECT_NAME %>"
 						],
 					},
 					{
-						source: "vue_app_cli/postcss.config.js",
+						source: "vue_cli/postcss.config.js",
 						target: "postcss.config.js"
 					},
 					{
-						source: "vue_app_cli/README.md",
+						source: "vue_cli/README.md",
 						target: "README.md",
 						raplaceArray: [
 							"<%= PROJECT_NAME %>"
 						],
 					},
 					{
-						source: "vue_app_cli/vue.config.js",
+						source: "vue_cli/vue.config.js",
 						target: "vue.config.js",
 						raplaceArray: [
 							"<%= COPY_WEBPACK_PLUGIN %>"
@@ -117,4 +117,4 @@ async function uniAppCliHandle(configData, outputFolder, assetsFolderObject, isV
 	}
 }
 
-module.exports = uniAppCliHandle;
+module.exports = vueCliHandle;

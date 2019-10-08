@@ -6,7 +6,6 @@ const Vistor = require("./Vistor");
 const clone = require('clone');
 const pathUtil = require('../../utils/pathUtil');
 
-
 const lifeCycleFunction = {
 	onLoad: true,
 	onReady: true,
@@ -145,6 +144,39 @@ const componentVistor = {
 						path2.skip();
 					}
 				}
+			},
+			VariableDeclarator(path) {
+				if (t.isMemberExpression(path.node.init) && path.node.init.object) {
+					let id = path.node.id;
+					let init = path.node.init;
+					let property = init.property;
+					let path2 = path.node.init.object;
+					let subOject = path2.object;
+					let subProperty = path2.property;
+					if (t.isIdentifier(subOject, { name: "app" })) {
+						//这里没法调babelUtil.globalDataHandle()，子节点没有replaceWidth方法了(或许有转换方法，暂未知)
+						let getApp = t.callExpression(t.identifier('getApp'), []);
+						let subMe = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), subProperty);
+						let me = t.MemberExpression(subMe, property);
+						let vd = t.variableDeclarator(path.node.id, me);
+						path.replaceWith(vd);
+						path.skip();
+					}
+				} else if (t.isCallExpression(path.node.init)) {
+					//处理外部声明的require，如var md5 = require("md5.js");
+					const path2 = path.node.init;
+					let callee = path2.callee;
+					if (t.isIdentifier(callee, { name: "require" })) {
+						let arguments = path2.arguments;
+						if (arguments && arguments.length) {
+							if (t.isStringLiteral(arguments[0])) {
+								let filePath = arguments[0].value;
+								filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+								path2.arguments[0] = t.stringLiteral(filePath);
+							}
+						}
+					}
+				}
 			}
 		});
 		const parent = path.parentPath.parent;
@@ -192,22 +224,28 @@ const componentVistor = {
 	ObjectProperty(path) {
 		const name = path.node.key.name;
 
-		if (name == "getAll") {
-			console.log(name)
-			console.log(name)
-		}
 		switch (name) {
 			case 'data':
 				if (vistors.data.getData().length == 0) {
-					//只让第一个data进来，暂时不考虑其他奇葩情况
-					if (JSON.stringify(dataValue) == "{}") {
-						//第一个data，存储起来
-						dataValue = path.node.value;
-					} else {
-						//这里是data里面的data同名属性
-						// console.log("add data", name);
-						vistors.data.handle(path.node);
+					if (isAppFile) {
+						if (globalData.value && globalData.value.properties) {
+						} else {
+							globalData = createObjectProperty("globalData");
+							vistors.lifeCycle.handle(globalData);
+						}
+						globalData.value.properties.push(path.node);
 						path.skip();
+					} else {
+						//只让第一个data进来，暂时不考虑其他奇葩情况
+						if (JSON.stringify(dataValue) == "{}") {
+							//第一个data，存储起来
+							dataValue = path.node.value;
+						} else {
+							//这里是data里面的data同名属性
+							// console.log("add data", name);
+							vistors.data.handle(path.node);
+							path.skip();
+						}
 					}
 				}
 				break;
@@ -230,11 +268,10 @@ const componentVistor = {
 				if (JSON.stringify(globalData) == "{}") {
 					//第一个data，存储起来
 					globalData = path.node;
+					vistors.lifeCycle.handle(globalData);
 				} else {
-					globalData.value.properties.push(path.node);
+					globalData.value.properties = [...globalData.value.properties, ...path.node.value.properties];
 				}
-				//globalData 存入生命周期
-				vistors.lifeCycle.handle(globalData);
 				path.skip();
 				break;
 			case 'attached':
@@ -254,12 +291,16 @@ const componentVistor = {
 			case 'properties':
 				//组件特有生命周期: properties-->props
 				var properties = path.node.value.properties;
-				properties.forEach(function (item) {
-					vistors.props.handle(item);
-				});
+				if (properties) {
+					properties.forEach(function (item) {
+						vistors.props.handle(item);
+					});
+				}
 				path.skip();
 				break;
 			case 'methods':
+				// console.log(name)
+				// console.log(name)
 				//组件特有生命周期: methods
 				var properties = path.node.value.properties;
 				if (properties) {
@@ -296,9 +337,10 @@ const componentVistor = {
 							if (isAppFile && globalData.value && globalData.value.properties) {
 								globalData.value.properties.push(path.node);
 							} else {
-								globalData = createObjectProperty("globalData");
 								if (node.properties) {
 									if (isAppFile) {
+										globalData = createObjectProperty("globalData");
+										vistors.lifeCycle.handle(globalData);
 										globalData.value.properties.push(path.node);
 									} else {
 										//如果是对象，就放入data
@@ -314,8 +356,9 @@ const componentVistor = {
 						if (isAppFile && globalData.value && globalData.value.properties) {
 							globalData.value.properties.push(path.node);
 						} else {
-							globalData = createObjectProperty("globalData");
 							if (isAppFile) {
+								globalData = createObjectProperty("globalData");
+								vistors.lifeCycle.handle(globalData);
 								globalData.value.properties.push(path.node);
 							} else {
 								vistors.lifeCycle.handle(path.node);
@@ -326,16 +369,41 @@ const componentVistor = {
 							if (globalData.value && globalData.value.properties) {
 							} else {
 								globalData = createObjectProperty("globalData");
+								vistors.lifeCycle.handle(globalData);
 							}
 							globalData.value.properties.push(path.node);
 						} else {
-							vistors.data.handle(path.node);
+							//这里判断一下，有些非常规写法，还真没什么好方法来区分，如下代码写法：
+							//下面不判断的话，list:e.result.data会被加入到data里，而报错
+							// Page((_defineProperty(_Page = {
+							// 	data: {
+							// 		edit_state: 0,
+							// 		select_all_state: !1
+							// 	},
+							// },_defineProperty(_Page, "onShow", function() {
+							// 	var t = this;
+							// 	http.post("apicloud/like_list", {}).then(function(e) {
+							// 		t.setData({
+							// 			list: e.result.data
+							// 		});
+							// 	});
+							// }),_Page));
+							if (t.isObjectProperty(path.node)) {
+								const value = path.node.value;
+								if (value.object && t.isMemberExpression(value.object) && value.object.object.name != "e") {
+									vistors.data.handle(path.node);
+								}
+							} else {
+								vistors.data.handle(path.node);
+							}
 						}
 					}
 				}
 				break;
 		}
-	}
+	},
+
+
 }
 
 /**
@@ -351,7 +419,7 @@ const componentConverter = function (ast, _miniprogramRoot, _file_js, isVueFile)
 	//data对象
 	dataValue = {};
 	//globalData对象
-	globalDataValue = {};
+	globalData = {};
 	//computed对象
 	computedValue = {};
 	//wacth对象

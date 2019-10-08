@@ -8,6 +8,8 @@ const pathUtil = require('../utils/pathUtil.js');
 
 const pinyin = require("node-pinyin");
 
+const clone = require('clone');
+
 
 /**
  * 将小程序subPackages节点处理为uni-app所需要的节点
@@ -62,19 +64,19 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				let rkey = path.join(targetFolder, pagePath);
 				let data = routerData[rkey];
 
-				let navigationBarTitleText = "";
-				let usingComponents = {};
+				// let usingComponents = {};
 
-				if (data && JSON.stringify(data) != "{}") {
-					navigationBarTitleText = data.navigationBarTitleText;
-					usingComponents = data.usingComponents;
-				}
+				// if (data && JSON.stringify(data) != "{}") {
+				// 	usingComponents = data.usingComponents;
+				// }
+
+				let dataBak = clone(data);
+				delete dataBak.usingComponents;
 
 				let obj = {
 					"path": pagePath,
 					"style": {
-						"navigationBarTitleText": navigationBarTitleText,
-						// "usingComponents": usingComponents  //组件统一使用import导入，不在这里注册
+						...dataBak
 					}
 				};
 				pages.push(obj);
@@ -91,7 +93,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//处理分包加载subPackages
 			let subPackages = appJson["subPackages"];
 			appJson["subPackages"] = subPackagesHandle(subPackages);
-			
+
 
 			//usingComponents节点，上面删除缓存，这里删除
 			delete appJson["usingComponents"];
@@ -113,14 +115,14 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 					 */
 					const iconPath = item.iconPath;
 					if (iconPath) {
-						if (iconPath.indexOf("static/") == -1) {
+						if (!global.isVueAppCliMode && iconPath.indexOf("static/") == -1) {
 							item.iconPath = "./static/" + iconPath;
 						}
 						item.iconPath = pathUtil.relativePath(item.iconPath, global.miniprogramRoot, global.miniprogramRoot);
 					}
 					const selectedIconPath = item.selectedIconPath;
 					if (selectedIconPath) {
-						if (selectedIconPath.indexOf("static/") == -1) {
+						if (!global.isVueAppCliMode && selectedIconPath.indexOf("static/") == -1) {
 							item.selectedIconPath = "./static/" + selectedIconPath;
 						}
 						item.selectedIconPath = pathUtil.relativePath(item.selectedIconPath, global.miniprogramRoot, global.miniprogramRoot);
@@ -154,8 +156,6 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 
 
 			////////////////////////////write main.js/////////////////////////////
-			let file_main_temp = path.join(__dirname, "template/main.js");
-
 			let mainContent = "import Vue from 'vue';\r\n";
 			mainContent += "import App from './App';\r\n\r\n";
 

@@ -63,7 +63,6 @@ function checkEmptyTag(ast) {
  * @param {*} file_wxml 当前操作的文件路径
  */
 async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
-
 	let reg = /<template([\s\S]*?)<\/template>/g;
 
 	//查找有多少个template

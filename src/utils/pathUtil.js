@@ -96,6 +96,27 @@ function delDir(path) {
 }
 
 /**
+ * 清空目录，支持忽略指定目录或文件名，只处理一级目录，忽略子目录
+ * @param {*} path   要搜索的目录
+ * @param {*} ignore 忽略的目录名或文件名，暂只支持全字匹配，有需求再改为正则匹配
+ */
+function emptyDirSyncEx(folder, ignore) {
+	fs.readdir(folder, function (err, files) {
+		files.forEach(function (fileName) {
+			var fileDir = path.join(folder, fileName);
+			fs.stat(fileDir, function (err, stats) {
+				if (stats.isDirectory()) {
+					if (fileName !== ignore) delDir(fileDir);
+				} else {
+					if (fileName !== ignore) fs.unlinkSync(fileDir);
+				}
+			})
+		})
+	})
+}
+
+
+/**
  * 获取无后缀名的文件名
  * @param {*} filePath  文件路径
  */
@@ -198,4 +219,5 @@ module.exports = {
 	getParentFolderName,
 	isInFolder,
 	relativePath,
+	emptyDirSyncEx,
 };

@@ -15,6 +15,7 @@ const clone = require('clone');
 
 const utils = require('../utils/utils.js');
 const pathUtil = require('../utils/pathUtil.js');
+const babelUtil = require('../utils/babelUtil.js');
 
 /**
  * 将ast属性数组组合为ast对象
@@ -255,9 +256,8 @@ function defineValueHandle(ast, vistors, file_js) {
 								const value = subElement.value;
 								//与data对比
 								if (!dataJson.hasOwnProperty(name)) {
-									const logStr = "data里没有的变量:    " + name + " -- " + value.type + "    file: " + nodePath.relative(global.miniprogramRoot, file_js);
-									utils.log(logStr);
-									global.log.push(logStr);
+									// const logStr = "data里没有的变量:    " + name + " -- " + value.type + "    file: " + nodePath.relative(global.miniprogramRoot, file_js);
+									// console.log(logStr);
 
 									//设置默认值
 									let initialValue;
@@ -293,6 +293,72 @@ function defineValueHandle(ast, vistors, file_js) {
 
 }
 
+
+/**
+ * 调整ast里指定变量或函数名引用的指向
+ * @param {*} ast 
+ * @param {*} keyList  变量或函数名列表对象
+ */
+function repairValueAndFunctionLink(ast, keyList) {
+	traverse(ast, {
+		noScope: true,
+		MemberExpression(path) {
+			//this.uploadAnalysis = false --> this.$options.globalData.uploadAnalysis = false;
+			//this.clearStorage() --> this.$options.globalData.clearStorage();
+			const object = path.node.object;
+			const property = path.node.property;
+			const propertyName = property.name;
+			if (keyList.hasOwnProperty(propertyName)) {
+				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" }) || t.isIdentifier(object.node, { name: "_" })) {
+					let subMe = t.MemberExpression(t.MemberExpression(object, t.identifier('$options')), t.identifier('globalData'));
+					let me = t.MemberExpression(subMe, property);
+					path.replaceWith(me);
+					path.skip();
+				}
+			}
+		}
+	});
+}
+
+/**
+ * 修复app.js函数和变量的引用关系
+ * 1.this.uploadAnalysis = false --> this.$options.globalData.uploadAnalysis = false;
+ * 2.this.clearStorage() --> this.$options.globalData.clearStorage();
+ * @param {*} vistors 
+ */
+function repairAppFunctionLink(vistors) {
+	//当为app.js时，不为空；globalData下面的key列表，用于去各种函数里替换语法
+	let globalDataKeyList = {};
+	const liftCycleArr = vistors.lifeCycle.getData();
+	const methodsArr = vistors.methods.getData();
+
+	//获取globalData中所有的一级字段
+	for (let item of liftCycleArr) {
+		let name = item.key.name;
+		if (name == "globalData") {
+			if (t.isObjectProperty(item)) {
+				const properties = item.value.properties;
+				for (const op of properties) {
+					const opName = op.key.name;
+					globalDataKeyList[opName] = opName;
+				}
+			}
+		}
+	}
+
+	//进行替换globalData下面的函数
+	for (let item of liftCycleArr) {
+		let name = item.key.name;
+		repairValueAndFunctionLink(item, globalDataKeyList);
+	}
+	//进行替换methods下面的函数
+	for (let item of methodsArr) {
+		let name = item.key.name;
+		repairValueAndFunctionLink(item, globalDataKeyList);
+	}
+}
+
+
 /**
  * 组件模板处理
  * @param {*} ast 
@@ -307,6 +373,9 @@ function defineValueHandle(ast, vistors, file_js) {
 const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile) {
 	let buildRequire = null;
 
+	//需要替换的函数名(默认替换一个delete)
+	let replaceFunNameList = ["delete"];
+
 	if (!isSingleFile) {
 		defineValueHandle(ast, vistors, file_js);
 
@@ -318,6 +387,10 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 		if (isApp) {
 			//是app.js文件,要单独处理
 			buildRequire = template(componentTemplateApp);
+
+			// 修复app.js函数和变量的引用关系
+			repairAppFunctionLink(vistors);
+
 			//app.js目前看到有data属性的，其余的还未看到。
 			ast = buildRequire({
 				METHODS: arrayToObject(vistors.methods.getData())
@@ -326,10 +399,39 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			//非app.js文件
 			buildRequire = template(componentTemplate);
 
+			//处理data下变量名与函数重名的问题，或函数名为系统关键字，如delete等
+			const dataArr = vistors.data.getData();
+			let dataNameList = [];
+			for (const item of dataArr) {
+				dataNameList.push(item.key.name);
+			}
+
+			const methods = vistors.methods.getData();
+			for (const item of methods) {
+				const keyName = item.key.name;
+				if (keyName == "delete") {
+					item.key.name += "Fun";
+					replaceFunNameList.push(keyName);
+				} else {
+					for (const valItem of dataNameList) {
+						if (keyName == valItem) {
+							item.key.name += "Fun";
+							replaceFunNameList.push(keyName);  //默认无重复吧，后期用set
+							//留存全局变量，以便替换template
+						}
+					}
+				}
+			}
+
+			//储存全局变量
+			if (!global.pageData[file_js]) global.pageData[file_js] = {};
+			global.pageData[file_js].replaceFunNameList = replaceFunNameList;
+
+			//
 			ast = buildRequire({
 				PROPS: arrayToObject(vistors.props.getData()),
 				DATA: arrayToObject(vistors.data.getData()),
-				METHODS: arrayToObject(vistors.methods.getData()),
+				METHODS: arrayToObject(methods),
 				COMPUTED: arrayToObject(vistors.computed.getData()),
 				WATCH: arrayToObject(vistors.watch.getData()),
 			});
@@ -377,8 +479,9 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						}
 					}
 				}
-				//停止，不往后遍历了
-				path.skip();
+
+				//停止，不往后遍历了   //还是需要往后遍历，不然后getApp那些没法处理了
+				// path.skip();
 			}
 		},
 		ObjectProperty(path) {
@@ -442,17 +545,17 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				 * 替换为:
 				 * var app = getApp().globalData;
 				 */
-				let arguments = path.node.arguments;
-				if (arguments.length == 0) {
-					const parent = path.parent;
-					if (parent && parent.property && t.isIdentifier(parent.property, { name: "globalData" })) {
-						//如果已经getApp().globalData就不进行处理了
-					} else {
-						//一般来说getApp()是没有参数的。
-						path.replaceWith(t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData")));
-						path.skip();
-					}
-				}
+				// let arguments = path.node.arguments;
+				// if (arguments.length == 0) {
+				// 	const parent = path.parent;
+				// 	if (parent && parent.property && t.isIdentifier(parent.property, { name: "globalData" })) {
+				// 		//如果已经getApp().globalData就不进行处理了
+				// 	} else {
+				// 		//一般来说getApp()是没有参数的。
+				// 		path.replaceWith(t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData")));
+				// 		path.skip();
+				// 	}
+				// }
 			}
 		},
 		MemberExpression(path) {
@@ -468,20 +571,60 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" }) || t.isIdentifier(object.node, { name: "_" })) {
 					let parent = path.parent;
 					//如果父级是AssignmentExpression，则不需再进行转换
-					if (!t.isAssignmentExpression(parent)) {
+					if (parent && !t.isAssignmentExpression(parent)) {
 						path.replaceWith(object);
 					}
 				}
+			} else if (t.isIdentifier(object.node, { name: "app" })) {
+				//app.xxx ==> app.globalData.xxx
+				// let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('globalData')), property.node);
+				// path.replaceWith(me);
+				// path.skip();
+
+				//
+				babelUtil.globalDataHandle(path);
+			}
+
+			//替换与data变量重名的函数引用
+			for (const item of replaceFunNameList) {
+				if (t.isIdentifier(property.node, { name: item })) {
+					if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" }) || t.isIdentifier(object.node, { name: "_" })) {
+						let parent = path.parent;
+						//如果父级是AssignmentExpression，则不需再进行转换
+						if (parent && !t.isAssignmentExpression(parent)) {
+							property.node.name = item + "Fun";
+						}
+					}
+				}
+			}
+
+			//如果是在log("ischeck=====", app.data.isCheck);里
+			//或在 xx:function(){
+			//	that.setData({
+			//		isCheck: app.data.isCheck
+			//	  });
+			//}
+			if (t.isMemberExpression(object)) {
+				babelUtil.globalDataHandle(object);
 			}
 
 			if (isApp) {
 				//仅在App.vue里将this.globalData.xxx转换为this.$options.globalData.xxx
 				//这里是暂时方案，后缀可能屏蔽(现在是uni-app无法支持this.globalData方式)
-				if (t.isThisExpression(object)) {
+				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" })) {
 					if (t.isIdentifier(property.node, { name: "globalData" })) {
-						let me = t.MemberExpression(t.MemberExpression(object, t.identifier('$options')), t.identifier('globalData'));
+						let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('$options')), t.identifier('globalData'));
 						path.replaceWith(me);
+						path.skip();
 					}
+				}
+
+				if (t.isCallExpression(object.node) && t.isIdentifier(object.node.callee, { name: "getApp" })) {
+					// getApp().data.A4SingleBlack = 1  -->  this.$option.globalDatagetApp().data.A4SingleBlack = 1
+					
+					let me = t.MemberExpression(t.MemberExpression(t.ThisExpression(), t.identifier('$options')), t.identifier('globalData'));
+					path.replaceWith(me);
+					path.skip();
 				}
 			}
 
