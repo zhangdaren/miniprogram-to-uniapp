@@ -176,16 +176,16 @@ include标签不是蛮好转换，看过几份源代码，仅有一份代码里�
 ### var appInstance = getApp(); 
 建议手动处理 
 
-### 运行wtu -V报错
-$ wtu -v
-/usr/local/lib/node_modules/miniprogram-to-uniapp/src/index.js:297
-async function filesHandle(fileData, miniprogramRoot) {
-^^^^^^^^
-SyntaxError: Unexpected token function
-......
-原因：当前nodejs版本不支持es6语法
-解决：升级nodejs版本，建议v9以上
-
+### 运行wtu -V报错   
+$ wtu -v   
+/usr/local/lib/node_modules/miniprogram-to-uniapp/src/index.js:297   
+async function filesHandle(fileData, miniprogramRoot) {   
+^^^^^^^^   
+SyntaxError: Unexpected token function   
+......   
+原因：当前nodejs版本不支持es6语法   
+解决：升级nodejs版本，建议v9以上   
+   
    
 ## 更新记录   
 ### v1.0.25(20190928)   
@@ -232,7 +232,7 @@ SyntaxError: Unexpected token function
 * [修复] 修复json文件里定义的usingComponents路径转换   
 * [修复] 修复app.json里tabbar里的路径转换   
 * [修复] 修复因为找不到```<template is="abc"/>```这里面的abc组件，而出现undefined.vue组件的bug   
-* [修复] app.js里，所以非生命周期函数或变量，均放入到globalData里   
+* [修复] app.js里，所有非生命周期函数或变量，均放入到globalData里   
 * [修复] var app = getApp(); 替换为 var app = getApp().globalData;   
 * [修复] 目前uni-app对于非H5平台，暂无法支持动态组件。因此，转换时，将显式引用的组件使用转换为显式组件引用(如```<template is="abc"/>```)，隐式声明的组件(如```<template is="{{item.id}}"/>```)，暂时无法支持，为了保证转换后能正常运行，将直接注释，并存入转换日志，方便后续修改。   
 * [修复] css由"内嵌"改为import方式导入，防止vue文件代码行数过长   
