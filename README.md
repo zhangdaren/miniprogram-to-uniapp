@@ -26,7 +26,7 @@ Options:
 
   -V, --version     output the version number [版本信息]
   -i, --input       the input path for weixin miniprogram project [输入目录]
-  -o, --output      the output path for uni-app project, which default value is process.cwd() [输出目录]
+  -o, --output      the output path for uni-app project, which default value is process.cwd() [输出目录，可不写，默认为原文件目录加上_uni后缀]
   -h, --help        output usage information [帮助信息]
   -c, --cli         the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -w, --wxs         transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
@@ -91,9 +91,7 @@ $ wtu -i miniprogramProject -w
 * [todo] 小程序组件还有其他生命周期函数转换   
 * [todo] 组件批量注册   
 * [todo] 删除生成目录里的空白目录   
-
-[TODO： 待实现]
-+ 转换前先格式化代码   
+* [todo] 转换前先格式化代码   
   
    
 
@@ -186,8 +184,31 @@ SyntaxError: Unexpected token function
 原因：当前nodejs版本不支持es6语法   
 解决：升级nodejs版本，建议v9以上   
    
+### 语法错误: This experimental syntax requires enabling the parser plugin: 'dynamicImport'   
+可能是函数名使用了系统保留关键字，如```<input @input="import"></input>```   
+暂时建议手动处理一下，毕竟还只遇到一例   
+   
+### this.setData(result.data)   
+建议手动处理，这类匿名传值的操作   
+   
+### require('./bem.wxs')   
+uni-app暂不支持在 wxs、sjs、filter.js 中调用其他同类型文件，建议手动处理   
+   
    
 ## 更新记录   
+### v1.0.26(20191013)   
+* [修复] ```wx:key="this"```这种情况   
+* [修复] 删除vue.config.js里的css节点   
+* [修复] 识别含VantComponent({})的js文件   
+* [修复] 未知原因导致没有生成main.js的bug   
+* [修复] app.json不存在导致没有生成main.js的bug   
+* [修复] app.js里非生命周期函数没有放到globalData里的bug   
+* [修复] ```style="{{bgImage?'background-image:url('+bgImage+')':''}}"```这种情况   
+* [修复] ```wx:for="item in 12"```识别出错的bug(wx:for里包含in，第一次在小程序里见到这种写法)   
+* [优化] wxs引入方式为script标签引用   
+* [优化] 替换stringToObject()为[object-string-to-object](https://github.com/zhangdaren/object-string-to-object)   
+
+   
 ### v1.0.25(20190928)   
 * [新增] 处理一则代码非常规写法(没法描述……类似:Page((_defineProperty(_Page = {})))   
 * [修复] 优化函数与data里变量重名，导致编译报错的bug(重名的函数名在后面添加后缀Fun，如abc() --> abcFun())   

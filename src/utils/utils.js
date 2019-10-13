@@ -1,5 +1,4 @@
 const chalk = require('chalk');
-const Stack = require('./stack');
 
 function log(msg, type = 'error') {
     if (type === 'error') {
@@ -84,83 +83,6 @@ function sleep(numberMillis) {
 
 
 /**
- * 将object字符串转换Object
- * @param {*} string 
- * 
- * 	var a = "setting:setting,id:\"index\"";
- *  var b = "title";
- * 	var c = "showModal, photoUrl";
- * 	var d = "showModal, photoUrl: '2,2:\"fds\"afds'";
- */
-function stringToObject(string) {
-    var object = {}; //最后的结果
-    var stack = new Stack();
-    var hasMark = false; //表明当前字符串是否位于引号里
-    var lastKey = ""; //上个key
-    for (var i = 0; i < string.length; i++) {
-        var item = string[i];
-        if (item == ":") {
-            if (hasMark) {
-                //如果当前位于引号里
-                stack.push(item);
-                continue;
-            }
-            //从栈里取出当前的key
-            var tmpArr = [];
-            while (stack.top()) {
-                tmpArr.unshift(stack.pop());
-            }
-            var key = tmpArr.join('').trim();
-            lastKey = key;
-            object[key] = "";
-        } else if (item == ",") {
-            if (hasMark) {
-                //如果当前位于引号里
-                stack.push(item);
-                continue;
-            }
-            //从栈里取出当前的value
-            var tmpArr = [];
-            while (stack.top()) {
-                tmpArr.unshift(stack.pop());
-            }
-            var value = tmpArr.join('').trim();
-            if (lastKey) {
-                //如果上一个字段是key的话
-                object[key] = value;
-                lastKey = value;
-            } else {
-                object[value] = value;
-            }
-        } else if (item == "\"" || item == "'") {
-            stack.push(item);
-            if (hasMark) {
-                hasMark = false;
-            } else {
-                hasMark = true;
-            }
-        } else if (item != " ") {
-            stack.push(item);
-        }
-    }
-    //循环结束后，栈里面可能还会有字符串
-    var tmpArr = [];
-    while (!stack.isEmpty()) {
-        tmpArr.unshift(stack.pop());
-    }
-    var key = tmpArr.join('').trim();
-    if (lastKey) {
-        //如果上一个字段是key的话，那么本个字段就当作value
-        object[lastKey] = key;
-    } else {
-        //如果上一个字段已经匹配完，那么这里就把自身当作key，也作为value
-        object[key] = key;
-    }
-    return object;
-}
-
-
-/**
  * copy to vue.js
  * Make a map and return a function for checking if a key
  * is in that map.
@@ -241,7 +163,6 @@ module.exports = {
     toCamel,
     toCamel2,
     sleep,
-    stringToObject,
     isReservedTag,
     getComponentAlias
 }

@@ -48,7 +48,7 @@ export default {
 const componentTemplateApp =
 	`
 export default {
-  methods: METHODS
+	methods: METHODS,
 }
 `;
 
@@ -309,7 +309,7 @@ function repairValueAndFunctionLink(ast, keyList) {
 			const property = path.node.property;
 			const propertyName = property.name;
 			if (keyList.hasOwnProperty(propertyName)) {
-				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" }) || t.isIdentifier(object.node, { name: "_" })) {
+				if (t.isThisExpression(object) || t.isIdentifier(object, { name: "that" }) || t.isIdentifier(object, { name: "_this" }) || t.isIdentifier(object, { name: "self" }) || t.isIdentifier(object, { name: "_" })) {
 					let subMe = t.MemberExpression(t.MemberExpression(object, t.identifier('$options')), t.identifier('globalData'));
 					let me = t.MemberExpression(subMe, property);
 					path.replaceWith(me);
@@ -346,16 +346,19 @@ function repairAppFunctionLink(vistors) {
 		}
 	}
 
-	//进行替换globalData下面的函数
+
+	//进行替换生命周期里的函数
 	for (let item of liftCycleArr) {
 		let name = item.key.name;
-		repairValueAndFunctionLink(item, globalDataKeyList);
+		if (name !== "globalData") repairValueAndFunctionLink(item, globalDataKeyList);
 	}
-	//进行替换methods下面的函数
-	for (let item of methodsArr) {
-		let name = item.key.name;
-		repairValueAndFunctionLink(item, globalDataKeyList);
-	}
+
+
+	//进行替换methods下面的函数, app.js已经不存在methods了
+	// for (let item of methodsArr) {
+	// 	let name = item.key.name;
+	// 	repairValueAndFunctionLink(item, globalDataKeyList);
+	// }
 }
 
 
@@ -379,23 +382,40 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 	if (!isSingleFile) {
 		defineValueHandle(ast, vistors, file_js);
 
-		//插入setData()
-		const node = getSetDataFunAST();
-		vistors.methods.handle(node);
-
 		//
 		if (isApp) {
 			//是app.js文件,要单独处理
 			buildRequire = template(componentTemplateApp);
 
+			//methods全部移入到globalData
+			const liftCycleArr = vistors.lifeCycle.getData();
+			const methods = vistors.methods.getData();
+			for (const item of liftCycleArr) {
+				const keyName = item.key.name;
+				if (keyName == "globalData") {
+					// for (const mItem of methods) {
+					// 	item.value.properties.push(mItem);
+					// }
+					item.value.properties = [...item.value.properties, ...methods];
+				}
+			}
+
 			// 修复app.js函数和变量的引用关系
 			repairAppFunctionLink(vistors);
 
-			//app.js目前看到有data属性的，其余的还未看到。
+			//占个位
 			ast = buildRequire({
-				METHODS: arrayToObject(vistors.methods.getData())
+				METHODS: arrayToObject([])
 			});
+
+			// ast = buildRequire({
+			// 	METHODS: arrayToObject(vistors.methods.getData())
+			// });
 		} else {
+			//插入setData()
+			const node = getSetDataFunAST();
+			vistors.methods.handle(node);
+
 			//非app.js文件
 			buildRequire = template(componentTemplate);
 
@@ -485,7 +505,8 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			}
 		},
 		ObjectProperty(path) {
-			if (path.node.key.name === 'components') {
+			const name = path.node.key.name;
+			if (name === 'components') {
 				//import firstcompoent from '../firstcompoent/firstcompoent'
 				//"firstcompoent": "../firstcompoent/firstcompoent"
 				//
@@ -509,10 +530,10 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						true
 					));
 				}
-			} else if (path.node.key.name === 'computed' || path.node.key.name === 'watch') {
+			} else if (name === 'computed' || name === 'watch') {
 				//这两个为空的话，会报错，所以删除，其他的不管先
-				if (path.node.value.properties.length == 0) path.remove();
-			} else if (path.node.key.name === 'methods') {
+				if (path.node.value && path.node.value.properties && path.node.value.properties.length == 0) path.remove();
+			} else if (name === 'methods') {
 				let liftCycleArr = vistors.lifeCycle.getData();
 				for (let key in liftCycleArr) {
 					// console.log(liftCycleArr[key]);
@@ -621,7 +642,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 				if (t.isCallExpression(object.node) && t.isIdentifier(object.node.callee, { name: "getApp" })) {
 					// getApp().data.A4SingleBlack = 1  -->  this.$option.globalDatagetApp().data.A4SingleBlack = 1
-					
+
 					let me = t.MemberExpression(t.MemberExpression(t.ThisExpression(), t.identifier('$options')), t.identifier('globalData'));
 					path.replaceWith(me);
 					path.skip();
@@ -716,7 +737,8 @@ function handleJSImage(ast, file_js) {
 }
 
 /**
- * 判断是否为vue文件，小程序项目里，有可能会有含vue语法的文件，如https://github.com/dmego/together/
+ * 1.判断是否为vue文件，小程序项目里，有可能会有含vue语法的文件，如https://github.com/dmego/together/
+ * 2.顺便修复一下
  * @param {*} ast 
  */
 function checkVueFile(ast) {

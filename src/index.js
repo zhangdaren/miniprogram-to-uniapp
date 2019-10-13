@@ -416,18 +416,22 @@ async function filesHandle(fileData, miniprogramRoot) {
 						//读取.wxss文件
 						if (file_wxss && fs.existsSync(file_wxss)) {
 							let data_wxss = fs.readFileSync(file_wxss, 'utf8');
+							const cssFilePath = path.join(tFolder, fileName + ".css");
+							//这里不判断，wxss为空也进行原样保存空文件
 							if (data_wxss) {
 								data_wxss = await cssHandle(data_wxss, file_wxss);
 								//
 								const content = `${data_wxss}`;
 								//写入文件
-								const cssFilePath = path.join(tFolder, fileName + ".css");
+
 								fs.writeFile(cssFilePath, content, () => {
 									console.log(`Convert ${fileName}.wxss success!`);
 								});
 
 								//css文件改为导入方式
 								fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
+							} else {
+								fs.copySync(file_wxss, cssFilePath);
 							}
 						}
 
@@ -479,19 +483,22 @@ async function filesHandle(fileData, miniprogramRoot) {
 							//如果是为单名的js文件，即同一个名字只有js文件，没有wxml或wxss文件，下同
 							if (file_js && fs.existsSync(file_js)) {
 								let data_js = fs.readFileSync(file_js, 'utf8');
-								//可能文件为空，但它也存在。。。所以
-								// if (data_js) {
-								let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js, !isAppFile);
-								fileContent = data;
-
-								//写入文件
 								targetFilePath = path.join(tFolder, fileName + ".js");
-								if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
-								//
-								fs.writeFile(targetFilePath, fileContent, () => {
-									console.log(`Convert component ${fileName}.js success!`);
-								});
-								// }
+								//可能文件为空，但它也存在。。。所以
+								if (data_js) {
+									let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js, !isAppFile);
+									fileContent = data;
+
+									//写入文件
+
+									if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
+									//
+									fs.writeFile(targetFilePath, fileContent, () => {
+										console.log(`Convert component ${fileName}.js success!`);
+									});
+								} else {
+									fs.copySync(file_js, targetFilePath);
+								}
 							}
 						}
 
@@ -499,16 +506,19 @@ async function filesHandle(fileData, miniprogramRoot) {
 							//读取.wxss文件
 							if (file_wxss && fs.existsSync(file_wxss)) {
 								let data_wxss = fs.readFileSync(file_wxss, 'utf8');
-								//可能文件为空，但它也存在。。。所以
-								// if (data_wxss) {
-								data_wxss = await cssHandle(data_wxss, file_wxss);
-								let content = `${data_wxss}`;
-								//写入文件
 								targetFilePath = path.join(tFolder, fileName + ".css");
-								fs.writeFile(targetFilePath, content, () => {
-									console.log(`Convert ${fileName}.wxss success!`);
-								});
-								// }
+								//可能文件为空，但它也存在。。。所以
+								if (data_wxss) {
+									data_wxss = await cssHandle(data_wxss, file_wxss);
+									let content = `${data_wxss}`;
+									//写入文件
+
+									fs.writeFile(targetFilePath, content, () => {
+										console.log(`Convert ${fileName}.wxss success!`);
+									});
+								} else {
+									fs.copySync(file_wxss, targetFilePath);
+								}
 							}
 						}
 					}

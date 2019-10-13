@@ -17,12 +17,5 @@ module.exports = {
 				<%= COPY_WEBPACK_PLUGIN %>
 			]),
 		]
-	},
-	css: {
-		loaderOptions: {
-			sass: {
-				data: `@import "${normalizePath(path.resolve(__dirname, './uni.scss'))}";`
-			}
-		}
 	}
 }

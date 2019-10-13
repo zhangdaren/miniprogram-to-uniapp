@@ -2,6 +2,7 @@ const path = require('path');
 const clone = require('clone');
 const utils = require('../../utils/utils.js');
 const pathUtil = require('../../utils/pathUtil.js');
+const objectStringToObject = require('object-string-to-object');
 
 
 //html标签替换规则，可以添加更多
@@ -313,7 +314,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 							delete node.attribs["data"];
 						} else {
 							let str = data.replace(/{{(.*?)}}/, '$1');
-							let obj = utils.stringToObject(str);
+							let obj = objectStringToObject(str);
 							let logStr = "template里的data属性转换前 ==> \"" + str + "\"     转换后 ==> " + JSON.stringify(obj);
 							console.log(logStr);
 							//
@@ -527,6 +528,16 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 
 					//这里预先设置wx:for是最前面的一个属性，这样会第一个被遍历到
 					let wx_key = node.attribs["wx:key"];
+					let wx_forIndex = node.attribs["wx:for-index"];
+
+					//处理wx:key="this"的情况
+					if (wx_key === "this") {
+						if (wx_forIndex) {
+							wx_key = wx_forIndex;
+						} else {
+							wx_key = "";
+						}
+					}
 
 					//如果wx:key="*this" 或wx:key="*item"时，那么直接设置为空
 					if (wx_key && wx_key.indexOf("*") > -1) wx_key = "";
@@ -541,6 +552,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						wx_key = wx_key.trim();
 						wx_key = wx_key.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'");
 					}
+
 
 					//------------处理wx:key------------
 					//查找父级的key
@@ -568,14 +580,26 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 					wx_forItem = wx_forItem ? wx_forItem : "item";
 
 					if (value) {
-						//将双引号转换单引号
-						value = value.replace(/\"/g, "'");
-						value = value.replace(/{{ ?(.*?) ?}}/, '(' + wx_forItem + ', ' + newKey + ') in $1');
+						//判断是wx:for里是否已经包含in了
+						if (value.indexOf(" in ") == -1) {
+							//将双引号转换单引号
+							value = value.replace(/\"/g, "'");
+							value = value.replace(/{{ ?(.*?) ?}}/, '(' + wx_forItem + ', ' + newKey + ') in $1');
 
-						if (value == node.attribs[k]) {
-							//奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
-							//这里处理无{{}}的情况
-							value = '(' + wx_forItem + ', ' + newKey + ') in ' + value;
+							if (value == node.attribs[k]) {
+								//奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
+								//这里处理无{{}}的情况
+								value = '(' + wx_forItem + ', ' + newKey + ') in ' + value;
+							}
+						} else {
+							//处理包含in的情况，如：wx:for="item in 12"
+							//这里粗糙处理一下，官方也没有这种写法
+							let tmpArr = value.split(" in ");
+							let str1 = tmpArr[0];
+							if (str1.indexOf(",") == -1) {
+								str1 += ', ' + newKey;
+							}
+							value = '(' + str1 + ') in ' + tmpArr[1];
 						}
 
 						attrs['v-for'] = value;
@@ -596,7 +620,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 
 					//替换xx="xx:'{{}}';" 为xx="xx:{{}};"
 					//替换url('{{iconURL}}/invitation-red-packet-btn.png')为url({{iconURL}}/invitation-red-packet-btn.png)
-					node.attribs[k] = node.attribs[k].replace(/['"]{{.*?}}['"]/, "{{$1}}").replace(/url\(['"].*?['"]\)/, "url({{$1}})");
+					node.attribs[k] = node.attribs[k].replace(/url\(['"]{{(.*?)}}['"]\)/, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/, "{{$1}}");
 
 					if (newKey == k) {
 						newKey = replaceWxBind(k);

@@ -86,7 +86,7 @@ const componentVistor = {
 			// }
 
 			const parent = path.parentPath.parent;
-			if (t.isFile(parent) && calleeName != "app" && calleeName != "page" && calleeName != "component") {
+			if (t.isFile(parent) && calleeName != "app" && calleeName != "page" && calleeName != "component" && calleeName != "vantcomponent") {
 				//定义的外部函数
 				declareStr += `${generate(path.node).code}\r\n`;
 				path.skip();
@@ -221,31 +221,32 @@ const componentVistor = {
 		}
 		path.skip();
 	},
+
 	ObjectProperty(path) {
 		const name = path.node.key.name;
-
+		// console.log("name", path.node.key.name)
 		switch (name) {
 			case 'data':
-				if (vistors.data.getData().length == 0) {
-					if (isAppFile) {
-						if (globalData.value && globalData.value.properties) {
-						} else {
-							globalData = createObjectProperty("globalData");
-							vistors.lifeCycle.handle(globalData);
-						}
-						globalData.value.properties.push(path.node);
-						path.skip();
+				if (isAppFile) {
+					if (globalData.value && globalData.value.properties) {
 					} else {
-						//只让第一个data进来，暂时不考虑其他奇葩情况
-						if (JSON.stringify(dataValue) == "{}") {
-							//第一个data，存储起来
-							dataValue = path.node.value;
-						} else {
-							//这里是data里面的data同名属性
-							// console.log("add data", name);
-							vistors.data.handle(path.node);
-							path.skip();
-						}
+						globalData = createObjectProperty("globalData");
+						vistors.lifeCycle.handle(globalData);
+					}
+					if (path.node.value && path.node.value.properties) {
+						globalData.value.properties = [...globalData.value.properties, ...path.node.value.properties];
+					}
+					path.skip();
+				} else {
+					//只让第一个data进来，暂时不考虑其他奇葩情况
+					if (JSON.stringify(dataValue) == "{}") {
+						//第一个data，存储起来
+						dataValue = path.node.value;
+					} else {
+						//这里是data里面的data同名属性
+						// console.log("add data", name);
+						vistors.data.handle(path.node);
+						path.skip();
 					}
 				}
 				break;
@@ -315,7 +316,7 @@ const componentVistor = {
 				const value = parent.value;
 				// console.log("name", path.node.key.name)
 				//如果父级不为data时，那么就加入生命周期，比如app.js下面的全局变量
-				if (value == dataValue) {
+				if (value && value == dataValue) {
 					vistors.data.handle(path.node);
 
 					//如果data下面的变量为数组时，不遍历下面的内容，否则将会一一列出来

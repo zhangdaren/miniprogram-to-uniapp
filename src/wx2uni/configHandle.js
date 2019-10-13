@@ -52,7 +52,19 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 
 			//app.json文件路径
 			let json_app = path.join(miniprogramRoot, "app.json");
-			let appJson = fs.readJsonSync(json_app);
+			let appJson = {
+				"pages": {},
+				"tabBar": {},
+				"globalStyle": {},
+				"usingComponents": {},
+			}
+			if (fs.existsSync(json_app)) {
+				appJson = fs.readJsonSync(json_app);
+			} else {
+				let str = "Error： 找不到app.json文件(不影响转换)";
+				console.log(str);
+				global.log.push("\r\n" + str + "\r\n");
+			}
 			//app.json里面引用的全局组件
 			let globalUsingComponents = appJson.usingComponents || {};
 			globalUsingComponents = { ...globalUsingComponents, ...global.globalUsingComponents };
