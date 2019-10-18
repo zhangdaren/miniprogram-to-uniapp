@@ -82,16 +82,18 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				// 	usingComponents = data.usingComponents;
 				// }
 
-				let dataBak = clone(data);
-				delete dataBak.usingComponents;
-
-				let obj = {
-					"path": pagePath,
-					"style": {
-						...dataBak
-					}
-				};
-				pages.push(obj);
+				if(data) {
+					let dataBak = clone(data);
+					delete dataBak.usingComponents;
+					
+					let obj = {
+						"path": pagePath,
+						"style": {
+							...dataBak
+						}
+					};
+					pages.push(obj);
+				}
 			}
 			appJson.pages = pages;
 
@@ -186,8 +188,16 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				let name = path.basename(filePath);
 				name = name.split(".vue").join(""); //去掉后缀名
 				name = utils.toCamel2(name);
-				mainContent += `Vue.component('${name}', ${newKey});\r\n\r\n`;
+
+				mainContent += `Vue.component("${name === "index" ? key : name}", ${newKey});\r\n\r\n`;
 			}
+
+			//全局引入uParse
+			if (global.hasWxParse) {
+				mainContent += 'import uParse from "./components/gaoyia-parse/parse.vue";\r\n';
+				mainContent += `Vue.component("u-parse", uParse);\r\n\r\n`;
+			}
+
 			//
 			mainContent += "Vue.config.productionTip = false;\r\n\r\n";
 			mainContent += "App.mpType = 'app';\r\n\r\n";
@@ -198,7 +208,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//
 			let file_main = path.join(targetFolder, "main.js");
 			fs.writeFile(file_main, mainContent, () => {
-				console.log(`write ${file_main} success!`);
+				console.log(`write ${path.relative(global.targetFolder, file_main)} success!`);
 			});
 
 			//////////////////////////////////////////////////////////////////////

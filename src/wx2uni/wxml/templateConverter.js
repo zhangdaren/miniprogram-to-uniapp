@@ -236,146 +236,134 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 				// key为文件路径 + 文件名(不含扩展名)组成
 				let key = path.join(wxmlFolder, fileName);
 				//
-				if (!global.wxsInfo[key]) global.wxsInfo[key] = [];
+				if (!global.pageWxsInfo[key]) global.pageWxsInfo[key] = [];
 
-				if (global.isTransformWXS) {
-					//处理wxs标签 <wxs src="./../logic.wxs" module="logic" />
-					let module = node.attribs.module;
-					let src = node.attribs.src; //src不一有值
+				// if (global.isTransformWXS) {
+				//处理wxs标签 <wxs src="./../logic.wxs" module="logic" />
+				let module = node.attribs.module;
+				let src = node.attribs.src; //src不一有值
 
-					//
-					let obj = {};
-					if (src) {
-						//说明是外链的
-						// console.log("src---", src);
-						obj = {
-							"name": module,
-							"type": "link",
-							"src": src.split(".wxs").join(".js"), //简单处理一下后缀名
-							"content": ""
-						};
-					} else {
-						//说明是有内容的，需要将内容写入到文件里
-						let content = "";
-						let children = node.children;
-						children.forEach(obj => {
-							content += (obj.data || "");
-						});
-						// console.log("content---", content);
-						obj = {
-							"name": module,
-							"type": "insert",
-							"src": "",
-							"content": content,
-						};
-					}
-					global.wxsInfo[key].push(obj);
+				//
+				let obj = {};
+				if (src) {
+					//说明是外链的
+					// console.log("src---", src);
+					obj = {
+						"module": module,
+						"type": "link",
+						"src": (global.isTransformWXS ? src.split(".wxs").join(".js") : src), //简单处理一下后缀名
+						"content": ""
+					};
 				} else {
-					global.wxsInfo[key].push(node);
+					//说明是有内容的，需要将内容写入到文件里
+					let content = "";
+					let children = node.children;
+					children.forEach(obj => {
+						content += (obj.data || "");
+					});
+					// console.log("content---", content);
+					obj = {
+						"module": module,
+						"type": "insert",
+						"src": "./" + module + (global.isTransformWXS ? ".js" : ".wxs"),
+						"content": content,
+					};
 				}
+				global.pageWxsInfo[key].push(obj);
 				delete ast[i];
 				continue;
 			}
 
-			//template标签<template is="head" data="{{title: 'addPhoneContact'}}"/>
-			//转换为组件，并添加到全局组件里
+			//处理template标签<template is="head" data="{{title: 'addPhoneContact'}}"/>
 			if (node.name == "template") {
 				// 	//包含is属性的才是页面里面的<template/>标签，否则为被引入的那个组件
 				let componentName = node.attribs.is;
 				if (componentName) {
-					// console.log("component is=", componentName);
-					//有is属性的<template/>是用来渲染的元素
-					node.name = "component";
-
 					let data = node.attribs.data;
-					if (data) {
-						/* *
-						 *	```<template is="msgItem"  data="{{'这是一个参数'}}"/>```
-						 *	```<template is="t1" data="{{newsList,type}}"/>```
-						 *	```<template is="head" data="{{title: 'action-sheet'}}"/>```
-						 *	```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
-						 *	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
-						 *   ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>``` 
-						 */
-
-						//目前除了...扩展运算符不支持，其他全支持(因为uni-app还不支持v-bind=""语法)
-
-						if (!global.globalTemplateComponents[componentName]) global.globalTemplateComponents[componentName] = {};
-
-						if (data.indexOf("...") > -1) {
-							let str = 'template里data属性包含...扩展运算符时，不支持转换(因uni-app还不支持v-bind="")，请预先手动修改:     data--> ' + data +
-								"    file--> " + path.relative(global.miniprogramRoot, file_wxml);
-							console.log(str);
-							global.log.push(str);
-							//////////////////////////
-							global.globalTemplateComponents[componentName].props = '';
-							//这里简单处理一下，因为data不能作为props名，这里重名一下
-							node.attribs["error-data"] = data.replace(/{{(.*?)}}/, '$1');
-							delete node.attribs["data"];
-						} else {
-							let str = data.replace(/{{(.*?)}}/, '$1');
-							let obj = objectStringToObject(str);
-							let logStr = "template里的data属性转换前 ==> \"" + str + "\"     转换后 ==> " + JSON.stringify(obj);
-							console.log(logStr);
-							//
-							let props = [];
-							for (const objKey in obj) {
-								const value = obj[objKey];
-								if (value.indexOf("\"") > -1 || value.indexOf("'") > -1) {
-									node.attribs[objKey] = value;
-								} else {
-									node.attribs[":" + objKey] = value;
+					if (componentName === "wxParse") {
+						// wxParse单独处理，鉴于wxParse的data造型都是非常规律，在这里直接使用正则搞定就不花里胡哨了。
+						//<template is="wxParse" data="{{ wxParseData:content.nodes }}"></template>
+						var reg_val = /wxParseData:(.*?)\.nodes/i;
+						if (data) {
+							let varName = data.match(reg_val)[1];
+							ast[i] = {
+								type: "tag",
+								name: "u-parse",
+								attribs: {
+									":content": "article_" + varName
 								}
-								props.push('"' + objKey + '"');
+							};
+							continue;
+						}
+					} else {
+						// console.log("component is=", componentName);
+						//有is属性的<template/>是用来渲染的元素
+						node.name = "component";
+
+						if (data) {
+							/* *
+							 *	```<template is="msgItem"  data="{{'这是一个参数'}}"/>```
+							 *	```<template is="t1" data="{{newsList,type}}"/>```
+							 *	```<template is="head" data="{{title: 'action-sheet'}}"/>```
+							 *	```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
+							 *	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
+							 *  ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>``` 
+							 */
+
+							//目前除了...扩展运算符不支持，其他全支持(因为uni-app还不支持v-bind=""语法)
+
+							if (!global.globalTemplateComponents[componentName]) global.globalTemplateComponents[componentName] = {};
+
+							if (data.indexOf("...") > -1) {
+								let str = 'template里data属性包含...扩展运算符时，不支持转换(因uni-app还不支持v-bind="")，请预先手动修改:     data--> ' + data +
+									"    file--> " + path.relative(global.miniprogramRoot, file_wxml);
+								console.log(str);
+								global.log.push(str);
+								//////////////////////////
+								global.globalTemplateComponents[componentName].props = '';
+								//这里简单处理一下，因为data不能作为props名，这里重名一下
+								node.attribs["error-data"] = data.replace(/{{(.*?)}}/, '$1');
+								delete node.attribs["data"];
+							} else {
+								let str = data.replace(/{{(.*?)}}/, '$1');
+								let obj = objectStringToObject(str);
+								let logStr = "template里的data属性转换前 ==> \"" + str + "\"     转换后 ==> " + JSON.stringify(obj);
+								console.log(logStr);
+								//
+								let props = [];
+								for (const objKey in obj) {
+									const value = obj[objKey];
+									if (value.indexOf("\"") > -1 || value.indexOf("'") > -1) {
+										node.attribs[objKey] = value;
+									} else {
+										node.attribs[":" + objKey] = value;
+									}
+									props.push('"' + objKey + '"');
+								}
+								global.globalTemplateComponents[componentName].props = props.join(",");
+								//删除
+								delete node.attribs["data"];
 							}
-							// global.globalTemplateComponents[componentName].path = file_wxml;
-							// global.globalTemplateComponents[componentName].alias = utils.getComponentAlias(componentName);
-							global.globalTemplateComponents[componentName].props = props.join(",");
-							//删除
-							delete node.attribs["data"];
+						}
+
+						if (reg_tag.test(componentName)) {
+							node.attribs[":is"] = componentName.replace(/{{ ?(.*?) ?}}/, '$1');
+							delete node.attribs["is"];
+
+							//将当前行注释，因为现在对于动态组件并无解决方案，uni-app官方是说平台限制了，没法动态创建组件
+							const code = templateParser.astToString([node]);
+							const comment = "uni-app不支持动态组件，因此注释下行代码。请手动修改为显式声明组件\r";
+							ast[i] = {
+								type: "comment",
+								data: comment + code
+							};
+
+							let logStr = '因uni-app不支持动态组件，已注释代码，请手动修改。    code--> ' + code + "    file--> " + path.relative(global.miniprogramRoot,
+								file_wxml);
+							console.log(logStr);
+							global.log.push(logStr);
 						}
 					}
-
-					if (reg_tag.test(componentName)) {
-						node.attribs[":is"] = componentName.replace(/{{ ?(.*?) ?}}/, '$1');
-						delete node.attribs["is"];
-
-						//将当前行注释，因为现在对于动态组件并无解决方案，uni-app官方是说平台限制了，没法动态创建组件
-						const code = templateParser.astToString([node]);
-						const comment = "uni-app不支持动态组件，因此注释下行代码。请手动修改为显式声明组件\r";
-						ast[i] = {
-							type: "comment",
-							data: comment + code
-						};
-
-						let logStr = '因uni-app不支持动态组件，已注释代码，请手动修改。    code--> ' + code + "    file--> " + path.relative(global.miniprogramRoot,
-							file_wxml);
-						console.log(logStr);
-						global.log.push(logStr);
-					}
-
-					// console.log(test);
-					// try {
-					// 	let obj = JSON.parse("{" + test + "}");
-					// 	for (const key in obj) {
-					// 		let val = obj[key];
-					// 		if (val.indexOf("\"") > -1) {
-					// 			node.attribs[":" + key] = val;
-					// 		} else {
-					// 			node.attribs[key] = val;
-					// 		}
-					// 	}
-					// 	//删除data属性
-					// 	delete node.attribs["data"];
-					// 	continue;
-					// } catch (e) {
-					// 	// console.log(e);
-					// 	//如果报错，那就随意了，不管了。
-					// 	let str = "试图转换template里data属性为Object时报错:     data--> " + data + "    file--> " + path.relative(global.miniprogramRoot, file_wxml);
-					// 	console.log(str);
-					// 	global.log.push(str);
-					// }
-					// console.log(node);
 				} else {
 					//没有is属性的是被引用的<template/>本身，转换为vue组件，添加到全局变量里
 					//必须要有name属性才是一个自定义组件，否则应该是正常页面里面的template
@@ -553,6 +541,8 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						wx_key = wx_key.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'");
 					}
 
+					//修复index，防止使用的item.id来替换index
+					wx_key = wx_key.indexOf(".") == -1 ? wx_key : "index";
 
 					//------------处理wx:key------------
 					//查找父级的key
@@ -573,9 +563,6 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 					//有种情况是直接将item设置为key，如：<view wx:for="{{school}}" wx:key="{{item}}"></view>
 					if (wx_key === "item") wx_key = "index";
 
-					//修复index，防止使用的item.id来替换index
-					let newKey = wx_key.indexOf(".") == -1 ? wx_key : "index";
-
 					//设置for-item默认值
 					wx_forItem = wx_forItem ? wx_forItem : "item";
 
@@ -584,12 +571,12 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						if (value.indexOf(" in ") == -1) {
 							//将双引号转换单引号
 							value = value.replace(/\"/g, "'");
-							value = value.replace(/{{ ?(.*?) ?}}/, '(' + wx_forItem + ', ' + newKey + ') in $1');
+							value = value.replace(/{{ ?(.*?) ?}}/, '(' + wx_forItem + ', ' + wx_key + ') in $1');
 
 							if (value == node.attribs[k]) {
 								//奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
 								//这里处理无{{}}的情况
-								value = '(' + wx_forItem + ', ' + newKey + ') in ' + value;
+								value = '(' + wx_forItem + ', ' + wx_key + ') in ' + value;
 							}
 						} else {
 							//处理包含in的情况，如：wx:for="item in 12"
@@ -597,13 +584,13 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 							let tmpArr = value.split(" in ");
 							let str1 = tmpArr[0];
 							if (str1.indexOf(",") == -1) {
-								str1 += ', ' + newKey;
+								str1 += ', ' + wx_key;
 							}
 							value = '(' + str1 + ') in ' + tmpArr[1];
 						}
 
 						attrs['v-for'] = value;
-						attrs[':key'] = newKey;
+						attrs[':key'] = wx_key;
 						if (node.attribs.hasOwnProperty("wx:key")) delete node.attribs["wx:key"];
 						if (node.attribs.hasOwnProperty("wx:for-index")) delete node.attribs["wx:for-index"];
 						if (node.attribs.hasOwnProperty("wx:for-item")) delete node.attribs["wx:for-item"];
@@ -615,22 +602,22 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 					//
 
 					//替换带有bind前缀的key，避免漏网之鱼，因为实在太多情况了。
-					let newKey = replaceBindToAt(k);
-					attrs[newKey] = node.attribs[k];
+					let wx_key = replaceBindToAt(k);
+					attrs[wx_key] = node.attribs[k];
 
 					//替换xx="xx:'{{}}';" 为xx="xx:{{}};"
 					//替换url('{{iconURL}}/invitation-red-packet-btn.png')为url({{iconURL}}/invitation-red-packet-btn.png)
 					node.attribs[k] = node.attribs[k].replace(/url\(['"]{{(.*?)}}['"]\)/, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/, "{{$1}}");
 
-					if (newKey == k) {
-						newKey = replaceWxBind(k);
-						attrs[newKey] = node.attribs[k];
+					if (wx_key == k) {
+						wx_key = replaceWxBind(k);
+						attrs[wx_key] = node.attribs[k];
 					}
 
 					//其他属性
 					//处理下面这种嵌套关系的样式或绑定的属性
 					//style="background-image: url({{avatarUrl}});color:{{abc}};font-size:12px;"
-					let value = attrs[newKey];
+					let value = attrs[wx_key];
 					let hasBind = reg_tag.test(value);
 					if (hasBind) {
 						let reg1 = /(?!^){{ ?/g; //中间的{{
@@ -666,14 +653,14 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						value = value.replace(/\"/g, "'");
 
 						//如果value={{true}}或value={{false}}，则不添加bind
-						if (newKey == k && value !== "true" && value !== "false") {
+						if (wx_key == k && value !== "true" && value !== "false") {
 							//处理<view style="display:{{}}"></view>，转换后，可能末尾多余一个+，编译会报错
 							if (/\+$/.test(value)) value = value.replace(/\s*\+$/, "");
 							//
-							attrs[":" + newKey] = value;
-							delete attrs[newKey];
+							attrs[":" + wx_key] = value;
+							delete attrs[wx_key];
 						} else {
-							attrs[newKey] = value;
+							attrs[wx_key] = value;
 						}
 					}
 				}

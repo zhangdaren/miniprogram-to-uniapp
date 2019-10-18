@@ -22,7 +22,7 @@ async function cssHandle(fileContent, file_wxss) {
 			// let reg = /(\d+)rpx/g;
 			// fileContent = fileContent.replace(reg, "$1upx");
 			//删除掉import app.wxss的代码
-			// fileContent = fileContent.replace(/@import ?["'].*?app.wxss["'];?/g, "");
+			fileContent = fileContent.replace(/@import ?["'].*?\/wxParse.wxss["'];?/g, "");
 
 			//wxss文件所在目录
 			let fileDir = path.dirname(file_wxss);

@@ -125,16 +125,16 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 			let wxmlFolder = path.dirname(file_wxml);
 			// key为文件路径 + 文件名(不含扩展名)组成
 			let key = path.join(wxmlFolder, pathUtil.getFileNameNoExt(file_wxml));
-			let wxsInfoArr = global.wxsInfo[key];
-			if (wxsInfoArr) {
-				// const wxsInfoString = templateParser.astToString(wxsInfoArr);
+			let pageWxsInfoArr = global.pageWxsInfo[key];
+			if (pageWxsInfoArr) {
+				// const wxsInfoString = templateParser.astToString(pageWxsInfoArr);
 				// let wxsStr = wxsInfoString + "\r\n";
 				// templateConvertedString += wxsStr + "\r\n";
 
 				//转换为<script/>方式引用wxs
 				let wxsStr = "";
-				for (const obj of wxsInfoArr) {
-					wxsStr += `<script module="${obj.attribs.module}" lang="wxs" src="${obj.attribs.src}"></script>`;
+				for (const obj of pageWxsInfoArr) {
+					wxsStr += `<script module="${obj.module}" lang="wxs" src="${obj.src}"></script>\r\n`;
 				}
 				templateConvertedString += wxsStr + "\r\n";
 			}

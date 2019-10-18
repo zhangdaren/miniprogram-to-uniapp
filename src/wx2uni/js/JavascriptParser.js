@@ -17,8 +17,8 @@ class JavascriptParser {
     // return code.replace(/const\s+app\s+=\s+getApp\(\)/gm, '');  //保留getApp()
     //干掉这一行，防止干扰
     return code.replace(/export default App;?/gm, '')
-    .replace(/const\s+app\s+=\s+getApp\(\)/gm, '')
-    .replace(/var\s+app\s+=\s+getApp\(\)/gm, '');
+    .replace(/const\s+[Aa]pp\s+=\s+getApp\(\)/gm, '')
+    .replace(/var\s+[Aa]pp\s+=\s+getApp\(\)/gm, '');
     // return code;
   }
 

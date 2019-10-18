@@ -5,6 +5,7 @@ const traverse = require('@babel/traverse').default;
 const Vistor = require("./Vistor");
 const clone = require('clone');
 const pathUtil = require('../../utils/pathUtil');
+const babelUtil = require('../../utils/babelUtil');
 
 const lifeCycleFunction = {
 	onLoad: true,
@@ -145,36 +146,41 @@ const componentVistor = {
 					}
 				}
 			},
-			VariableDeclarator(path) {
-				if (t.isMemberExpression(path.node.init) && path.node.init.object) {
-					let id = path.node.id;
-					let init = path.node.init;
+			VariableDeclarator(path2) {
+				if (t.isMemberExpression(path2.node.init) && path2.node.init.object) {
+					let id = path2.node.id;
+					let init = path2.node.init;
 					let property = init.property;
-					let path2 = path.node.init.object;
-					let subOject = path2.object;
-					let subProperty = path2.property;
+					let objectPath = path2.node.init.object;
+					let subOject = objectPath.object;
+					let subProperty = objectPath.property;
 					if (t.isIdentifier(subOject, { name: "app" })) {
 						//这里没法调babelUtil.globalDataHandle()，子节点没有replaceWidth方法了(或许有转换方法，暂未知)
 						let getApp = t.callExpression(t.identifier('getApp'), []);
 						let subMe = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), subProperty);
 						let me = t.MemberExpression(subMe, property);
-						let vd = t.variableDeclarator(path.node.id, me);
+						let vd = t.variableDeclarator(path2.node.id, me);
 						path.replaceWith(vd);
 						path.skip();
 					}
-				} else if (t.isCallExpression(path.node.init)) {
+				} else if (t.isCallExpression(path2.node.init)) {
 					//处理外部声明的require，如var md5 = require("md5.js");
-					const path2 = path.node.init;
-					let callee = path2.callee;
+					const initPath = path2.node.init;
+					let callee = initPath.callee;
 					if (t.isIdentifier(callee, { name: "require" })) {
-						let arguments = path2.arguments;
+						let arguments = initPath.arguments;
 						if (arguments && arguments.length) {
 							if (t.isStringLiteral(arguments[0])) {
 								let filePath = arguments[0].value;
 								filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
-								path2.arguments[0] = t.stringLiteral(filePath);
+								initPath.arguments[0] = t.stringLiteral(filePath);
 							}
 						}
+					}
+					//删除var wxParse = require("../../../wxParse/wxParse.js");
+					if (path2.node && path2.node.id && t.isIdentifier(path2.node.id, { name: "wxParse" })) {
+						// babelUtil.addComment(path.parentPath, `${generate(path.node).code}`);  //没法改成注释，只能删除
+						path.remove();
 					}
 				}
 			}
@@ -294,6 +300,7 @@ const componentVistor = {
 				var properties = path.node.value.properties;
 				if (properties) {
 					properties.forEach(function (item) {
+						// if(item.key.name === "data") item.key.name="pData";
 						vistors.props.handle(item);
 					});
 				}

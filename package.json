@@ -1,27 +1,6 @@
 {
-  "_from": "miniprogram-to-uniapp",
-  "_id": "miniprogram-to-uniapp@1.0.0",
-  "_inBundle": false,
-  "_location": "/miniprogram-to-uniapp",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "tag",
-    "registry": true,
-    "raw": "miniprogram-to-uniapp",
-    "name": "miniprogram-to-uniapp",
-    "escapedName": "miniprogram-to-uniapp",
-    "rawSpec": "",
-    "saveSpec": null,
-    "fetchSpec": "latest"
-  },
-  "_requiredBy": [
-    "#USER"
-  ],
-  "_resolved": "https://registry.npmjs.org/miniprogram-to-uniapp/-/miniprogram-to-uniapp-1.0.0.tgz",
-  "_spec": "miniprogram-to-uniapp",
-  "author": {
-    "name": "375890534@qq.com"
-  },
+  "name": "miniprogram-to-uniapp",
+  "author":  "375890534@qq.com",
   "bin": {
     "wtu": "bin/wtu"
   },
@@ -65,7 +44,6 @@
   ],
   "license": "MIT",
   "main": "index.js",
-  "name": "miniprogram-to-uniapp",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/zhangdaren/miniprogram-to-uniapp.git"
@@ -73,5 +51,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.26"
+  "version": "1.0.27"
 }

@@ -1,5 +1,69 @@
 # Miniprogram to uni-app - Release Notes   
 ======================================
+## v1.0.26(20191013)   
+* [修复] ```wx:key="this"```这种情况   
+* [修复] 删除vue.config.js里的css节点   
+* [修复] 识别含VantComponent({})的js文件   
+* [修复] 未知原因导致没有生成main.js的bug   
+* [修复] app.json不存在导致没有生成main.js的bug   
+* [修复] app.js里非生命周期函数没有放到globalData里的bug   
+* [修复] ```style="{{bgImage?'background-image:url('+bgImage+')':''}}"```这种情况   
+* [修复] ```wx:for="item in 12"```识别出错的bug(wx:for里包含in，第一次在小程序里见到这种写法)   
+* [优化] wxs引入方式为script标签引用   
+* [优化] 替换stringToObject()为[object-string-to-object](https://github.com/zhangdaren/object-string-to-object)   
+   
+## v1.0.25(20190928)   
+* [新增] 处理一则代码非常规写法(没法描述……类似:Page((_defineProperty(_Page = {})))   
+* [修复] 优化函数与data里变量重名，导致编译报错的bug(重名的函数名在后面添加后缀Fun，如abc() --> abcFun())   
+* [修复] 不复制index.json到生成目录   
+* [修复] 完善pages.json页面的style(之前只写了标题，这次将页面属性都写入)   
+* [修复] 当attr={{true}}或attr={{false}}，则不添加v-bind(如```<scroll-view scroll-x="{{false}}"/>```)   
+* [修复] 替换style="xx:'{{}}'" --> style="xx:{{}}"   
+* [修复] 替换style="background-image: url('{{iconURL}}/abc.png')" --> style="background-image: url({{iconURL}}/abc.png)"
+* [修复] 当单个js或wxss内容为空时，也创建相应文件，防止编译报错。   
+* [修复] style里包含表达式时(+-*/和三元表达式)，使用括号包起来(如style="height:{{info.screenHeight * 105}}px")   
+* [修复] 解析前替换掉"export default App;"，防止干扰，导致app.js没有转换成功   
+* [修复] wx:key="{{item}}"转换为:key="item"的bug   
+* [修复] 转换```<view style="display:{{}}"></view>```时末尾为+的bug   
+* [修复] wxml里template连环嵌套引用，导致生成vue代码时template为空的bug   
+* [修复] app.js已含globalData，导致重复嵌套的bug   
+* [修复] app.js已含data时，移入到globalData   
+* [修复] app.js，支持替换that.globalData.xx为that.$options.globalData.xxx   
+* [修复] app.js里所有移动到globalData里的函数及变量的引用关系   
+* [修复] app.js里getApp().data.xxx --  this.$options.globalData.xxx   
+* [修复] app.js引用的组件，初始化时getApp()为undefined的bug   
+* [修复] 外部定义的含require()的变量里的路径(如：var md5 = require('md5.js'))   
+规则：   
+1.删除var app = getApp()或const app = getApp()，作用：不让一加载就引用getApp()   
+2.app.globalData.xxx --> getApp().globalData.xxx   
+2.app.xxx --> getApp().globalData.xxx   
+4.getApp().xxx --> getApp().globalData.xxx   
+5.var icon_url = app.dataBase.iconURL; --> var icon_url = getApp().globalData.dataBase.iconURL;   
+6.getApp().globalData.xxx保持原样   
+注意：如外部定义的变量引用了getApp()，仍会报错，需手动修复   
+   
+## v1.0.24(20190918)   
+* [新增] 支持wx-if转换(对，你没看错，wx:if和wx-if都能用……)   
+* [新增] 支持wx:else="{{xxx}}"转换   
+* [新增] 支持subPackages分包加载   
+* [新增] 识别app.js里exports.default = App({});结构   
+* [新增] 识别js文件是否为vue文件结构，通过结构export default {}识别   
+* [新增] 增加_.data.xxx转换为_.xxx(定义_为this副本)   
+* [新增] 忽略组件plugin:/calendar转换   
+* [新增] 收集页面里setData()里参数与data里的变量进行对比，并将差异增加到data里，尽可能修改因未定义变量而直接使用setData()报错的问题(无法100%修复，详见“关于不支持转换的语法说明”)   
+* [修复] 修复json文件里定义的usingComponents路径转换   
+* [修复] 修复app.json里tabbar里的路径转换   
+* [修复] 修复因为找不到```<template is="abc"/>```这里面的abc组件，而出现undefined.vue组件的bug   
+* [修复] app.js里，所有非生命周期函数或变量，均放入到globalData里   
+* [修复] var app = getApp(); 替换为 var app = getApp().globalData;   
+* [修复] 目前uni-app对于非H5平台，暂无法支持动态组件。因此，转换时，将显式引用的组件使用转换为显式组件引用(如```<template is="abc"/>```)，隐式声明的组件(如```<template is="{{item.id}}"/>```)，暂时无法支持，为了保证转换后能正常运行，将直接注释，并存入转换日志，方便后续修改。   
+* [修复] css由"内嵌"改为import方式导入，防止vue文件代码行数过长   
+
+## v1.0.23(20190907)   
+* [修复] @tap前面被添加冒号的bug   
+* [修复] app.js没有被转换的bug   
+* [修复] 当解析js报错时(如js里使用了重载)，将返回原文件内容   
+   
 ## v1.0.22(20190907)   
 * [新增] 完善template标签转换，除了不支持data里含...扩展运算符外(因uni-app现还不支持v-bind="")，其他都已支持(含...的data，已重名为error-data，需手工调整：换一种方式导入自定义组件或显式调用组件)  
 * [新增] 将含有内置关键字的组件名替换为别名   

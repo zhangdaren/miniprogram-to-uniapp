@@ -181,15 +181,15 @@ function handleOnLoadFun(liftCycleArr, key, funName) {
 			break;
 		}
 	}
-	let wxInfo = global.wxsInfo[key];
-	if (wxInfo) {
+	let pagepageWxsInfo = global.pageWxsInfo[key];
+	if (pageWxsInfo) {
 		if (!node) {
 			node = t.objectMethod("method", t.identifier(funName), [], t.blockStatement([]));
 			liftCycleArr.unshift(node);
 		}
-		wxInfo.forEach(obj => {
-			let left = t.memberExpression(t.thisExpression(), t.identifier(obj.name));
-			let right = t.identifier(obj.name);
+		pageWxsInfo.forEach(obj => {
+			let left = t.memberExpression(t.thisExpression(), t.identifier(obj.module));
+			let right = t.identifier(obj.module);
 			let exp = t.expressionStatement(t.assignmentExpression("=", left, right));
 			if (node.body) {
 				//处理 onLoad() {}
@@ -376,8 +376,11 @@ function repairAppFunctionLink(vistors) {
 const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile) {
 	let buildRequire = null;
 
-	//需要替换的函数名(默认替换一个delete)
-	let replaceFunNameList = ["delete"];
+	//需要替换的函数名
+	let replaceFunNameList = [];
+
+	//存储data的引用，用于后面添加wxparse的数据变量
+	let astDataPath = null;
 
 	if (!isSingleFile) {
 		defineValueHandle(ast, vistors, file_js);
@@ -393,9 +396,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			for (const item of liftCycleArr) {
 				const keyName = item.key.name;
 				if (keyName == "globalData") {
-					// for (const mItem of methods) {
-					// 	item.value.properties.push(mItem);
-					// }
 					item.value.properties = [...item.value.properties, ...methods];
 				}
 			}
@@ -421,25 +421,18 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 			//处理data下变量名与函数重名的问题，或函数名为系统关键字，如delete等
 			const dataArr = vistors.data.getData();
-			let dataNameList = [];
+			let dataNameList = { "delete": true, "import": true }; //默认替换delete，import，暂定这几个关键字
 			for (const item of dataArr) {
-				dataNameList.push(item.key.name);
+				dataNameList[item.key.name] = true;
 			}
 
 			const methods = vistors.methods.getData();
 			for (const item of methods) {
 				const keyName = item.key.name;
-				if (keyName == "delete") {
+				if (dataNameList[keyName] || utils.isReservedTag(keyName)) {
 					item.key.name += "Fun";
-					replaceFunNameList.push(keyName);
-				} else {
-					for (const valItem of dataNameList) {
-						if (keyName == valItem) {
-							item.key.name += "Fun";
-							replaceFunNameList.push(keyName);  //默认无重复吧，后期用set
-							//留存全局变量，以便替换template
-						}
-					}
+					replaceFunNameList.push(keyName);  //默认无重复吧，后期用set
+					//留存全局变量，以便替换template
 				}
 			}
 
@@ -473,14 +466,13 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 	//babel-template直接转出来的ast只是完整ast的一部分
 	traverse(ast, {
 		noScope: true,
-		enter(path) {
-			// console.log(path);
-			// console.log(path);
-		},
-
 		ObjectMethod(path) {
 			// console.log("--------", path.node.key.name);
 			if (path.node.key.name === 'data') {
+
+				//存储data引用
+				if (!astDataPath) astDataPath = path;
+
 				//将require()里的地址都处理一遍
 				traverse(path.node, {
 					noScope: true,
@@ -494,7 +486,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 					for (let key in methodsArr) {
 						let obj = methodsArr[key];
 						if (!t.isIdentifier(obj.key, { name: "setData" })) {
-							// console.log(liftCycleArr[key]);
 							path.insertAfter(obj);
 						}
 					}
@@ -545,15 +536,70 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 		},
 		CallExpression(path) {
 			let callee = path.node.callee;
-			//将wx.createWorker('workers/fib/index.js')转为wx.createWorker('./static/workers/fib/index.js');
 			if (t.isMemberExpression(callee)) {
 				let object = callee.object;
 				let property = callee.property;
 				if (t.isIdentifier(object, { name: "wx" }) && t.isIdentifier(property, { name: "createWorker" })) {
+					//将wx.createWorker('workers/fib/index.js')转为wx.createWorker('./static/workers/fib/index.js');
 					let arguments = path.node.arguments;
 					if (arguments && arguments.length > 0) {
 						let val = arguments[0].value;
 						arguments[0] = t.stringLiteral("./static/" + val);
+					}
+				} else if (t.isIdentifier(object, { name: "wxParse" }) && t.isIdentifier(property, { name: "wxParse" })) {
+					/**
+					 * WxParse.wxParse(bindName , type, data, target,imagePadding)
+					 * 1.bindName绑定的数据名(必填)
+					 * 2.type可以为html或者md(必填)
+					 * 3.data为传入的具体数据(必填)
+					 * 4.target为Page对象,一般为this(必填)
+					 * 5.imagePadding为当图片自适应是左右的单一padding(默认为0,可选)
+					 */
+					//解析wxParse.wxParse('contentT', 'html', content, this, 0);
+					const arguments = path.node.arguments;
+
+					//target为Page对象,一般为this(必填);这里大胆假设一下，只有this或this的别名，报错再说。
+					const wxParseArgs = {
+						bindName: "article_" + arguments[0].value,  //加个前缀以防冲突
+						type: arguments[1].value,
+						data: generate(arguments[2]).code,  //这里可能会有多种类型，so，直接转字符串
+						target: t.isThisExpression(arguments[3]) ? "this" : arguments[3].name
+					}
+
+					//既然没法注释，那就存入日志吧。
+					global.log.push("wxParse: " + generate(path).code + "      file: " + file_js);
+
+					//将原来的代码注释
+					babelUtil.addComment(path, `${generate(path.node).code}`);
+
+					//替换节点
+					//装13之选 ，一堆代码只为还原一行代码: setTimeout(function(){this.uParseArticle = contentData});
+					var left = t.memberExpression(t.identifier(wxParseArgs.target), t.identifier(wxParseArgs.bindName), false);
+					var right = t.identifier(wxParseArgs.data);
+					var assExp = t.assignmentExpression("=", left, right);
+					var bState = t.blockStatement([t.expressionStatement(assExp)]);
+					var args = [t.functionExpression(null, [], bState)];
+					var callExp = t.callExpression(t.identifier("setTimeout"), args);
+					var expState = t.expressionStatement(callExp);
+					path.replaceWith(expState);
+
+
+					/////////////////////////////////////////////////////////////////
+					//填充变量名到data里去，astDataPath理论上会有值，因为根据模板填充，data是居第一个，so，开搂~
+					if (astDataPath) {
+						try {
+							//猜测使用get取的不是引用，而是clone的对象。
+							// const properties = astDataPath.get("body.body.0.argument.properties");
+
+							const properties = astDataPath.node.body.body[0].argument.properties;
+							const op = t.objectProperty(t.Identifier(wxParseArgs.bindName), t.stringLiteral(""));
+							properties.push(op);
+						} catch (error) {
+							const logStr = "Error:    " + error + "   source: astDataPath.get(\"body.body.0.argument.properties\")" + "    file: " + file_js;
+							//存入日志，方便查看，以防上面那么多层级搜索出问题
+							utils.log(logStr);
+							global.log.push(logStr);
+						}
 					}
 				}
 			} else {
@@ -562,21 +608,23 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 			if (t.isIdentifier(callee, { name: "getApp" })) {
 				/**
-				 * var app = getApp(); 
+				 * getApp().xxx; 
 				 * 替换为:
-				 * var app = getApp().globalData;
+				 * getApp().globalData.xxx;
+				 * 
+				 * 注：因为已经把var app = getApp()替换掉了，所以这里可以放心的替换
 				 */
-				// let arguments = path.node.arguments;
-				// if (arguments.length == 0) {
-				// 	const parent = path.parent;
-				// 	if (parent && parent.property && t.isIdentifier(parent.property, { name: "globalData" })) {
-				// 		//如果已经getApp().globalData就不进行处理了
-				// 	} else {
-				// 		//一般来说getApp()是没有参数的。
-				// 		path.replaceWith(t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData")));
-				// 		path.skip();
-				// 	}
-				// }
+				let arguments = path.node.arguments;
+				if (arguments.length == 0) {
+					const parent = path.parent;
+					if (parent && parent.property && t.isIdentifier(parent.property, { name: "globalData" })) {
+						//如果已经getApp().globalData就不进行处理了
+					} else {
+						//一般来说getApp()是没有参数的。
+						path.replaceWith(t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData")));
+						path.skip();
+					}
+				}
 			}
 		},
 		MemberExpression(path) {
@@ -596,7 +644,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						path.replaceWith(object);
 					}
 				}
-			} else if (t.isIdentifier(object.node, { name: "app" })) {
+			} else if (t.isIdentifier(object.node, { name: "app" }) || t.isIdentifier(object.node, { name: "App" })) {
 				//app.xxx ==> app.globalData.xxx
 				// let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('globalData')), property.node);
 				// path.replaceWith(me);
@@ -781,8 +829,9 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 		javascriptAst = await javascriptParser.parse(javascriptContent);
 	} catch (error) {
 		isParseError = true;
-		utils.log("Error: 解析文件出错: " + error + "      file: " + file_js);
-		global.log.push("Error: 解析文件出错: " + error + "      file: " + file_js);
+		const logStr = "Error: 解析文件出错: " + error + "      file: " + file_js;
+		utils.log(logStr);
+		global.log.push(logStr);
 	}
 
 	//是否为vue文件
@@ -805,10 +854,10 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	if (global.isTransformWXS) {
 		//添加wxs引用
 		wxsKey = nodePath.join(nodePath.dirname(file_js), pathUtil.getFileNameNoExt(file_js));
-		let wxInfo = global.wxsInfo[wxsKey];
-		if (wxInfo) {
-			wxInfo.forEach(obj => {
-				if (obj.type == "link") declareStr += `import ${obj.name} from '${obj.src}'\r\n`;
+		let pageWxsInfo = global.pageWxsInfo[wxsKey];
+		if (pageWxsInfo) {
+			pageWxsInfo.forEach(obj => {
+				if (obj.type == "link") declareStr += `import ${obj.module} from '${obj.src}'\r\n`;
 			});
 		}
 	}
@@ -820,24 +869,7 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	for (const key in usingComponents) {
 		let filePath = usingComponents[key];
 
-		// filePath = filePath.replace(/^\//g, "./"); //相对路径处理
-
-		// let relativeFolder = miniprogramRoot;
-		// if (/^\//.test(filePath)) {
-		// 	relativeFolder = jsFolder;
-		// }
-
-		// //先转绝对路径，再转相对路径
-		// filePath = nodePath.join(miniprogramRoot, filePath);
-		// filePath = nodePath.relative(relativeFolder, filePath);
-		// //相对路径里\\替换为/
-		// filePath = filePath.split("\\").join("/");
-
-		// if (!/^\./.test(filePath)) {
-		// 	//路径前面不是以.开始，总不能是网络路径和绝对路径吧！
-		// 	filePath = "./" + filePath;
-		// }
-
+		//相对路径处理
 		filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, jsFolder);
 
 		//中划线转驼峰
@@ -866,7 +898,6 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	if (!codeText && isParseError) {
 		codeText = fileData;
 	}
-	// console.log(codeText);
 	return codeText;
 }
 module.exports = jsHandle;

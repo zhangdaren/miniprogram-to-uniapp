@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs-extra');
-var moment = require('moment');
+const moment = require('moment');
 moment.locale('zh-cn');
 //
 const utils = require('./utils/utils.js');
@@ -12,6 +12,7 @@ const cssHandle = require('./wx2uni/cssHandle');
 const configHandle = require('./wx2uni/configHandle');
 const wxsHandle = require('./wx2uni/wxsHandle');
 const vueCliHandle = require('./wx2uni/vueCliHandle');
+const combineWxsHandle = require('./wx2uni/combineWxsHandle');
 
 /**
  * 解析小程序项目的配置
@@ -73,7 +74,6 @@ function wxProjectParse(folder, sourceFolder) {
 }
 
 
-
 //文件组数据
 //数据结构为：
 // {
@@ -87,11 +87,10 @@ function wxProjectParse(folder, sourceFolder) {
 let fileData = {};
 //路由数据，用来记录对应页面的title和使用的自定义组件
 let routerData = {};
-//素材目录
-let imagesFolder = [];
+//忽略处理的目录
+let ignoreFolder = [];
 //workers目录
 let workersFolder = "";
-
 
 
 /**
@@ -118,6 +117,8 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 					//简单判断是否为workers目录，严格判断需要从app.json里取出workers的路径来(后续再议)
 					let isWorkersFolder = path.relative(miniprogramRoot, fileDir) === "workers";
 
+					//判断是否含有wxParse目录
+					global.hasWxParse = global.hasWxParse || (fileName.toLowerCase() === "wxparse");
 					if (global.isVueAppCliMode) {
 						/**
 						 * 规则
@@ -140,14 +141,17 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 						if ((fileName == "images" || fileName == "image") && !isPageFileFolder) {
 							//处理图片目录，复制到static目录里
 							fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
-							imagesFolder.push(fileDir);
+							ignoreFolder.push(fileDir);
 						} else if (isWorkersFolder) {
 							//处理workers目录，复制到static目录里
 							fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
 							workersFolder = fileDir;
+						} else if (fileName == "wxParse") {
+							fs.copySync(fileDir, newFileDir);
+							ignoreFolder.push(fileDir);
 						} else {
 							//如果不是是素材目录或workers目录下面的子目录就复制
-							let isInIgnoreFolder = pathUtil.isInFolder(imagesFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
+							let isInIgnoreFolder = pathUtil.isInFolder(ignoreFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
 							if (isInIgnoreFolder) {
 								//
 							} else {
@@ -163,8 +167,11 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 					if (fileName[0] == '.') {
 
 					} else {
+						//判断是否含有wxParse文件
+						global.hasWxParse = global.hasWxParse || (fileName.indexOf("wxParse.") > -1);
+
 						//判断是否为素材目录或workers目录里面的文件
-						let isInIgnoreFolder = pathUtil.isInFolder(imagesFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
+						let isInIgnoreFolder = pathUtil.isInFolder(ignoreFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
 						if (isInIgnoreFolder && !global.isVueAppCliMode) {
 							//
 						} else {
@@ -231,13 +238,23 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 												});
 											}).catch(error => {
 												console.log("wxsHandle", error);
-
 												global.log.push("wxsHandle", error);
 											});
 										}
 									} else {
-										fs.copySync(fileDir, newFileDir);
+										(async function (fileDir, newFileDir) {
+											const fileContent = await combineWxsHandle(fileDir, newFileDir);
+											// fs.copySync(fileDir, newFileDir);
+
+											//写入文件
+											fs.writeFile(newFileDir, fileContent, () => {
+												const relWxsFile = path.relative(global.miniprogramRoot, newFileDir);
+												console.log(`Convert wxs file ${relWxsFile} success!`);
+												global.log.push(`Convert wxs file ${relWxsFile} success!`);
+											});
+										})(fileDir, newFileDir);
 									}
+
 									break;
 								default:
 									// console.log(extname, path.dirname(fileDir));
@@ -269,7 +286,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 												fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
 											} else {
 												fs.copySync(pFolder, path.join(targetFolder, "static" + "/" + pFolderName));
-												imagesFolder.push(pFolder);
+												ignoreFolder.push(pFolder);
 											}
 										}
 									} else {
@@ -423,13 +440,17 @@ async function filesHandle(fileData, miniprogramRoot) {
 								//
 								const content = `${data_wxss}`;
 								//写入文件
-
 								fs.writeFile(cssFilePath, content, () => {
-									console.log(`Convert ${fileName}.wxss success!`);
+									console.log(`Convert ${path.relative(global.targetFolder, cssFilePath)} success!`);
 								});
 
 								//css文件改为导入方式
-								fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
+								const otherImport = '@import url("./components/gaoyia-parse/parse.css");\r\n';
+								if (isAppFile && global.hasWxParse) {
+									fileContentCss = `<style>\r\n${otherImport}@import "./${fileName}.css";\r\n</style>`;
+								} else {
+									fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
+								}
 							} else {
 								fs.copySync(file_wxss, cssFilePath);
 							}
@@ -446,7 +467,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 						//写入文件
 						fs.writeFile(targetFilePath, fileContent, () => {
-							console.log(`Convert ${fileName}.vue success!`);
+							console.log(`Convert ${path.relative(global.targetFolder, targetFilePath)} success!`);
 						});
 					} else {
 						if (onlyWxmlFile) {
@@ -474,7 +495,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 									//写入文件
 									targetFilePath = path.join(tFolder, fileName + ".vue");
 									fs.writeFile(targetFilePath, fileContent, () => {
-										console.log(`Convert component ${fileName}.wxml success!`);
+										console.log(`Convert component ${path.relative(global.targetFolder, targetFilePath)}.wxml success!`);
 									});
 								}
 							}
@@ -494,7 +515,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 									if (isAppFile) targetFilePath = path.join(tFolder, "App.vue");
 									//
 									fs.writeFile(targetFilePath, fileContent, () => {
-										console.log(`Convert component ${fileName}.js success!`);
+										console.log(`Convert component ${path.relative(global.targetFolder, targetFilePath)} success!`);
 									});
 								} else {
 									fs.copySync(file_js, targetFilePath);
@@ -514,7 +535,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 									//写入文件
 
 									fs.writeFile(targetFilePath, content, () => {
-										console.log(`Convert ${fileName}.wxss success!`);
+										console.log(`Convert ${path.relative(global.targetFolder, targetFilePath)}.wxss success!`);
 									});
 								} else {
 									fs.copySync(file_wxss, targetFilePath);
@@ -565,26 +586,24 @@ function wxsInfoHandle(tFolder, file_wxml) {
 	let key = path.join(wxmlFolder, pathUtil.getFileNameNoExt(file_wxml));
 
 	//提取wxml里面的wxs信息
-	let wxsInfoArr = global.wxsInfo[key];
+	let pageWxsInfoArr = global.pageWxsInfo[key];
 	let str = "";
-	if (wxsInfoArr && wxsInfoArr.length > 0) {
-		wxsInfoArr.forEach(obj => {
+	if (pageWxsInfoArr && pageWxsInfoArr.length > 0) {
+		pageWxsInfoArr.forEach(obj => {
 			if (obj.type == "insert") {
-				let jsFilePath = path.join(tFolder, obj.name + ".js");
+				let jsFilePath = path.join(tFolder, obj.src);
 				obj.type = "link"; //改为link
-				obj.src = "./" + obj.name + ".js"; //填充src
 
-				str += `import ${obj.name} from '${obj.src}'\r\n`;
+				str += `import ${obj.module} from '${obj.src}'\r\n`;
 
 				//处理一下
 				wxsHandle(obj.content).then((fileContent) => {
 					//写入文件
 					fs.writeFile(jsFilePath, fileContent, () => {
-						console.log(`Convert wxs file ${obj.name}.js success!`);
+						console.log(`Convert wxs file ${path.relative(global.targetFolder, jsFilePath)}.js success!`);
 					});
 				}).catch(error => {
 					console.log("wxsHandle", error);
-
 					global.log.push("wxsHandle", error);
 				});
 			}
@@ -613,14 +632,16 @@ function writeLog(folder) {
  * @param {*} sourceFolder    输入目录
  * @param {*} targetFolder    输出目录
  * @param {*} isVueAppCliMode 是否需要生成vue-cli项目，默认为false
- * @param {*} isTransformWXS  是否需要转换wxs文件，默认为true，目前uni-app已支持wxs文件，仅支持app和小程序
+ * @param {*} isTransformWXS  是否需要转换wxs文件，默认为false，目前uni-app已支持wxs文件，仅支持app和小程序
  */
 async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransformWXS) {
 	fileData = {};
 	routerData = {};
-	imagesFolderArr = [];
 
 	global.log = []; //记录转换日志，最终生成文件
+
+	//起始时间
+	const startTime = new Date();
 
 	let miniprogramRoot = sourceFolder;
 	if (!targetFolder) targetFolder = sourceFolder + "_uni";
@@ -640,6 +661,15 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 
 	//是否需要转换wxs文件，默认为true
 	global.isTransformWXS = isTransformWXS || false;
+
+	// uParse替换wxparse细节
+	// 1.全局载入u-parse, @import url("/components/gaoyia-parse/parse.css");
+	// 2.解析wxParse.wxParse('contentT', 'html', content, this, 0);
+	// 为：setTimeout(function() {this.article = goodsDetail.content;});
+	// 3.去掉const wxParse = require("../../../wxParse/wxParse.js");
+	// 4.在data里加入article
+	//项目是否使用wxParse（判断是否有wxParse目录和wxParse文件）
+	global.hasWxParse = false;
 
 	//记录<template name="abc"></template>内容
 	global.globalTemplateComponents = {
@@ -688,8 +718,8 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	global.log.push("---日志信息---");
 
 	//
-	utils.log("outputFolder = " + global.outputFolder, "log");
-	utils.log("targetFolder = " + global.targetFolder, "log");
+	utils.log("outputFolder = " + global.outputFolder, "log", "text");
+	utils.log("targetFolder = " + global.targetFolder, "log", "text");
 
 	global.pageData = {};  //页面数据(可能包含代码等，现用于收集replaceFunNameList)
 	global.globalUsingComponents = {};  //后面添加的全局组件
@@ -698,7 +728,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	// {
 	// 	"文件路径":[]
 	// }
-	global.wxsInfo = {}; //存储页面里的wxs信息，数据格式如下所示
+	global.pageWxsInfo = {}; //存储页面里的wxs信息，数据格式如下所示
 	//---数据格式[解析wxs时]
 	// {
 	// 	"文件路径":[
@@ -716,6 +746,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	//   ]
 	// }
 	//
+	global.wxsFileList = {}; //存储所有已经处理过的wxs文件
 
 	try {
 		if (fs.existsSync(global.outputFolder)) {
@@ -765,6 +796,13 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			//处理配置文件
 			configHandle(configData, routerData, miniprogramRoot, targetFolder);
 
+			//拷贝gaoyia-parse到components
+			if (global.hasWxParse) {
+				const source = path.join(__dirname, "wx2uni/template/components");
+				const target = path.join(targetFolder, "components");
+				fs.copySync(source, target);
+			}
+
 			//生成vue-cli项目所需要的文件
 			if (global.isVueAppCliMode) {
 				vueCliHandle(configData, global.outputFolder, global.assetsFolderObject, true);
@@ -773,6 +811,8 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			//输出提示
 			setTimeout(() => {
 				let str = "\r\n";
+				const time = (new Date()).getTime() - startTime.getTime();
+				str += "耗时：" + time + "ms\r\n";
 
 				let tmpStr = "";
 				if (global.isVueAppCliMode) {
@@ -787,15 +827,13 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 				str += '代码<template is="abc" data=""/>里data属性，除了不支持...扩展运算符(因uni-app现在还不支持v-bind="")，其余参数形式都支持，望知悉！\r\n';
 				str += '\r\n日志说明：\r\n';
 				str += '1. image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
-				str += '2. 暂不支持include标签，请手动修复 --> include标签没有一个明显的记号，工具确实可以替换这部分事，只是会导致工具代码交错复杂，暂时不支持转换。建议转换完，自行拷贝相应的文件内容，替换对应的include标签\r\n';
-				str += '3. 试图转换template里data参数为Object时报错 --> 表示<template data="abc">里data的属性可能含有...扩展运算符，已将data重命为error-data=""，需转换后手工调整\r\n';
+				str += '2. 暂不支持include标签，请手动修复 --> include标签没有一个明显的标识0，工具确实可以替换这部分事，只是会导致工具代码交错复杂，暂时不支持转换。建议转换完，自行拷贝相应的文件内容，替换对应的include标签\r\n';
 
-				global.log.push("\r\n转换完成: " + str);
+				str = "\r\n转换完成: " + str;
 
-				utils.log(str);
-
+				global.log.push(str);
+				utils.log(str, "base");
 				writeLog(global.outputFolder);
-
 			}, 3000);
 		});
 	});

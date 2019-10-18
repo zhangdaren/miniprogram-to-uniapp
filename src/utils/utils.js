@@ -137,7 +137,7 @@ var isUniAppTag = makeMap(
 )
 
 /**
- * 判断当前组件名字是否为预置的名字
+ * 判断tag是否为预置的名字
  * @param {*} tag 
  */
 var isReservedTag = function (tag) {
