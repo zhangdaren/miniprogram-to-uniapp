@@ -527,7 +527,6 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						}
 					}
 
-					//如果wx:key="*this" 或wx:key="*item"时，那么直接设置为空
 					if (wx_key && wx_key.indexOf("*") > -1) wx_key = "";
 					let wx_for = node.attribs["wx:for"];
 					let wx_forItem = node.attribs["wx:for-item"];
@@ -537,12 +536,13 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 
 					//替换{{}}
 					if (wx_key) {
+						//如果wx:key="*this" 或wx:key="*item"时，那么直接设置为空
+						wx_key = wx_key.indexOf("*") === -1 ? wx_key : "";
 						wx_key = wx_key.trim();
 						wx_key = wx_key.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'");
+						//修复index，防止使用的item.id来替换index
+						wx_key = wx_key.indexOf(".") === -1 ? wx_key : "index";
 					}
-
-					//修复index，防止使用的item.id来替换index
-					wx_key = wx_key.indexOf(".") == -1 ? wx_key : "index";
 
 					//------------处理wx:key------------
 					//查找父级的key

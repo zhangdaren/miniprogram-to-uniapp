@@ -181,7 +181,7 @@ function handleOnLoadFun(liftCycleArr, key, funName) {
 			break;
 		}
 	}
-	let pagepageWxsInfo = global.pageWxsInfo[key];
+	let pageWxsInfo = global.pageWxsInfo[key];
 	if (pageWxsInfo) {
 		if (!node) {
 			node = t.objectMethod("method", t.identifier(funName), [], t.blockStatement([]));

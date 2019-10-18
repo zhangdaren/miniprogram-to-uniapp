@@ -103,15 +103,18 @@ $ wtu -i miniprogramProject -w
   
    
 ## 更新记录   
+### v1.0.28(20191018)   
+* [修复] 几个小bug   
+
 ### v1.0.27(20191018)   
 * 【重要】 使用插件市场 [uParse](https://ext.dcloud.net.cn/plugin?id=364) 替换 wxParse   
 * [新增] 当wxs文件内部引用外部wxs时，合并所有引用为一个wxs文件，并修复引用关系(解决uni-app不支持wxs内部引用同类文件，后续如果uni-app支持，此功能将回滚。为了这个功能，捣腾一天了)   
 * [修复] 解析wxs标签未写入文件，src为undefined的bug   
 * [修复] main里使用```Vue.component()```注册组件时，第一个参数为index的bug   
 * [修复] const App = getApp()未解析到的bug(只能算漏掉了，没有判断A大写开头)   
-* [修复] 函数使用系统关键字(如delete、import等，有个前提是已在methods里定义)命名时报错的bug   
-   
-   
+* [修复] 函数使用系统关键字(如delete、import等，前提是已在methods里定义)命名时编译报错的bug   
+      
+      
 ### v1.0.26(20191013)   
 * [修复] ```wx:key="this"```这种情况   
 * [修复] 删除vue.config.js里的css节点   
