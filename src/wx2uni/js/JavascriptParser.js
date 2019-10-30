@@ -8,24 +8,26 @@ class JavascriptParser {
   constructor() {
   }
 
-   /**
-    * 解析前替换掉无用字符
-    * @param {*} code 
-    */
+  /**
+   * 解析前替换掉无用字符
+   * @param {*} code 
+   */
   beforeParse(code) {
     // return code.replace(/this\.\$apply\(\);?/gm, '').replace(/import\s+wepy\s+from\s+['"]wepy['"]/gm, '')
     // return code.replace(/const\s+app\s+=\s+getApp\(\)/gm, '');  //保留getApp()
     //干掉这一行，防止干扰
-    return code.replace(/export default App;?/gm, '')
-    .replace(/const\s+[Aa]pp\s+=\s+getApp\(\)/gm, '')
-    .replace(/var\s+[Aa]pp\s+=\s+getApp\(\)/gm, '');
+    return code.replace(/export default App;?/img, '')
+      .replace(/const\s+[Aa]pp\s+=\s+getApp\(\)/img, '')
+      .replace(/var\s+[Aa]pp\s+=\s+getApp\(\)/img, '')
+      // .replace(/Component\(\{/img, 'Page({')
+      .replace(/^getApp\(\)\.page\({/img, 'Page({');
     // return code;
   }
 
-   /**
-    * 文本内容解析成AST
-    * @param {*} scriptText 
-    */
+  /**
+   * 文本内容解析成AST
+   * @param {*} scriptText 
+   */
   parse(scriptText) {
     return new Promise((resolve, reject) => {
       try {

@@ -136,12 +136,18 @@ var isUniAppTag = makeMap(
     true
 )
 
+//是否为vue内置关键字或方法
+// "_init"
+var isVueMethod = function (tag) {
+    return /[(^_)(^$)]/.test(tag);
+}
+
 /**
  * 判断tag是否为预置的名字
  * @param {*} tag 
  */
 var isReservedTag = function (tag) {
-    return isHTMLTag(tag) || isSVG(tag) || isUniAppTag(tag);
+    return isHTMLTag(tag) || isSVG(tag) || isUniAppTag(tag) || isVueMethod(tag);
 };
 
 

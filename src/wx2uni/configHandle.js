@@ -147,7 +147,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//写入pages.json
 			let file_pages = path.join(targetFolder, "pages.json");
 			fs.writeFile(file_pages, JSON.stringify(appJson, null, '\t'), () => {
-				console.log(`write ${file_pages} success!`);
+				console.log(`write ${path.relative(global.targetFolder, file_pages)} success!`);
 			});
 
 			////////////////////////////write manifest.json/////////////////////////////
@@ -165,7 +165,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//manifest.json
 			file_manifest = path.join(targetFolder, "manifest.json");
 			fs.writeFile(file_manifest, JSON.stringify(manifestJson, null, '\t'), () => {
-				console.log(`write ${file_manifest} success!`);
+				console.log(`write ${path.relative(global.targetFolder, file_manifest)} success!`);
 			});
 
 

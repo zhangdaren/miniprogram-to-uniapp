@@ -9,21 +9,31 @@ const t = require('@babel/types');
  */
 function globalDataHandle(path) {
     if (t.isMemberExpression(path)) {
-        let object = path.get('object');
-        let property = path.get('property');
-        if (t.isIdentifier(object.node, { name: "app" }) || t.isIdentifier(object.node, { name: "App" })) {
-            if (t.isIdentifier(property.node, { name: "globalData" })) {
+        const object = path.object ? path.object :path.get("object");
+        const property = path.property ? path.property :path.get("property");
+
+        const objectNode = object.node ? object.node : object;
+        const propertyNode = property.node ? property.node : property;
+
+        if (t.isIdentifier(objectNode, { name: "app" }) || t.isIdentifier(objectNode, { name: "App" })) {
+            if (t.isIdentifier(propertyNode, { name: "globalData" })) {
                 //app.globalData.xxx = "123";  -->  getApp().globalData.xxx = "123";
-                let me = t.MemberExpression(t.callExpression(t.identifier('getApp'), []), property.node);
+                let me = t.MemberExpression(t.callExpression(t.identifier('getApp'), []), propertyNode);
                 path.replaceWith(me);
                 path.skip();
             } else {
                 //app.xxx --> getApp().globalData.xxx
                 let getApp = t.callExpression(t.identifier('getApp'), []);
-                let me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), property.node);
+                let me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
                 path.replaceWith(me);
                 path.skip();
             }
+        } else if (t.isIdentifier(objectNode.callee, { name: "getApp" }) && propertyNode.name !== "globalData") {
+            //getApp().xxx --> getApp().globalData.xxx
+            let getApp = t.callExpression(t.identifier('getApp'), []);
+            let me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
+            path.replaceWith(me);
+            path.skip();
         }
     }
 }
@@ -59,7 +69,7 @@ function addComment(path, content) {
         type: "CommentLine",
         value: content
     };
-    
+
     if (path.node) {
         if (!path.container.leadingComments) path.container.leadingComments = [];
         path.container.leadingComments.push(comment);

@@ -400,8 +400,10 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				}
 			}
 
+			//20191028 回滚
+			//[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug
 			// 修复app.js函数和变量的引用关系
-			repairAppFunctionLink(vistors);
+			// repairAppFunctionLink(vistors);
 
 			//占个位
 			ast = buildRequire({
@@ -466,6 +468,21 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 	//babel-template直接转出来的ast只是完整ast的一部分
 	traverse(ast, {
 		noScope: true,
+		VariableDeclarator(path) {
+			const init = path.get("init");
+			if (t.isCallExpression(init) && init.node && t.isCallExpression(init.node)) {
+				if (t.isIdentifier(init.node.callee, { name: "getApp" })) {
+					/**
+					 * var t = getApp();
+					 * 替换为:
+					 * var t = getApp().globalData;
+					 */
+					const me = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
+					init.replaceWith(me);
+					path.skip();
+				}
+			}
+		},
 		ObjectMethod(path) {
 			// console.log("--------", path.node.key.name);
 			if (path.node.key.name === 'data') {
@@ -535,10 +552,10 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			}
 		},
 		CallExpression(path) {
-			let callee = path.node.callee;
+			let callee = path.get("callee");
 			if (t.isMemberExpression(callee)) {
-				let object = callee.object;
-				let property = callee.property;
+				let object = callee.get('object');
+				let property = callee.get('property');
 				if (t.isIdentifier(object, { name: "wx" }) && t.isIdentifier(property, { name: "createWorker" })) {
 					//将wx.createWorker('workers/fib/index.js')转为wx.createWorker('./static/workers/fib/index.js');
 					let arguments = path.node.arguments;
@@ -546,7 +563,11 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						let val = arguments[0].value;
 						arguments[0] = t.stringLiteral("./static/" + val);
 					}
-				} else if (t.isIdentifier(object, { name: "wxParse" }) && t.isIdentifier(property, { name: "wxParse" })) {
+				}
+				//
+				let objNode = object.node ? object.node : object;
+				let propertyNode = property.node ? property.node : property;
+				if (t.isIdentifier(objNode, { name: "WxParse" }) && t.isIdentifier(propertyNode, { name: "wxParse" })) {
 					/**
 					 * WxParse.wxParse(bindName , type, data, target,imagePadding)
 					 * 1.bindName绑定的数据名(必填)
@@ -555,7 +576,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 					 * 4.target为Page对象,一般为this(必填)
 					 * 5.imagePadding为当图片自适应是左右的单一padding(默认为0,可选)
 					 */
-					//解析wxParse.wxParse('contentT', 'html', content, this, 0);
+					//解析WxParse.wxParse('contentT', 'html', content, this, 0);
 					const arguments = path.node.arguments;
 
 					//target为Page对象,一般为this(必填);这里大胆假设一下，只有this或this的别名，报错再说。
@@ -601,31 +622,33 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 							global.log.push(logStr);
 						}
 					}
+				} else {
+					babelUtil.globalDataHandle(callee);
 				}
 			} else {
 				requireHandle(path, fileDir);
 			}
 
-			if (t.isIdentifier(callee, { name: "getApp" })) {
-				/**
-				 * getApp().xxx; 
-				 * 替换为:
-				 * getApp().globalData.xxx;
-				 * 
-				 * 注：因为已经把var app = getApp()替换掉了，所以这里可以放心的替换
-				 */
-				let arguments = path.node.arguments;
-				if (arguments.length == 0) {
-					const parent = path.parent;
-					if (parent && parent.property && t.isIdentifier(parent.property, { name: "globalData" })) {
-						//如果已经getApp().globalData就不进行处理了
-					} else {
-						//一般来说getApp()是没有参数的。
-						path.replaceWith(t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData")));
-						path.skip();
-					}
-				}
-			}
+			// if (t.isIdentifier(callee, { name: "getApp" })) {
+			// 	/**
+			// 	 * getApp().xxx; 
+			// 	 * 替换为:
+			// 	 * getApp().globalData.xxx;
+			// 	 * 
+			// 	 * 注：因为已经把var app = getApp()替换掉了，所以这里可以放心的替换
+			// 	 */
+			// 	let arguments = path.node.arguments;
+			// 	if (arguments.length == 0) {
+			// 		const parent = path.parent;
+			// 		if (parent && parent.property && t.isIdentifier(parent.property, { name: "globalData" })) {
+			// 			//如果已经getApp().globalData就不进行处理了
+			// 		} else {
+			// 			//一般来说getApp()是没有参数的。
+			// 			path.replaceWith(t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData")));
+			// 			path.skip();
+			// 		}
+			// 	}
+			// }
 		},
 		MemberExpression(path) {
 			let object = path.get('object');
@@ -650,8 +673,8 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				// path.replaceWith(me);
 				// path.skip();
 
-				//
-				babelUtil.globalDataHandle(path);
+				//这里先注释，貌似不用走到这里来----------------------------
+				// babelUtil.globalDataHandle(object);
 			}
 
 			//替换与data变量重名的函数引用
@@ -675,27 +698,33 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			//}
 			if (t.isMemberExpression(object)) {
 				babelUtil.globalDataHandle(object);
+			} else {
+				babelUtil.globalDataHandle(path);
 			}
 
-			if (isApp) {
-				//仅在App.vue里将this.globalData.xxx转换为this.$options.globalData.xxx
-				//这里是暂时方案，后缀可能屏蔽(现在是uni-app无法支持this.globalData方式)
-				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" })) {
-					if (t.isIdentifier(property.node, { name: "globalData" })) {
-						let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('$options')), t.identifier('globalData'));
-						path.replaceWith(me);
-						path.skip();
-					}
-				}
 
-				if (t.isCallExpression(object.node) && t.isIdentifier(object.node.callee, { name: "getApp" })) {
-					// getApp().data.A4SingleBlack = 1  -->  this.$option.globalDatagetApp().data.A4SingleBlack = 1
 
-					let me = t.MemberExpression(t.MemberExpression(t.ThisExpression(), t.identifier('$options')), t.identifier('globalData'));
-					path.replaceWith(me);
-					path.skip();
-				}
-			}
+			//20191028 回滚
+			//[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug
+			// if (isApp) {
+			// 	//仅在App.vue里将this.globalData.xxx转换为this.$options.globalData.xxx
+			// 	//这里是暂时方案，后缀可能屏蔽(现在是uni-app无法支持this.globalData方式)
+			// 	if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" })) {
+			// 		if (t.isIdentifier(property.node, { name: "globalData" })) {
+			// 			let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('$options')), t.identifier('globalData'));
+			// 			path.replaceWith(me);
+			// 			path.skip();
+			// 		}
+			// 	}
+
+			// 	if (t.isCallExpression(object.node) && t.isIdentifier(object.node.callee, { name: "getApp" })) {
+			// 		// getApp().data.A4SingleBlack = 1  -->  this.$option.globalDatagetApp().data.A4SingleBlack = 1
+
+			// 		let me = t.MemberExpression(t.MemberExpression(t.ThisExpression(), t.identifier('$options')), t.identifier('globalData'));
+			// 		path.replaceWith(me);
+			// 		path.skip();
+			// 	}
+			// }
 
 			//解决this.setData的问题
 			//20190719 

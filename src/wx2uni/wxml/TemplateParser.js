@@ -3,12 +3,25 @@ const htmlparser = require('htmlparser2')   //html的AST类库
 class TemplateParser {
   constructor() {
   }
+
+  /**
+   * 解析前优化一代码，虽然未必精确。
+   * //htmlparser2解析这段<view style="width: {{rate}}%;background-image:url(\"{{_app_config.progress}}\")"></view>
+   * //style的值为："width: {{rate}}%;background-image:url(\"，这里的处理方法是直接优化掉。
+   * @param {*} code 
+   */
+  beforeParse(code) {
+    return code.replace(/url\(\\?['"]{{(.*?)}}\\?['"]\)/g, "url({{$1}})");
+  }
+
   /**
    * HTML文本转AST方法
    * @param scriptText
    * @returns {Promise}
    */
   parse(scriptText) {
+    const newScriptText = this.beforeParse(scriptText);
+
     return new Promise((resolve, reject) => {
       //先初始化一个domHandler
       const handler = new htmlparser.DomHandler((error, dom) => {
@@ -29,7 +42,7 @@ class TemplateParser {
         recognizeSelfClosing: true,
       });
       //再通过write方法进行解析
-      parser.write(scriptText);
+      parser.write(newScriptText);
       parser.end();
     });
   }

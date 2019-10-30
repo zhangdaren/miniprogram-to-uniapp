@@ -200,7 +200,8 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 								obj["folder"] = tFolder;
 								obj["fileName"] = fileNameNoExt;
 								//标识是否为app.js入口文件
-								obj["isAppFile"] = (fileName == "app.js" || obj["isAppFile"]);
+								const isAppFile = (path.dirname(fileDir) == global.sourceFolder) && (fileName == "app.js");
+								obj["isAppFile"] = (isAppFile || obj["isAppFile"]);
 							}
 							switch (extname) {
 								case ".js":
@@ -415,6 +416,9 @@ async function filesHandle(fileData, miniprogramRoot) {
 								let data = await wxmlHandle(data_wxml, file_wxml, false);
 								fileContentWxml = data;
 								wxsInfoHandle(tFolder, file_wxml);
+							}else{
+								//存个空标签
+								fileContentWxml = "<template><view></view></template>";
 							}
 						}
 
@@ -596,16 +600,27 @@ function wxsInfoHandle(tFolder, file_wxml) {
 
 				str += `import ${obj.module} from '${obj.src}'\r\n`;
 
-				//处理一下
-				wxsHandle(obj.content).then((fileContent) => {
-					//写入文件
-					fs.writeFile(jsFilePath, fileContent, () => {
-						console.log(`Convert wxs file ${path.relative(global.targetFolder, jsFilePath)}.js success!`);
+				if (global.isTransformWXS) {
+					//处理一下
+					wxsHandle(obj.content).then((fileContent) => {
+						//写入文件
+						fs.writeFile(jsFilePath, fileContent, () => {
+							console.log(`Convert wxs file ${path.relative(global.targetFolder, jsFilePath)} success!`);
+						});
+					}).catch(error => {
+						console.log("wxsHandle", error);
+						global.log.push("wxsHandle", error);
+						//写入文件
+						fs.writeFile(jsFilePath, obj.content, () => {
+							console.log(`Convert wxs file ${path.relative(global.targetFolder, jsFilePath)} success!`);
+						});
 					});
-				}).catch(error => {
-					console.log("wxsHandle", error);
-					global.log.push("wxsHandle", error);
-				});
+				} else {
+					//写入文件
+					fs.writeFile(jsFilePath, obj.content, () => {
+						console.log(`Convert wxs file ${path.relative(global.targetFolder, jsFilePath)} success!`);
+					});
+				}
 			}
 		});
 	}
@@ -630,7 +645,7 @@ function writeLog(folder) {
 /**
  * 转换入口
  * @param {*} sourceFolder    输入目录
- * @param {*} targetFolder    输出目录
+ * @param {*} targetFolder    输出目录，默认为"输入目录_uni"
  * @param {*} isVueAppCliMode 是否需要生成vue-cli项目，默认为false
  * @param {*} isTransformWXS  是否需要转换wxs文件，默认为false，目前uni-app已支持wxs文件，仅支持app和小程序
  */
@@ -644,7 +659,10 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	const startTime = new Date();
 
 	let miniprogramRoot = sourceFolder;
-	if (!targetFolder) targetFolder = sourceFolder + "_uni";
+
+	//因后面会清空输出目录，为防止误删除其他目录/文件，所以这里不给自定义!!!
+	targetFolder = sourceFolder + "_uni";
+
 	//读取小程序项目配置
 	const configData = wxProjectParse(miniprogramRoot, sourceFolder);
 

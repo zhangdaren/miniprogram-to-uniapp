@@ -15,7 +15,6 @@ program
     .version(pkg.version)
     .usage('[options]')
     .option('-i, --input', 'the input path for weixin miniprogram project')
-    .option('-o, --output <value>', 'the output path for uni-app project, which default value is process.cwd()', "")
     .option('-c, --cli [type]', 'the type of output project is vue-cli, which default value is false', false)
     .option('-w, --wxs [type]', 'transform wxs file to js file, which default value is true', true)
     .parse(process.argv);
@@ -26,7 +25,7 @@ program.on('--help', function () {
     console.log();
     console.log(chalk.gray('    # transform a weixin miniprogram project to uni-app project'));
     console.log();
-    console.log('    $ wtu -i ./miniprogramProject -o ./miniprogramProject_uni');
+    console.log('    $ wtu -i ./miniprogramProject');
     console.log();
 }); 
 
@@ -41,7 +40,7 @@ function help () {
 help();
 
 let src = program.args[0];
-let dist = program.output;
+let dist = "";
 let isVueAppCliMode = program.cli;
 let isTransformWXS = program.wxs;
 

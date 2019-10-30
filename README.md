@@ -26,7 +26,6 @@ Options:
 
   -V, --version     output the version number [版本信息]
   -i, --input       the input path for weixin miniprogram project [输入目录]
-  -o, --output      the output path for uni-app project, which default value is process.cwd() [输出目录，可不写，默认为原文件目录加上_uni后缀]
   -h, --help        output usage information [帮助信息]
   -c, --cli         the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -w, --wxs         transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
@@ -99,10 +98,28 @@ $ wtu -i miniprogramProject -w
 * [todo] 变量没有在data里声明
   <text class="col-7">{{order.address.region.province}} {{order.address.region.city}} {{order.address.region.region}} {{address.detail}}</text>
   <text class="col-7">{{order.extract_shop.region.province}} {{order.extract_shop.region.city}} {{order.extract_shop.region.region}} {{order.extract_shop.address}}</text>
-* [todo] setData时，data里面没有的就不赋值(一般是接口返回的数据，都往data里填)
+* [todo] setData时，data里面没有的就不赋值(一般是接口返回的数据，都往data里填)   
+* [todo] 导出目录检测，有文件是否覆盖，，是 否   
+* [todo] wx-charts替换   
+* [todo] ```<form-id :id="item.id" ></form-id>```
+* ```:data = "content"```
   
    
 ## 更新记录   
+### v1.0.29(20191030)   
+* [调整] 暂时屏蔽命令行里的-o命令，导出路径默认为“输入目录_uni”(此前版本当输入输出为同一目录或其他非空目录时，可能会引起误删文件的隐患)   
+* [优化] 程序入口app的判断逻辑   
+* [优化] 是否转换wxs细节调整   
+* [回滚] this.globalData不再转换为this.$options.globalData，因为HBuilderX已支持(见：[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug)   
+* [修复] getApp().page({...})不能解析的bug   
+* [修复] WxParse.wxParse()没转换到的bug   
+* [修复] wx:for-item与wx:key相等的bug   
+* [修复] 解析```<view style="xx:url(\"{{}}\")"></view>```失败的bug   
+* [修复] 方法名为_init(以_或$开头的方法名)与vue初始方法同名时引起报错的bug   
+* [修复] 因为vue文件没有template导致报错“Component is not found in path xxx”，(当wxml为空文件时，填充```<template><view></view></template>```空标签占位)   
+* [修复] getApp()未替换完全的bug   
+
+
 ### v1.0.28(20191018)   
 * [修复] 几个小bug   
 
@@ -114,7 +131,7 @@ $ wtu -i miniprogramProject -w
 * [修复] const App = getApp()未解析到的bug(只能算漏掉了，没有判断A大写开头)   
 * [修复] 函数使用系统关键字(如delete、import等，前提是已在methods里定义)命名时编译报错的bug   
       
-      
+
 ### v1.0.26(20191013)   
 * [修复] ```wx:key="this"```这种情况   
 * [修复] 删除vue.config.js里的css节点   
@@ -201,7 +218,7 @@ include标签不是蛮好转换，看过几份源代码，仅有一份代码里�
 遇到这种，建议手动修复   
 
 ~~### main.js加入的组件，里面包含getApp()~~
-~~遇到这种，建议手动修复，因为main里加载的时候，还没有getApp()(已支持)~~~   
+~~遇到这种，建议手动修复，因为main里加载的时候，还没有getApp()(已支持)~~   
 
 ~~### <view @tap="delete"/>~~ 
 ~~编译报错：语法错误: Unexpected token~~   
@@ -243,8 +260,19 @@ SyntaxError: Unexpected token function
 示例：   
 ```<abc data="{{ item.data }}"></abc>```
 ```properties: { data: Object }```
-因为data作了为属性名，导致失效，目前建议手动修改属性名(连同template所引用的属性名)   
+因为data作了为属性名，导致失效，目前建议手动修改属性名(连同template所引用的属性名)      
    
+### SyntaxError: Unexpected keyword 'class' (13:12)
+wxs里使用class关键字来声明变量，手动改名   
+
+
+### unexpected token default 不能使用default
+如```<text>{{default}}</text>```，编译报错，建议手动改名   
+
+### Method "_init" conflicts with an exsting Vue instance method, avoid defining component methods that start with _ or $.
+方法名与vue内置方法名重名了，需手动修改（工具已做相关修复）   
+
+
   
 ## 感谢   
 * 感谢转转大佬的文章：[[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)， 本项目基于此文章里面的代码开发，在此表示感谢~   

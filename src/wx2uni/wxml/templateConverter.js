@@ -9,25 +9,8 @@ const objectStringToObject = require('object-string-to-object');
 const tagConverterConfig = {
 	// 'image': 'img'
 }
-//属性替换规则，也可以加入更多
-const attrConverterConfigVue = {
-	'wx:for': {
-		key: 'v-for',
-		value: (str) => {
-			return str.replace(/{{(.*)}}/, '(item,key) in $1')
-		}
-	},
-	'wx:if': {
-		key: 'v-if',
-		value: (str) => {
-			return str.replace(/{{(.*)}}/, '$1')
-		}
-	},
-	'@tap': {
-		key: '@click'
-	},
-}
 
+//属性替换规则，也可以加入更多
 const attrConverterConfigUni = {
 	// 'wx:for': {
 	// 	key: 'v-for',
@@ -107,37 +90,9 @@ const attrConverterConfigUni = {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 		}
 	},
-
 	//太多情况了，下面有个函数专门来处理这种情况
 	// 'bindconfirm': {
 	// 	key: '@confirm'
-	// },
-	// 'bindreset': {
-	// 	key: '@reset'
-	// },
-	// 'bindlongtap': {
-	// 	key: '@longtap'
-	// },
-	// 'bindchange': {
-	// 	key: '@change'
-	// },
-	// 'bindblur': {
-	// 	key: '@blur'
-	// },
-	// 'bindtouchstart': {
-	// 	key: '@touchstart'
-	// },
-	// 'bindtouchmove': {
-	// 	key: '@touchmove'
-	// },
-	// 'bindtouchend': {
-	// 	key: '@touchend'
-	// },
-	// 'bindscroll': {
-	// 	key: '@scroll'
-	// },
-	// 'bindmessage': {
-	// 	key: '@message'
 	// },
 }
 
@@ -536,12 +491,16 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 
 					//替换{{}}
 					if (wx_key) {
-						//如果wx:key="*this" 或wx:key="*item"时，那么直接设置为空
+						//如果wx:key="*this"、wx:key="*item"或wx:key="*"时，那么直接设置为空
 						wx_key = wx_key.indexOf("*") === -1 ? wx_key : "";
 						wx_key = wx_key.trim();
 						wx_key = wx_key.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'");
 						//修复index，防止使用的item.id来替换index
 						wx_key = wx_key.indexOf(".") === -1 ? wx_key : "index";
+
+						//修复for-item与key值相等的情况
+						// <view wx:for="{{goods}}" wx:for-item="good" wx:key="{{good}}"></view>
+						if (wx_forItem === wx_key) wx_key = "index";
 					}
 
 					//------------处理wx:key------------
@@ -607,7 +566,9 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 
 					//替换xx="xx:'{{}}';" 为xx="xx:{{}};"
 					//替换url('{{iconURL}}/invitation-red-packet-btn.png')为url({{iconURL}}/invitation-red-packet-btn.png)
-					node.attribs[k] = node.attribs[k].replace(/url\(['"]{{(.*?)}}['"]\)/, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/, "{{$1}}");
+					//测试示例1：<view style="width:'{{width}}'"></view>
+					//测试示例2：<view style="background-image:url('{{iconURL}}')"></view>
+					node.attribs[k] = node.attribs[k].replace(/url\(['"]{{(.*?)}}['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}");
 
 					if (wx_key == k) {
 						wx_key = replaceWxBind(k);
