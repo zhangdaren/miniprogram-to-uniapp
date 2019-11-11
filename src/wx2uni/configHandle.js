@@ -93,6 +93,12 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 						}
 					};
 					pages.push(obj);
+				}else{
+					let obj = {
+						"path": pagePath,
+						"style": {}
+					};
+					pages.push(obj);
 				}
 			}
 			appJson.pages = pages;
