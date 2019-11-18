@@ -1,6 +1,6 @@
 {
   "name": "miniprogram-to-uniapp",
-  "author":  "375890534@qq.com",
+  "author": "375890534@qq.com",
   "bin": {
     "wtu": "bin/wtu"
   },
@@ -51,5 +51,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.29"
+  "version": "1.0.30"
 }

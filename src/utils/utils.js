@@ -8,6 +8,11 @@ function log(msg, type = 'error') {
 };
 
 
+//借鉴：https://github.com/dcloudio/uni-app/blob/v3/packages/uni-migration/lib/mp-weixin/util.js
+const isWin = /^win/.test(process.platform);
+const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path);
+
+
 /**
  * 判断是否为url
  * @param {*} str_url 网址，支持http及各种协议
@@ -44,6 +49,8 @@ function toLowerLine(str) {
     return temp;
 };
 
+
+
 /** 
  * 下横线转驼峰式
  * console.log(toCamel('test_to_camel')); //testToCamel
@@ -54,13 +61,24 @@ function toCamel(str) {
         return $1 + $2.toUpperCase();
     });
 }
+
+/**
+ * 驼峰命名转为短横线命名
+ */
+function getKebabCase(str) {
+    return str.replace(/[A-Z]/g, function (i) {
+        return '-' + i.toLowerCase();
+    })
+}
+
 /** 
- * 中划线转驼峰式
- * console.log(toCamel('test-to-camel')); //testToCamel
+ * 中划线转驼峰式   
+ * console.log(toCamel('test-to-camel')); //testToCamel   
+ * console.log(toCamel('diy-imageSingle')); //diyImageSingle   
  * @param {*} str 
  */
 function toCamel2(str) {
-    let ret = str.toLowerCase();
+    let ret = getKebabCase(str).toLowerCase();
     ret = ret.replace(/[-]([\w+])/g, function (all, letter) {
         return letter.toUpperCase();
     });
@@ -132,9 +150,16 @@ var isUniAppTag = makeMap(
     "loading,marquee,refresh,richtext,scrollable,scroller," +
     "select,slider-neighbor,slider,slot,spinner," +
     "tabbar,tabheader,timepicker," +
-    "trisition-group,trisition,web",
-    true
+    "trisition-group,trisition,web"
 )
+
+
+// "default"  //不能用dealut作变量
+//export
+//import
+//return 
+// 方法和绑定 的值 名都不能为这些
+
 
 //是否为vue内置关键字或方法
 // "_init"
@@ -161,14 +186,23 @@ var getComponentAlias = function (name) {
     return isReservedTag(name) ? (name + "-diy") : name;
 }
 
+/**
+ * 获取变量别名
+ */
+var getValueAlias = function (name) {
+    return isReservedTag(name) ? (name + "_val") : name;
+}
+
 
 module.exports = {
     log,
+    normalizePath,
     isURL,
     toLowerLine,
     toCamel,
     toCamel2,
     sleep,
     isReservedTag,
+    getValueAlias,
     getComponentAlias
 }

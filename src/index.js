@@ -416,7 +416,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 								let data = await wxmlHandle(data_wxml, file_wxml, false);
 								fileContentWxml = data;
 								wxsInfoHandle(tFolder, file_wxml);
-							}else{
+							} else {
 								//存个空标签
 								fileContentWxml = "<template><view></view></template>";
 							}
@@ -426,7 +426,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 						if (file_js && fs.existsSync(file_js)) {
 							let data_js = fs.readFileSync(file_js, 'utf8');
 							if (data_js) {
-								let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js);
+								let data = await jsHandle(data_js, isAppFile, usingComponents, file_js);
 								fileContentJs = data;
 
 								//根据与data变量重名的函数名，将wxml里引用的地方进行替换
@@ -511,7 +511,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 								targetFilePath = path.join(tFolder, fileName + ".js");
 								//可能文件为空，但它也存在。。。所以
 								if (data_js) {
-									let data = await jsHandle(data_js, isAppFile, usingComponents, miniprogramRoot, file_js, !isAppFile);
+									let data = await jsHandle(data_js, isAppFile, usingComponents,  file_js, !isAppFile);
 									fileContent = data;
 
 									//写入文件
@@ -683,7 +683,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	// uParse替换wxparse细节
 	// 1.全局载入u-parse, @import url("/components/gaoyia-parse/parse.css");
 	// 2.解析wxParse.wxParse('contentT', 'html', content, this, 0);
-	// 为：setTimeout(function() {this.article = goodsDetail.content;});
+	// 为：setTimeout(()=> {this.article = goodsDetail.content;});
 	// 3.去掉const wxParse = require("../../../wxParse/wxParse.js");
 	// 4.在data里加入article
 	//项目是否使用wxParse（判断是否有wxParse目录和wxParse文件）

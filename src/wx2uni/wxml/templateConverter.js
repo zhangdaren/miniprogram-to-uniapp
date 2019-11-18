@@ -149,6 +149,23 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 	const fileName = pathUtil.getFileNameNoExt(file_wxml);
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
+
+		for (const k in node.attribs) {
+			console.log("iterator", node.attribs[k]);
+
+			if (reg_tag.test(node.attribs[k])) {
+				// 拆解node.attribs[k]
+				// 模板里，所有{{}}内的都提取（去除不含.的和很多点的）
+				// <template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>
+
+				// 解析，!= == === ? / % [] 等切割,存入全局对象，以最前面那个？？？  感觉这里还是有点问题，多层怎么办？
+
+				var allData = {
+
+				}
+			}
+		}
+
 		//检测到是html节点
 		if (node.type === 'tag') {
 			//当前处理文件所在目录
@@ -579,6 +596,9 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 					//处理下面这种嵌套关系的样式或绑定的属性
 					//style="background-image: url({{avatarUrl}});color:{{abc}};font-size:12px;"
 					let value = attrs[wx_key];
+					//将双引号转换单引号
+					attrs[wx_key] = value.replace(/\"/g, "'");
+
 					let hasBind = reg_tag.test(value);
 					if (hasBind) {
 						let reg1 = /(?!^){{ ?/g; //中间的{{
@@ -610,8 +630,6 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						} else {
 							value = value + "'";
 						}
-						//将双引号转换单引号（这里还有问题----------------------------）
-						value = value.replace(/\"/g, "'");
 
 						//如果value={{true}}或value={{false}}，则不添加bind
 						if (wx_key == k && value !== "true" && value !== "false") {

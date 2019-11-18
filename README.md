@@ -3,6 +3,7 @@
 输入小程序项目路径，输出uni-app项目。
    
 实现项目下面的js+wxml+wxss转换为vue文件，模板语法、生命周期函数等进行相应转换，其他文件原样复制，生成uni-app所需要的配置文件。   
+
    
         
 ## 安装   
@@ -38,44 +39,30 @@ Examples:
 $ wtu -i miniprogramProject
 ```
 
-vue-cli mode [转换为vue-cli项目]:
+vue-cli mode [转换项目为vue-cli项目]:
 ```sh
 $ wtu -i miniprogramProject -c
 ```
 
-Transform wxs file to js file [将wxs文件转换为js文件]:
+Transform wxs file to js file [转换项目并将wxs文件转换为js文件]:
 ```sh
 $ wtu -i miniprogramProject -w
 ```
-
 
 ## 使用指南
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
 
-#### 转换注意事项   
+对于使用有疑问或建议，欢迎加入QQ群：780359397进行讨论。
 
-* 小程序并不能与uni-app完全对应，转换也并非100%，只希望能尽量减少大家的工作量。
-* 此工具基于语法转换，一定会有部分代码是uni-app没法支持，或暂时没有找到替代方案，请手动调整。   
-~~* 小程序使用wxParse组件时，转换难度挺大，建议手动替换为uni-app所对应的插件（已支持）~~   
-
-
-## 转换规则   
-基本参照大佬的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)。
-
-因为小程序与uni/vue的语法以及文件结构都有很大的差别，所以做了很多的优化工作，后面再补。
- 
 
 ## 已完成   
-* 支持含云开发的小程序项目(有云开发与无云开发的项目的目录结构有差别)   
-* 支持['btn/btn.js', 'btn/btn.wxml', 'btn/btn.wxss']或['btn/btn.js', 'btn/btn.wxml' || 'btn/btn.wxss']转换为'btn/btn.vue' ，模板语法、生命周期函数等进行相应转换  
-* 支持['util/util.js']复制为['util/util.js']，原样复制   
-* 解析wxss文件，修复import *.wxss语句及引用的资源路径修复   
-* 支持生命周期函数的转换   
-* 支持同一目录下有不同名js/wxml/wxss文件转换   
+* 支持有/无云开发的小程序项目转换为uni-app项目   
+* 支持*.js', *.wxml和*.wxss文件进行相应转换，并做了大量的优化   
+* 支持app.js、page和component生命周期函数的转换   
 * 区分app.js/component，两者解析规则略有不同   
 * 添加setData()函数于methods下，解决this.setData()【代码出处：https://ask.dcloud.net.cn/article/35020】  
-* App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚)   
+~~* App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚，已回滚)~~   
 * 支持wxs文件转换，可以通过参数配置(-w)，默认为false
 * 支持vue-cli模式，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发  
 * 导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件   
@@ -85,27 +72,19 @@ $ wtu -i miniprogramProject -w
 * 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径   
 * 修复变量名与函数重名的情况   
    
-    
-## Todolist   
-* [todo] 配置参数，支持指定目录、指定文件方式进行转换，增加参数-p 支持子目录转换   
-* [todo] 文件操作的同步方法添加try catch    
-* [todo] template标签转换为vue文件   
-* [todo] 浏览小程序文档，发现生命周期函数可以写在lifetimes或pageLifetimes字段时，需要兼容一下(https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/component.html)   
-* [todo] 小程序组件还有其他生命周期函数转换   
-* [todo] 组件批量注册   
-* [todo] 删除生成目录里的空白目录   
-* [todo] 转换前先格式化代码   
-* [todo] 变量没有在data里声明
-  <text class="col-7">{{order.address.region.province}} {{order.address.region.city}} {{order.address.region.region}} {{address.detail}}</text>
-  <text class="col-7">{{order.extract_shop.region.province}} {{order.extract_shop.region.city}} {{order.extract_shop.region.region}} {{order.extract_shop.address}}</text>
-* [todo] setData时，data里面没有的就不赋值(一般是接口返回的数据，都往data里填)   
-* [todo] 导出目录检测，有文件是否覆盖，，是 否   
-* [todo] wx-charts替换   
-* [todo] ```<form-id :id="item.id" ></form-id>```
-* ```:data = "content"```
-  
+
    
 ## 更新记录   
+### v1.0.30(20191118)   
+* [优化] 重构大部分代码，优化页面类型判断逻辑，app、page和component分别进行解析      
+* [优化] 组件里生命周期的转换(ready-->mounted，ready-->mounted)、pageLifetimes、lifetimes、behaviors、externalClasses、relations和options等节点处理     
+* [优化] 组件里observer和observers换成watch并深度监听
+* [修复] 组件名同时包含驼峰和短横线转换时转换错误，导致找不到组件的bug(如```diy-imageSingle```应转换为```diyImageSingle```) 
+* [修复] 替换wxParse时，参数里this的指向问题，以及优化wxParse代码的判断   
+* [修复] 模板绑定里使用单引号包含双引号导致转换失败(如: ```<view style='font-family: "Guildford Pro";'></view>```)   
+* [修复] props里默认值字段名value替换为default; 当type为Array或Object时，默认值使用工厂函数返回   
+   
+
 ### v1.0.29(20191030)   
 * [调整] 暂时屏蔽命令行里的-o命令，导出路径默认为“输入目录_uni”(此前版本当输入输出为同一目录或其他非空目录时，可能会引起误删文件的隐患)   
 * [优化] 程序入口app的判断逻辑   
@@ -119,161 +98,11 @@ $ wtu -i miniprogramProject -w
 * [修复] 因为vue文件没有template导致报错“Component is not found in path xxx”，(当wxml为空文件时，填充```<template><view></view></template>```空标签占位)   
 * [修复] getApp()未替换完全的bug   
 
-
-### v1.0.28(20191018)   
-* [修复] 几个小bug   
-
-### v1.0.27(20191018)   
-* 【重要】 使用插件市场 [uParse](https://ext.dcloud.net.cn/plugin?id=364) 替换 wxParse   
-* [新增] 当wxs文件内部引用外部wxs时，合并所有引用为一个wxs文件，并修复引用关系(解决uni-app不支持wxs内部引用同类文件，后续如果uni-app支持，此功能将回滚。为了这个功能，捣腾一天了)   
-* [修复] 解析wxs标签未写入文件，src为undefined的bug   
-* [修复] main里使用```Vue.component()```注册组件时，第一个参数为index的bug   
-* [修复] const App = getApp()未解析到的bug(只能算漏掉了，没有判断A大写开头)   
-* [修复] 函数使用系统关键字(如delete、import等，前提是已在methods里定义)命名时编译报错的bug   
-      
-
-### v1.0.26(20191013)   
-* [修复] ```wx:key="this"```这种情况   
-* [修复] 删除vue.config.js里的css节点   
-* [修复] 识别含VantComponent({})的js文件   
-* [修复] 未知原因导致没有生成main.js的bug   
-* [修复] app.json不存在导致没有生成main.js的bug   
-* [修复] app.js里非生命周期函数没有放到globalData里的bug   
-* [修复] ```style="{{bgImage?'background-image:url('+bgImage+')':''}}"```这种情况   
-* [修复] ```wx:for="item in 12"```识别出错的bug(wx:for里包含in，第一次在小程序里见到这种写法)   
-* [优化] wxs引入方式为script标签引用   
-* [优化] 替换stringToObject()为[object-string-to-object](https://github.com/zhangdaren/object-string-to-object)   
-   
-
-### 历史更新记录已移入ReleaseNote.md   
+## [历史更新记录](ReleaseNote.md)   
     
-
-## 关于不支持转换的语法说明   
-
-### ```<import src="*.wxml"/>```支持部分语法处理   
-
-常规我们见到的代码是这样的(摘自官方小程序示例demo)：   
-```
-<import src="../../../common/head.wxml" />
-<view class="container">
-    <template is="head" data="{{title: 'action-sheet'}}"/>
-</view>
-```
-
-为了解决这个问题，我收集到一些```<template/>```的写法：   
-
-*	```<template is="msgItem"  data="{{'这是一个参数'}}"/>```
-*	```<template is="t1" data="{{newsList, type}}"/>``` 【目前支持转换的写法】  
-*	```<template is="head" data="{{title: 'action-sheet'}}"/>``` 【目前支持转换的写法】   
-*	```<template is="head" wx:if="{{index%2 === 0}}" data="{{title: 'action-sheet'}}"/>``` 【目前支持转换的写法】   
-*	```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
-*	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
-* ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>```
-
-目前仅针对第二、三、四种写法可以实现完美转换。而其它写法，目前uni-app并不支持v-bind=""和动态组件语法，暂无法支持。   
-如有大佬对此有完美解决方案，请不吝赐教，谢谢~~   
-   
-目前的处理规则：   
-1. 将wxml里```<tempate name="abc">```内容提取，生成vue文件，并注册为全局组件   
-2. 将```<template is="head" data="{{title: 'action-sheet'}}"/>```转换为```<component :is="head" title="'action-sheet'"`/>``   
-3. 删除```<import src="../../../common/head.wxml" />```   
-4. 因uni-app暂时还不支持动态组件，导致:is="xxx"这种语法并不能支持，为保证转换后能跑起来，已经屏蔽相关代码，且写入日志，方便查看   
-
-      
-~~### wxParse不支持转换~~   
-~~建议手动替换为插件市场里的wxParse(已支持)~~      
+## [关于不支持转换的语法说明](Unsupported.md)  
 
 
-### wxaSortPicker不支持转换   
-建议手动替换为插件市场里的wxaSortPicker      
-
-
-~~### 变量名与函数名重名~~
-~~报错：[Vue warn]: Method "xxx" has already been defined as a data property.~~
-~~解决：在小程序里，data里变量与函数可以同名，而在vue里当场报错，需手动将函数名重名，并修改template里所绑定的函数名(已支持)。~~
-
-
-### 未在data里声明，而直接使用setData赋值   
-报错：Avoid adding reactive properties to a Vue instance or its root $data at runtime - declare it upfront in the data option.
-解决：工具尽可能的收集了页面里的setData({})里的参数，与data里的变量进行对比，并添加，一般情况不会报这个错。出现这个错，可能是页面里将this传到其他文件里，并调用了setData()函数导致的，需手动修改。   
-
-
-### 使用别名代替this，导致this.data.xxx没法替换   
-报错： Cannot read property 'xxx' of undefined   
-解决：可能是使用了o、a、i、e等变量缓存了this，导致工具没法转换o.data.xxx为o.xxx。   
-btw：碰到一个源码就是这种单个字符，应该是被工具压缩过代码。   
-目前工具已经支持转换的变量关键字为：   
-this.data.xxx   ==>  this.xxx   
-that.data.xxx   ==>  that.xxx   
-self.data.xxx   ==>  self.xxx   
-_.data.xxx      ==>  _.xxx   
-_this.data.xxx  ==>  _this.xxx   
-
-
-### include标签
-include标签不是蛮好转换，看过几份源代码，仅有一份代码里，使用了它。   
-建议手动将内容拷贝进来。   
-
-### wx:if="{{}}"   
-遇到这种，建议手动修复   
-
-~~### main.js加入的组件，里面包含getApp()~~
-~~遇到这种，建议手动修复，因为main里加载的时候，还没有getApp()(已支持)~~   
-
-~~### <view @tap="delete"/>~~ 
-~~编译报错：语法错误: Unexpected token~~   
-~~这种在uni-app里没法编译过去~~    
-~~因未能找到关键字列表及相关文档，建议手动重名(工具已针对delete、import等做了处理)~~   
-
-### var appInstance = getApp(); 
-建议手动处理 
-
-### 运行wtu -V报错   
-$ wtu -v   
-/usr/local/lib/node_modules/miniprogram-to-uniapp/src/index.js:297   
-async function filesHandle(fileData, miniprogramRoot) {   
-^^^^^^^^   
-SyntaxError: Unexpected token function   
-......   
-原因：当前nodejs版本不支持es6语法   
-解决：升级nodejs版本，建议v9以上   
-   
-### 语法错误: This experimental syntax requires enabling the parser plugin: 'dynamicImport'   
-可能是函数名使用了系统保留关键字，如```<input @input="import"></input>```   
-暂时建议手动处理一下，毕竟还只遇到一例   
-   
-
-~~### require('./bem.wxs')~~   
-~~uni-app暂不支持在 wxs、sjs、filter.js 中调用其他同类型文件，建议手动处理(已支持)~~   
-
-   
-### vant组件不支持转换    
-经过研究，由于VantComponent({})与小程序结构差异较大，且组件内部强耦合，加上uni-app现在不支持 ```:class="bem('xxx')"```这种语法，虽然可以勉强做出一版来，但是考虑到vant后续更新，需要花费的力气不少，建议手动替换组件。   
-
-
-### 属性没有定义，导致报错   
-[Vue warn]:Property or method "toJSON" is not defined on the instance but referenced during render. Make sure that this property is reactive, either in the data option, or for class-based components, by initializing the property. See: https://vuejs.org/v2/guide/reactivity.html#Declaring-Reactive-Properties.   
-常见的是在data里没有声明，而直接使用(一般是在setData()调用的)，在小程序里没问题，在vue里可就不行了。   
-
-
-### 提示：data 作为属性保留名,不允许在自定义组件 diy-sharp-goods 中定义为 props   
-示例：   
-```<abc data="{{ item.data }}"></abc>```
-```properties: { data: Object }```
-因为data作了为属性名，导致失效，目前建议手动修改属性名(连同template所引用的属性名)      
-   
-### SyntaxError: Unexpected keyword 'class' (13:12)
-wxs里使用class关键字来声明变量，手动改名   
-
-
-### unexpected token default 不能使用default
-如```<text>{{default}}</text>```，编译报错，建议手动改名   
-
-### Method "_init" conflicts with an exsting Vue instance method, avoid defining component methods that start with _ or $.
-方法名与vue内置方法名重名了，需手动修改（工具已做相关修复）   
-
-
-  
 ## 感谢   
 * 感谢转转大佬的文章：[[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)， 本项目基于此文章里面的代码开发，在此表示感谢~   
 * 感谢网友[没有好名字了]给予帮助。   

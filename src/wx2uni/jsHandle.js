@@ -10,20 +10,17 @@ const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
 const template = require('@babel/template').default;
 const JavascriptParser = require('./js/JavascriptParser');
-const componentConverter = require('./js/componentConverter');
 const clone = require('clone');
+const Vistor = require("./js/Vistor");
 
 const utils = require('../utils/utils.js');
 const pathUtil = require('../utils/pathUtil.js');
 const babelUtil = require('../utils/babelUtil.js');
 
-/**
- * 将ast属性数组组合为ast对象
- * @param {*} pathAry 
- */
-function arrayToObject(pathAry) {
-	return t.objectExpression(pathAry);
-}
+const appConverter = require('./js/appConverter');
+const pageConverter = require('./js/pageConverter');
+const componentConverter = require('./js/componentConverter');
+
 
 /**
  * 子页面/组件的模板
@@ -45,7 +42,7 @@ export default {
 /**
  * App页面的模板
  */
-const componentTemplateApp =
+const appTemplate =
 	`
 export default {
 	methods: METHODS,
@@ -79,91 +76,6 @@ function buildAssignmentWidthThat(left, right, name) {
 	return t.assignmentExpression("=", t.memberExpression(t.identifier(name), left), right);
 }
 
-/**
- * 处理this.setData -- 已弃用
- * @param {*} path 
- * @param {*} isThis 区分前缀是this，还是that
- */
-function handleSetData(path, isThis) {
-	let parent = path.parent;
-	let nodeArr = [];
-	if (parent.arguments) {
-		parent.arguments.forEach(function (obj) {
-			if (obj.properties) {
-				obj.properties.forEach(function (item) {
-					let left = item.key;
-					//有可能key是字符串形式的
-					if (t.isStringLiteral(left)) left = t.identifier(left.value);
-					//
-					let node = null;
-					if (isThis) {
-						node = t.expressionStatement(buildAssignmentWidthThis(left, item.value));
-					} else {
-						let object = path.get('object');
-						node = t.expressionStatement(buildAssignmentWidthThat(left, item.value, object.node.name));
-					}
-
-					nodeArr.push(node);
-				});
-			}
-		});
-		if (nodeArr.length > 0) {
-			//将this.setData({})进行替换
-			//!!!!!!!!这里找父级使用递归查找，有可能path的上一级会是CallExpression!!!!!
-			parent = path.findParent((parent) => parent.isExpressionStatement())
-			if (parent) {
-				parent.replaceWithMultiple(nodeArr);
-			} else {
-				console.log(`异常-->代码为：${generate(path.node).code}`);
-			}
-		}
-	}
-}
-
-/**
- * 获取setData()的AST
- * 暂未想到其他好的方式来实现将setData插入到methods里。
- */
-var setDataFunAST = null;
-function getSetDataFunAST() {
-	if (setDataFunAST) return clone(setDataFunAST);
-	const code = `
-	var setData = {
-	setData:function(obj){  
-		let that = this;  
-		let keys = [];  
-		let val,data;  
-		Object.keys(obj).forEach(function(key){  
-				keys = key.split('.');  
-				val = obj[key];  
-				data = that.$data;  
-				keys.forEach(function(key2,index){  
-					if(index+1 == keys.length){  
-						that.$set(data,key2,val);  
-					}else{  
-						if(!data[key2]){  
-							that.$set(data,key2,{});  
-						}  
-					}  
-					data = data[key2];  
-				})  
-			});  
-		} 
-	}
-	`;
-	const ast = parse(code, {
-		sourceType: 'module'
-	});
-
-	let result = null;
-	traverse(ast, {
-		ObjectProperty(path) {
-			result = path.node;
-		}
-	});
-	setDataFunAST = result;
-	return result;
-}
 
 
 /**
@@ -295,74 +207,6 @@ function defineValueHandle(ast, vistors, file_js) {
 
 
 /**
- * 调整ast里指定变量或函数名引用的指向
- * @param {*} ast 
- * @param {*} keyList  变量或函数名列表对象
- */
-function repairValueAndFunctionLink(ast, keyList) {
-	traverse(ast, {
-		noScope: true,
-		MemberExpression(path) {
-			//this.uploadAnalysis = false --> this.$options.globalData.uploadAnalysis = false;
-			//this.clearStorage() --> this.$options.globalData.clearStorage();
-			const object = path.node.object;
-			const property = path.node.property;
-			const propertyName = property.name;
-			if (keyList.hasOwnProperty(propertyName)) {
-				if (t.isThisExpression(object) || t.isIdentifier(object, { name: "that" }) || t.isIdentifier(object, { name: "_this" }) || t.isIdentifier(object, { name: "self" }) || t.isIdentifier(object, { name: "_" })) {
-					let subMe = t.MemberExpression(t.MemberExpression(object, t.identifier('$options')), t.identifier('globalData'));
-					let me = t.MemberExpression(subMe, property);
-					path.replaceWith(me);
-					path.skip();
-				}
-			}
-		}
-	});
-}
-
-/**
- * 修复app.js函数和变量的引用关系
- * 1.this.uploadAnalysis = false --> this.$options.globalData.uploadAnalysis = false;
- * 2.this.clearStorage() --> this.$options.globalData.clearStorage();
- * @param {*} vistors 
- */
-function repairAppFunctionLink(vistors) {
-	//当为app.js时，不为空；globalData下面的key列表，用于去各种函数里替换语法
-	let globalDataKeyList = {};
-	const liftCycleArr = vistors.lifeCycle.getData();
-	const methodsArr = vistors.methods.getData();
-
-	//获取globalData中所有的一级字段
-	for (let item of liftCycleArr) {
-		let name = item.key.name;
-		if (name == "globalData") {
-			if (t.isObjectProperty(item)) {
-				const properties = item.value.properties;
-				for (const op of properties) {
-					const opName = op.key.name;
-					globalDataKeyList[opName] = opName;
-				}
-			}
-		}
-	}
-
-
-	//进行替换生命周期里的函数
-	for (let item of liftCycleArr) {
-		let name = item.key.name;
-		if (name !== "globalData") repairValueAndFunctionLink(item, globalDataKeyList);
-	}
-
-
-	//进行替换methods下面的函数, app.js已经不存在methods了
-	// for (let item of methodsArr) {
-	// 	let name = item.key.name;
-	// 	repairValueAndFunctionLink(item, globalDataKeyList);
-	// }
-}
-
-
-/**
  * 组件模板处理
  * @param {*} ast 
  * @param {*} vistors 
@@ -387,18 +231,8 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 		//
 		if (isApp) {
-			//是app.js文件,要单独处理
-			buildRequire = template(componentTemplateApp);
-
-			//methods全部移入到globalData
-			const liftCycleArr = vistors.lifeCycle.getData();
-			const methods = vistors.methods.getData();
-			for (const item of liftCycleArr) {
-				const keyName = item.key.name;
-				if (keyName == "globalData") {
-					item.value.properties = [...item.value.properties, ...methods];
-				}
-			}
+			//app.js文件,要单独处理
+			buildRequire = template(appTemplate);
 
 			//20191028 回滚
 			//[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug
@@ -407,15 +241,11 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 			//占个位
 			ast = buildRequire({
-				METHODS: arrayToObject([])
+				METHODS: babelUtil.arrayToObject([])
 			});
-
-			// ast = buildRequire({
-			// 	METHODS: arrayToObject(vistors.methods.getData())
-			// });
 		} else {
 			//插入setData()
-			const node = getSetDataFunAST();
+			const node = babelUtil.getSetDataFunAST();
 			vistors.methods.handle(node);
 
 			//非app.js文件
@@ -444,11 +274,11 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 			//
 			ast = buildRequire({
-				PROPS: arrayToObject(vistors.props.getData()),
-				DATA: arrayToObject(vistors.data.getData()),
-				METHODS: arrayToObject(methods),
-				COMPUTED: arrayToObject(vistors.computed.getData()),
-				WATCH: arrayToObject(vistors.watch.getData()),
+				PROPS: babelUtil.arrayToObject(vistors.props.getData()),
+				DATA: babelUtil.arrayToObject(vistors.data.getData()),
+				METHODS: babelUtil.arrayToObject(methods),
+				COMPUTED: babelUtil.arrayToObject(vistors.computed.getData()),
+				WATCH: babelUtil.arrayToObject(vistors.watch.getData()),
 			});
 
 			if (global.isTransformWXS) {
@@ -528,14 +358,11 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 					//中划线转驼峰
 					let componentName = utils.toCamel2(key);
 
-					//这里两个小优化空间
-					//1.是否有其他操作这个数组方式
-					//2.属性名与变量名相同是否可以合并为一个？ (解决，第三个参数：shorthand：true 即可)
 					path.node.value.properties.push(t.objectProperty(
 						t.identifier(componentName),
 						t.identifier(componentName),
 						false,
-						true
+						true  //属性名与变量名相同是否可以合并为一个
 					));
 				}
 			} else if (name === 'computed' || name === 'watch') {
@@ -567,7 +394,10 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				//
 				let objNode = object.node ? object.node : object;
 				let propertyNode = property.node ? property.node : property;
-				if (t.isIdentifier(objNode, { name: "WxParse" }) && t.isIdentifier(propertyNode, { name: "wxParse" })) {
+				if (
+					(t.isIdentifier(objNode, { name: "WxParse" }) || t.isIdentifier(objNode, { name: "wxParse" }))
+					&& t.isIdentifier(propertyNode, { name: "wxParse" })
+				) {
 					/**
 					 * WxParse.wxParse(bindName , type, data, target,imagePadding)
 					 * 1.bindName绑定的数据名(必填)
@@ -587,32 +417,27 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						target: t.isThisExpression(arguments[3]) ? "this" : arguments[3].name
 					}
 
-					//既然没法注释，那就存入日志吧。
 					global.log.push("wxParse: " + generate(path).code + "      file: " + file_js);
 
 					//将原来的代码注释
 					babelUtil.addComment(path, `${generate(path.node).code}`);
 
 					//替换节点
-					//装13之选 ，一堆代码只为还原一行代码: setTimeout(function(){this.uParseArticle = contentData});
-					var left = t.memberExpression(t.identifier(wxParseArgs.target), t.identifier(wxParseArgs.bindName), false);
-					var right = t.identifier(wxParseArgs.data);
-					var assExp = t.assignmentExpression("=", left, right);
-					var bState = t.blockStatement([t.expressionStatement(assExp)]);
-					var args = [t.functionExpression(null, [], bState)];
-					var callExp = t.callExpression(t.identifier("setTimeout"), args);
-					var expState = t.expressionStatement(callExp);
+					//装13之选 ，一堆代码只为还原一行代码: setTimeout(()=>{this.uParseArticle = contentData});
+					const left = t.memberExpression(t.identifier(wxParseArgs.target), t.identifier(wxParseArgs.bindName), false);
+					const right = t.identifier(wxParseArgs.data);
+					const assExp = t.assignmentExpression("=", left, right);
+					const bState = t.blockStatement([t.expressionStatement(assExp)]);
+					const args = [t.ArrowFunctionExpression([], bState)];
+					const callExp = t.callExpression(t.identifier("setTimeout"), args);
+					const expState = t.expressionStatement(callExp);
 					path.replaceWith(expState);
-
 
 					/////////////////////////////////////////////////////////////////
 					//填充变量名到data里去，astDataPath理论上会有值，因为根据模板填充，data是居第一个，so，开搂~
 					if (astDataPath) {
 						try {
-							//猜测使用get取的不是引用，而是clone的对象。
-							// const properties = astDataPath.get("body.body.0.argument.properties");
-
-							const properties = astDataPath.node.body.body[0].argument.properties;
+							const properties = astDataPath.get("body.body.0.argument.properties");
 							const op = t.objectProperty(t.Identifier(wxParseArgs.bindName), t.stringLiteral(""));
 							properties.push(op);
 						} catch (error) {
@@ -701,7 +526,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			} else {
 				babelUtil.globalDataHandle(path);
 			}
-
 
 
 			//20191028 回滚
@@ -813,35 +637,16 @@ function handleJSImage(ast, file_js) {
 	});
 }
 
-/**
- * 1.判断是否为vue文件，小程序项目里，有可能会有含vue语法的文件，如https://github.com/dmego/together/
- * 2.顺便修复一下
- * @param {*} ast 
- */
-function checkVueFile(ast) {
-	let isVueFile = false;
-	if (ast && ast.program && ast.program.body) {
-		const body = ast.program.body;
-		for (const key in body) {
-			const obj = body[key];
-			if (t.isExportDefaultDeclaration(obj)) {
-				isVueFile = true;
-			}
-		}
-	}
-	return isVueFile;
-}
 
 /**
  * js 处理入口方法
  * @param {*} fileData          要处理的文件内容 
  * @param {*} isApp             是否为入口app.js文件
  * @param {*} usingComponents   使用的自定义组件列表
- * @param {*} miniprogramRoot   小程序目录
  * @param {*} file_js           当前处理的文件路径
  * @param {*} isSingleFile      表示是否为单个js文件，而不是vue文件一部分
  */
-async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_js, isSingleFile) {
+async function jsHandle(fileData, isApp, usingComponents, file_js, isSingleFile) {
 	//先反转义
 	let javascriptContent = fileData;
 
@@ -864,67 +669,97 @@ async function jsHandle(fileData, isApp, usingComponents, miniprogramRoot, file_
 	}
 
 	//是否为vue文件
-	const isVueFile = checkVueFile(javascriptAst);
+	const isVueFile = babelUtil.checkVueFile(javascriptAst);
 
-	//进行代码转换
-	let {
-		convertedJavascript,
-		vistors,
-		declareStr,
-		isPage
-	} = componentConverter(javascriptAst, miniprogramRoot, file_js, isVueFile);
+	//判断文件类型
+	const astType = babelUtil.getAstType(javascriptAst, nodePath.relative(global.targetFolder, file_js));
 
-	if (!global.isVueAppCliMode) {
-		//处理js里面的资源路径
-		handleJSImage(javascriptAst, file_js);
-	}
-
-	let wxsKey = "";
-	if (global.isTransformWXS) {
-		//添加wxs引用
-		wxsKey = nodePath.join(nodePath.dirname(file_js), pathUtil.getFileNameNoExt(file_js));
-		let pageWxsInfo = global.pageWxsInfo[wxsKey];
-		if (pageWxsInfo) {
-			pageWxsInfo.forEach(obj => {
-				if (obj.type == "link") declareStr += `import ${obj.module} from '${obj.src}'\r\n`;
-			});
+	let isPage = false;  //是否为页面
+	let astInfoObject = null;
+	if (!isVueFile) {
+		switch (astType) {
+			case "App":
+				astInfoObject = appConverter(javascriptAst, file_js, false);
+				break;
+			case "Page":
+				astInfoObject = pageConverter(javascriptAst, file_js, true);
+				isPage = true;
+				break;
+			case "Component":
+			case "VantComponent":
+				astInfoObject = componentConverter(javascriptAst, file_js, false);
+				break;
+			default:
+				console.log("你是什么垃……类型？", astType);
+				break;
 		}
 	}
 
+	//进行代码转换
+	// let {
+	// 	convertedJavascript,
+	// 	vistors,
+	// 	declareStr
+	// } = componentConverter(javascriptAst, miniprogramRoot, file_js, isVueFile);
 
-	//引入自定义组件
-	//import firstcompoent from '../firstcompoent/firstcompoent'
-	let jsFolder = nodePath.dirname(file_js);
-	for (const key in usingComponents) {
-		let filePath = usingComponents[key];
-
-		//相对路径处理
-		filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, jsFolder);
-
-		//中划线转驼峰
-		let componentName = utils.toCamel2(key);
-		//
-		let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
-		declareStr += `${generate(node).code}\r\n`;
-	}
-
-	if (!isVueFile) {
-		//放到预先定义好的模板中
-		convertedJavascript = componentTemplateBuilder(javascriptAst, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile);
-	}
-
-	// console.log(`${generate(convertedJavascript).code}`);
-
-	//生成文本并写入到文件
 	let codeText = "";
-	if (isSingleFile) {
-		codeText = `${generate(convertedJavascript).code}`;
-	} else {
-		codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
+	if (astInfoObject) {
+		let convertedJavascript = astInfoObject.convertedJavascript;
+		let vistors = astInfoObject.vistors;
+		let declareStr = astInfoObject.declareStr;
+
+		if (!global.isVueAppCliMode) {
+			//处理js里面的资源路径
+			handleJSImage(convertedJavascript, file_js);
+		}
+
+		let wxsKey = "";
+		if (global.isTransformWXS) {
+			//添加wxs引用
+			wxsKey = nodePath.join(nodePath.dirname(file_js), pathUtil.getFileNameNoExt(file_js));
+			let pageWxsInfo = global.pageWxsInfo[wxsKey];
+			if (pageWxsInfo) {
+				pageWxsInfo.forEach(obj => {
+					if (obj.type == "link") declareStr += `import ${obj.module} from '${obj.src}'\r\n`;
+				});
+			}
+		}
+
+
+		//引入自定义组件
+		//import firstcompoent from '../firstcompoent/firstcompoent'
+		let jsFolder = nodePath.dirname(file_js);
+		for (const key in usingComponents) {
+			let filePath = usingComponents[key];
+
+			//相对路径处理
+			filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, jsFolder);
+
+			//中划线转驼峰
+			let componentName = utils.toCamel2(key);
+			//
+			let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
+			declareStr += `${generate(node).code}\r\n`;
+		}
+
+		if (!isVueFile) {
+			//放到预先定义好的模板中
+			convertedJavascript = componentTemplateBuilder(convertedJavascript, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile);
+		}
+
+
+		// console.log(`${generate(convertedJavascript).code}`);
+
+		//生成文本并写入到文件
+		if (isSingleFile) {
+			codeText = `${generate(convertedJavascript).code}`;
+		} else {
+			codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
+		}
 	}
 
 	//如果解析报错，那么还是返回原文件内容
-	if (!codeText && isParseError) {
+	if (isParseError || !astInfoObject) {
 		codeText = fileData;
 	}
 	return codeText;
