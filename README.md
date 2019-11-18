@@ -76,28 +76,14 @@ $ wtu -i miniprogramProject -w
    
 ## 更新记录   
 ### v1.0.30(20191118)   
-* [优化] 重构大部分代码，优化页面类型判断逻辑，app、page和component分别进行解析      
+* [优化] 重构大部分代码，优化页面类型判断逻辑，app、page和component分别进行解析       
 * [优化] 组件里生命周期的转换(ready-->mounted，ready-->mounted)、pageLifetimes、lifetimes、behaviors、externalClasses、relations和options等节点处理     
-* [优化] 组件里observer和observers换成watch并深度监听
+* [优化] 组件里observer和observers替换换为watch   
 * [修复] 组件名同时包含驼峰和短横线转换时转换错误，导致找不到组件的bug(如```diy-imageSingle```应转换为```diyImageSingle```) 
 * [修复] 替换wxParse时，参数里this的指向问题，以及优化wxParse代码的判断   
 * [修复] 模板绑定里使用单引号包含双引号导致转换失败(如: ```<view style='font-family: "Guildford Pro";'></view>```)   
 * [修复] props里默认值字段名value替换为default; 当type为Array或Object时，默认值使用工厂函数返回   
    
-
-### v1.0.29(20191030)   
-* [调整] 暂时屏蔽命令行里的-o命令，导出路径默认为“输入目录_uni”(此前版本当输入输出为同一目录或其他非空目录时，可能会引起误删文件的隐患)   
-* [优化] 程序入口app的判断逻辑   
-* [优化] 是否转换wxs细节调整   
-* [回滚] this.globalData不再转换为this.$options.globalData，因为HBuilderX已支持(见：[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug)   
-* [修复] getApp().page({...})不能解析的bug   
-* [修复] WxParse.wxParse()没转换到的bug   
-* [修复] wx:for-item与wx:key相等的bug   
-* [修复] 解析```<view style="xx:url(\"{{}}\")"></view>```失败的bug   
-* [修复] 方法名为_init(以_或$开头的方法名)与vue初始方法同名时引起报错的bug   
-* [修复] 因为vue文件没有template导致报错“Component is not found in path xxx”，(当wxml为空文件时，填充```<template><view></view></template>```空标签占位)   
-* [修复] getApp()未替换完全的bug   
-
 ## [历史更新记录](ReleaseNote.md)   
     
 ## [关于不支持转换的语法说明](Unsupported.md)  

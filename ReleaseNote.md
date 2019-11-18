@@ -1,5 +1,17 @@
 # Miniprogram to uni-app - Release Notes   
 ======================================
+## v1.0.29(20191030)   
+* [调整] 暂时屏蔽命令行里的-o命令，导出路径默认为“输入目录_uni”(此前版本当输入输出为同一目录或其他非空目录时，可能会引起误删文件的隐患)   
+* [优化] 程序入口app的判断逻辑   
+* [优化] 是否转换wxs细节调整   
+* [回滚] this.globalData不再转换为this.$options.globalData，因为HBuilderX已支持(见：[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug)   
+* [修复] getApp().page({...})不能解析的bug   
+* [修复] WxParse.wxParse()没转换到的bug   
+* [修复] wx:for-item与wx:key相等的bug   
+* [修复] 解析```<view style="xx:url(\"{{}}\")"></view>```失败的bug   
+* [修复] 方法名为_init(以_或$开头的方法名)与vue初始方法同名时引起报错的bug   
+* [修复] 因为vue文件没有template导致报错“Component is not found in path xxx”，(当wxml为空文件时，填充```<template><view></view></template>```空标签占位)   
+* [修复] getApp()未替换完全的bug   
 
 ## v1.0.28(20191018)   
 * [修复] 几个小bug   
