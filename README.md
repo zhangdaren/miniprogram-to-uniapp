@@ -62,7 +62,7 @@ $ wtu -i miniprogramProject -w
 * 支持app.js、page和component生命周期函数的转换   
 * 区分app.js/component，两者解析规则略有不同   
 * 添加setData()函数于methods下，解决this.setData()【代码出处：https://ask.dcloud.net.cn/article/35020】  
-~~* App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚，已回滚)~~   
+* ~~App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚，已回滚)~~   
 * 支持wxs文件转换，可以通过参数配置(-w)，默认为false
 * 支持vue-cli模式，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发  
 * 导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件   
