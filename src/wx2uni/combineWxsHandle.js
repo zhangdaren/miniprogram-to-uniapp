@@ -31,6 +31,7 @@ async function combineWxsHandle(srcWxsFile, targetWxsFile) {
 		const logStr = "Error: " + nodePath.relative(global.miniprogramRoot, srcWxsFile) + "不存在";
 		utils.log(logStr);
 		global.log.push(logStr);
+		
 	}
 	return codeText;
 }

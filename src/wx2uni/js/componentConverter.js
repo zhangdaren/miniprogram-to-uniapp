@@ -39,9 +39,13 @@ const componentVistor = {
 				path.skip();
 			}
 		} else if (t.isAssignmentExpression(path.node.expression)) {
-			//有可能app.js里是这种结构，exports.default = App({});
-			//path.node 为AssignmentExpression类型，所以这里区分一下
-			declareStr += `${generate(path.node).code}\r\n`;
+			const callee = path.get("expression.right.callee");
+			if (t.isIdentifier(callee.node, { name: "Behavior" })) {
+				// console.log("Behavior文件")
+			} else {
+				//path.node 为AssignmentExpression类型，所以这里区分一下
+				declareStr += `${generate(path.node).code}\r\n`;
+			}
 		}
 	},
 	ImportDeclaration(path) {
@@ -156,8 +160,6 @@ const componentVistor = {
 				var properties = path.node.value.properties;
 				if (properties) {
 					properties.forEach(function (item) {
-
-						console.log("item --- ", item);
 						item.key.name = util.getValueAlias(item.key.name);
 						// let _name = util.getValueAlias(name);
 						vistors[name].handle(item);
@@ -183,7 +185,7 @@ const componentVistor = {
 			case 'properties':
 				//组件特有生命周期: properties-->props
 				var properties = path.get("value.properties");
-				if (properties) {
+				if (properties && properties.length > 0) {
 					properties.forEach(function (item) {
 						///////////////////////////////
 						// proE: {
@@ -212,21 +214,23 @@ const componentVistor = {
 						let typeItem = null;
 						let defaultItem = null;
 						let observerItem = null;
-						props.forEach(function (subItem) {
-							const name = subItem.node.key.name;
-							switch (name) {
-								case "value":
-									subItem.node.key.name = "default";
-									defaultItem = subItem;
-									break;
-								case "type":
-									typeItem = subItem;
-									break;
-								case "observer":
-									observerItem = subItem;
-									break;
-							}
-						});
+						if (props && props.length > 0) {
+							props.forEach(function (subItem) {
+								const name = subItem.node.key.name;
+								switch (name) {
+									case "value":
+										subItem.node.key.name = "default";
+										defaultItem = subItem;
+										break;
+									case "type":
+										typeItem = subItem;
+										break;
+									case "observer":
+										observerItem = subItem;
+										break;
+								}
+							});
+						}
 						if (typeItem && defaultItem) {
 							if (typeItem.node.value.name == "Array" || typeItem.node.value.name == "Object") {
 								let afx = t.arrowFunctionExpression([], defaultItem.node.value);
@@ -235,21 +239,37 @@ const componentVistor = {
 							}
 						}
 						if (observerItem) {
-							var objProp;
+							let objProp;
 							//observer换成watch
+							let op_value = null;
 							if (typeItem.node.value.name == "Array" || typeItem.node.value.name == "Object") {
 								//Array和Object换成深度监听
-								var objExp_handle = t.objectProperty(t.identifier("handler"), observerItem.node.value);
-								var objExp_deep = t.objectProperty(t.identifier("deep"), t.booleanLiteral(true));
-								var properties = [objExp_handle, objExp_deep];
-								var objExp = t.objectExpression(properties);
+								if (t.isObjectProperty(observerItem.node)) {
+									op_value = observerItem.node.value;
+								} else if (t.isObjectMethod(observerItem.node)) {
+									op_value = t.functionExpression(null, observerItem.node.params, observerItem.node.body);
+								} else {
+									op_value = observerItem.node.value;
+								}
+
+								let objExp_handle = t.objectProperty(t.identifier("handler"), op_value);
+								let objExp_deep = t.objectProperty(t.identifier("deep"), t.booleanLiteral(true));
+								let properties = [objExp_handle, objExp_deep];
+								let objExp = t.objectExpression(properties);
 								objProp = t.objectProperty(t.identifier(propItemName), objExp);
-							}else{
+							} else {
+								if (t.isObjectProperty(observerItem.node)) {
+									op_value = observerItem.node.value;
+								} else if (t.isObjectMethod(observerItem.node)) {
+									op_value = t.functionExpression(null, observerItem.node.params, observerItem.node.body);
+								} else {
+									op_value = observerItem.node.value;
+								}
 								//其他类型原样
-								objProp = t.objectProperty(t.identifier(propItemName), observerItem.node.value);
+								objProp = t.objectProperty(t.identifier(propItemName), op_value);
 							}
-							observerItem.remove();
 							vistors.watch.handle(objProp);
+							observerItem.remove();
 						}
 						item.node.key.name = util.getValueAlias(item.node.key.name);
 						vistors.props.handle(item.node);
@@ -311,10 +331,15 @@ const componentVistor = {
 				}
 				path.skip();
 				break;
+			case 'behaviors':
+				//组件的behaviors，重名为mixins，放入生命周期
+				let newPath_b = clone(path);
+				newPath_b.node.key.name = "mixins";
+				vistors.lifeCycle.handle(newPath_b.node);
+				path.skip();
+				break;
 			case 'lifetimes':
 			//组件特有生命周期组lifetimes，不处理
-			case 'behaviors':
-			//组件的behaviors，原样放入生命周期内
 			case 'externalClasses':
 			//组件的externalClass自定义组件样式
 			case 'relations':

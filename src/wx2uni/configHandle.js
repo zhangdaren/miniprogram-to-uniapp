@@ -82,10 +82,10 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				// 	usingComponents = data.usingComponents;
 				// }
 
-				if(data) {
+				if (data) {
 					let dataBak = clone(data);
 					delete dataBak.usingComponents;
-					
+
 					let obj = {
 						"path": pagePath,
 						"style": {
@@ -185,11 +185,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				filePath = filePath.replace(/^\//, "./"); //相对路径处理
 				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(newKey))], t.stringLiteral(filePath));
 				mainContent += `${generate(node).code}\r\n`;
-				let name = path.basename(filePath);
-				name = name.split(".vue").join(""); //去掉后缀名
-				name = utils.toCamel2(name);
-
-				mainContent += `Vue.component("${name === "index" ? key : name}", ${newKey});\r\n\r\n`;
+				mainContent += `Vue.component("${key}", ${newKey});\r\n\r\n`;
 			}
 
 			//全局引入uParse

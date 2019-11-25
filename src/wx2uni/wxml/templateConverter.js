@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs-extra');
 const clone = require('clone');
 const utils = require('../../utils/utils.js');
 const pathUtil = require('../../utils/pathUtil.js');
@@ -72,17 +73,17 @@ const attrConverterConfigUni = {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 		}
 	},
-	'catchtap': {
-		key: '@click.stop',
-		value: (str) => {
-			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
-		}
-	},
 	'bindinput': {
 		key: '@input'
 	},
 	'bindgetuserinfo': {
 		key: '@getuserinfo'
+	},
+	'catchtap': {
+		key: '@tap.native.stop',
+		value: (str) => {
+			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
+		}
 	},
 	'catch:tap': {
 		key: '@tap.native.stop',
@@ -124,7 +125,7 @@ function findParentsWithFor(node) {
 }
 
 //表达式列表
-const expArr = [" + ", " - ", " * ", " / ", "?"];
+const expArr = ["+", "-", "*", "/", "?"];
 /**
  * 查找字符串里是否包含加减乘除以及？等表达式
  * @param {*} str 
@@ -143,7 +144,7 @@ function checkExp(str) {
  * @param {*} ast 抽象语法树
  * @param {Boolean} isChildren 是否正在遍历子项目
  */
-const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, templateParser, templateNum) {
+const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFile, templateParser, templateNum) {
 	let reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
 	let props = [];
 	const fileName = pathUtil.getFileNameNoExt(file_wxml);
@@ -151,7 +152,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 		let node = ast[i];
 
 		for (const k in node.attribs) {
-			console.log("iterator", node.attribs[k]);
+			// console.log("iterator", node.attribs[k]);
 
 			if (reg_tag.test(node.attribs[k])) {
 				// 拆解node.attribs[k]
@@ -170,14 +171,6 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 		if (node.type === 'tag') {
 			//当前处理文件所在目录
 			let wxmlFolder = path.dirname(file_wxml);
-
-			//处理include标签
-			if (node.name == "include") {
-				let str = '暂不支持include标签，请手动修复!    ' + templateParser.astToString([node]) + "    file--> " + path.relative(global.miniprogramRoot, file_wxml);
-				console.log(str);
-				global.log.push(str);
-				// continue;
-			}
 
 			//处理import标签
 			if (node.name == "import") {
@@ -258,6 +251,9 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						var reg_val = /wxParseData:(.*?)\.nodes/i;
 						if (data) {
 							let varName = data.match(reg_val)[1];
+							//处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
+							//仅提取变量，"或"操作符和三元运算符暂不考虑。
+							varName = varName.replace(/[\s\(\[]/g, ""); //替换掉空格和括号
 							ast[i] = {
 								type: "tag",
 								name: "u-parse",
@@ -389,39 +385,41 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 				//image标签，处理src路径
 				let src = node.attribs.src;
 
-				//这里取巧一下，如果路径不是以/开头，那么就在前面加上./
-				if (src && !/^\//.test(src)) {
-					src = "./" + src;
-				}
 				//忽略网络素材地址，不然会转换出错
-				if (!utils.isURL(src) && reg.test(src) && !reg_tag.test(src)) {
-					if (global.isVueAppCliMode) {
-						//
-						attrs.src = src;
+				if (src && !utils.isURL(src)) {
+					if (reg.test(src) && !reg_tag.test(src)) {
+						//这里取巧一下，如果路径不是以/开头，那么就在前面加上./
+						if (src && !/^\//.test(src)) {
+							src = "./" + src;
+						}
+						if (global.isVueAppCliMode) {
+							//
+							attrs.src = src;
+						} else {
+							//static路径
+							let staticPath = path.join(global.miniprogramRoot, "static");
+
+							// <image src="/page/cloud/resources/kind/database.png"
+
+							//当前处理文件所在目录
+							let wxmlFolder = path.dirname(file_wxml);
+							let pFolderName = pathUtil.getParentFolderName(src);
+							// console.log("pFolderName ", pFolderName)
+							let fileName = path.basename(src);
+							// console.log("fileName ", fileName)
+
+							filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
+							newImagePath = path.relative(wxmlFolder, filePath);
+
+							node.attribs.src = newImagePath.split("\\").join("/");;
+						}
 					} else {
-						//static路径
-						let staticPath = path.join(global.miniprogramRoot, "static");
-
-						// <image src="/page/cloud/resources/kind/database.png"
-
-						//当前处理文件所在目录
-						let wxmlFolder = path.dirname(file_wxml);
-						let pFolderName = pathUtil.getParentFolderName(src);
-						// console.log("pFolderName ", pFolderName)
-						let fileName = path.basename(src);
-						// console.log("fileName ", fileName)
-
-						filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
-						newImagePath = path.relative(wxmlFolder, filePath);
-
-						node.attribs.src = newImagePath.split("\\").join("/");;
-					}
-				} else {
-					if (src && !global.isVueAppCliMode) {
-						let logStr = "image漏网之鱼:    src--> \"" + node.attribs.src + "\"     file--> " + path.relative(global.miniprogramRoot,
-							file_wxml);
-						console.log(logStr);
-						global.log.push(logStr);
+						if (src && !global.isVueAppCliMode) {
+							let logStr = "image漏网之鱼:    src--> \"" + node.attribs.src + "\"     file--> " + path.relative(global.miniprogramRoot,
+								file_wxml);
+							console.log(logStr);
+							global.log.push(logStr);
+						}
 					}
 				}
 			}
@@ -581,11 +579,21 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 					let wx_key = replaceBindToAt(k);
 					attrs[wx_key] = node.attribs[k];
 
+					// let nodeValue = node.attribs[k];
+					// node.attribs[k] = nodeValue.replace(/'(.*?)'|"(.*?)"/g, function (match, pos, orginText) {
+					// 	console.log(match, pos, orginText)
+					// 	if(pos)
+					// 	return pos;
+					// });
+
 					//替换xx="xx:'{{}}';" 为xx="xx:{{}};"
-					//替换url('{{iconURL}}/invitation-red-packet-btn.png')为url({{iconURL}}/invitation-red-packet-btn.png)
-					//测试示例1：<view style="width:'{{width}}'"></view>
-					//测试示例2：<view style="background-image:url('{{iconURL}}')"></view>
-					node.attribs[k] = node.attribs[k].replace(/url\(['"]{{(.*?)}}['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}");
+					//测试用例：
+					//<view style="width:'{{width}}'"></view>
+					//<view style="background-image:url('{{iconURL}}')"></view>
+					//<view style="background-image:url('{{iconURL}}/invitation-red-packet-btn.png')"></view>
+					//<view style='font-weight:{{item.b==1? "bold": "normal"}};'></view>
+					//<view style="width:{{percent}}% }};"></view> //原始代码有问题
+					node.attribs[k] = node.attribs[k].replace(/url\(['"].*?{{(.*?)}}.*?['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}");
 
 					if (wx_key == k) {
 						wx_key = replaceWxBind(k);
@@ -597,7 +605,7 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 					//style="background-image: url({{avatarUrl}});color:{{abc}};font-size:12px;"
 					let value = attrs[wx_key];
 					//将双引号转换单引号
-					attrs[wx_key] = value.replace(/\"/g, "'");
+					value = value.replace(/\"/g, "'");
 
 					let hasBind = reg_tag.test(value);
 					if (hasBind) {
@@ -641,11 +649,40 @@ const templateConverter = function (ast, isChildren, file_wxml, onlyWxmlFile, te
 						} else {
 							attrs[wx_key] = value;
 						}
+					} else {
+						attrs[wx_key] = value;
 					}
 				}
 			}
-
 			node.attribs = attrs;
+
+			//处理include标签
+			if (node.name == "include") {
+				let fileKey = pathUtil.getFileKey(file_wxml);
+				let src = node.attribs.src;
+				src = pathUtil.relativePath(src, global.miniprogramRoot, wxmlFolder);
+				let absSrc = path.join(wxmlFolder, src);
+				let includeFileKey = pathUtil.getFileKey(absSrc);
+				//
+				let tempStr = templateParser.astToString([node]);
+				let attrsStr = "";
+				for (const key in attrs) {
+					const value = attrs[key];
+					if (key == "src") {
+						attrsStr += " data-" + key + "=\"" + value + "\"";
+					} else {
+						attrsStr += " " + key + "=\"" + value + "\"";
+					}
+				}
+
+				global.includeInfo[absSrc] = {
+					attrs: attrsStr,
+					curFileKey: fileKey,
+					includeTag: tempStr,
+					includeWxmlAbsPath: absSrc,
+					includeFileKey: includeFileKey,
+				};
+			}
 		} else if (node.type === 'text') {
 			// var hasBind = reg_tag.test(node.data);
 			// if (hasBind) {

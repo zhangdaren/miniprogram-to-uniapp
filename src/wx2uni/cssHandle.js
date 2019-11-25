@@ -27,9 +27,9 @@ async function cssHandle(fileContent, file_wxss) {
 			//wxss文件所在目录
 			let fileDir = path.dirname(file_wxss);
 			let reg_import = /@import +['"](.*?)\.wxss['"];*/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
-			fileContent = fileContent.replace(reg_import, function (match, pos, orginText) {
+			fileContent = fileContent.replace(reg_import, function (match, $1) {
 				//先转绝对路径，再转相对路径
-				let filePath = pos;
+				let filePath = $1;
 				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
 
 				//虽可用path.posix.前缀来固定为斜杠，然而改动有点小多，这里只单纯替换一下

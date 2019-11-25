@@ -130,10 +130,10 @@ wxs里使用class关键字来声明变量，手动改名
 
 
 ## 小程序组件不支持的语法   
-* behaviors暂不支持，原样复制   
+* ~~behaviors暂不支持，原样复制~~   
 * relations暂不支持，原样复制   
 * moved生命周期uni-app暂不支持，原样复制   
-* pageLifetimes(组件所在页面的生命周期函数),原样复制   
+* ~~pageLifetimes(组件所在页面的生命周期函数),原样复制~~   
 
 
 ## 通过selectComponent(selector)选择的页面，在使用setData时，需注意   
@@ -211,4 +211,21 @@ proE: {
     type: Object,
     default: () => ({})
 }
+```
+
+### 引号或括号不匹配
+如
+```
+<view style="line-height: 48rpx\""></view>
+<view style="width:{{percent}}% }};"></view>
+```
+原始代码就有问题，需自己手动调整。
+
+### UnhandledPromiseRejectionWarning: TypeError: Cannot read property 'buildError' of undefined
+原因：
+可能是因为代码里，let和var对同名变量先后进行了声明导致。
+如：
+```
+let a = 1;
+var a = 4;
 ```

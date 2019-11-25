@@ -3,22 +3,23 @@ const clone = require('clone');
 const parse = require('@babel/parser').parse;
 const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
+const pathUtil = require('./pathUtil');
 
 
 /**
- * 
+ * App生命周期函数
  */
 const lifeCycleFunction = {
-	onLoad: true,
-	onReady: true,
-	onShow: true,
-	onHide: true,
-	onUnload: true,
-	onPullDownRefresh: true,
-	onReachBottom: true,
-	onShareAppMessage: true,
-	onLaunch: true,
-	onError: true,
+    onLoad: true,
+    onReady: true,
+    onShow: true,
+    onHide: true,
+    onUnload: true,
+    onPullDownRefresh: true,
+    onReachBottom: true,
+    onShareAppMessage: true,
+    onLaunch: true,
+    onError: true,
 }
 
 
@@ -112,11 +113,18 @@ function addComment(path, comment) {
 function getAstType(ast, _file_js) {
     let type = "";
     traverse(ast, {
+        noScope: true,
         ExpressionStatement(path) {
             const exp = path.get("expression");
             if (t.isCallExpression(exp) && t.isIdentifier(exp.node.callee)) {
                 type = exp.node.callee.name;
                 path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+            } else if (t.isAssignmentExpression(exp)) {
+                const right = exp.node.right;
+                if (t.isCallExpression(right))
+                {
+                    type = right.callee.name;
+                }
             }
         }
     });
@@ -175,7 +183,7 @@ function getSetDataFunAST() {
     if (setDataFunAST) return clone(setDataFunAST);
     const code = `
 	var setData = {
-	setData:function(obj){  
+	setData:function(obj, callback){  
 		let that = this;  
 		let keys = [];  
 		let val,data;  
@@ -194,7 +202,8 @@ function getSetDataFunAST() {
 					data = data[key2];  
 				})  
 			});  
-		} 
+            callback && callback();
+        } 
 	}
 	`;
     const ast = parse(code, {
@@ -217,7 +226,7 @@ function getSetDataFunAST() {
  * @param {*} name 
  */
 function createObjectProperty(name) {
-	return t.objectProperty(t.identifier(name), t.objectExpression([]));
+    return t.objectProperty(t.identifier(name), t.objectExpression([]));
 }
 
 
@@ -331,6 +340,27 @@ function handleSetData(path, isThis) {
 }
 
 
+/**
+ * 处理require()里的路径
+ * @param {*} path      CallExpression类型的path，未做校验
+ * @param {*} fileDir   当前文件所在目录
+ */
+function requirePathHandle(path, fileDir) {
+	let callee = path.node.callee;
+	if (t.isIdentifier(callee, { name: "require" })) {
+		//处理require()路径
+		let arguments = path.node.arguments;
+		if (arguments && arguments.length) {
+			if (t.isStringLiteral(arguments[0])) {
+				let filePath = arguments[0].value;
+				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+				path.node.arguments[0] = t.stringLiteral(filePath);
+			}
+		}
+	}
+}
+
+
 
 module.exports = {
     lifeCycleFunction,
@@ -343,4 +373,5 @@ module.exports = {
     arrayToObject,
     getSetDataFunAST,
     createObjectProperty,
+    requirePathHandle,
 }

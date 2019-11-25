@@ -156,9 +156,14 @@
 						).exec();
 					// #endif
 					// #ifdef MP-BAIDU
-					swan.createSelectorQuery().select('.wxParse').boundingClientRect(function(rect) {
-						rect[0].width
-					}).exec()
+					const query = swan.createSelectorQuery();
+					query.select('.wxParse').boundingClientRect();
+					query.exec(obj=>{
+						const rect = obj[0];
+						if(rect){
+							res(rect.width);
+						}
+					})
 					// #endif
 					// #ifdef MP-ALIPAY
 					my.createSelectorQuery()

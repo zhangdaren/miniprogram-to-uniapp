@@ -9,10 +9,10 @@
   },
   "bundleDependencies": [],
   "dependencies": {
-    "@babel/core": "^7.4.5",
-    "@babel/generator": "^7.4.4",
-    "@babel/traverse": "^7.4.5",
-    "@babel/types": "^7.4.4",
+    "@babel/generator": "^7.7.2",
+    "@babel/parser": "^7.7.3",
+    "@babel/traverse": "^7.7.2",
+    "@babel/types": "^7.7.2",
     "babylon": "^6.18.0",
     "chalk": "^2.3.2",
     "clone": "^2.1.2",
@@ -27,12 +27,26 @@
   "deprecated": false,
   "description": "Try to transform Weixin miniprogram project to Uni-app project",
   "devDependencies": {
+    "@babel/core": "^7.7.2",
+    "@babel/plugin-proposal-class-properties": "^7.0.0",
+    "@babel/plugin-proposal-decorators": "^7.0.0",
+    "@babel/plugin-proposal-do-expressions": "^7.0.0",
+    "@babel/plugin-proposal-export-default-from": "^7.0.0",
+    "@babel/plugin-proposal-export-namespace-from": "^7.0.0",
+    "@babel/plugin-proposal-function-bind": "^7.0.0",
+    "@babel/plugin-proposal-function-sent": "^7.0.0",
+    "@babel/plugin-proposal-json-strings": "^7.0.0",
+    "@babel/plugin-proposal-logical-assignment-operators": "^7.0.0",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.0.0",
+    "@babel/plugin-proposal-numeric-separator": "^7.0.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.0.0",
+    "@babel/plugin-proposal-pipeline-operator": "^7.0.0",
+    "@babel/plugin-proposal-throw-expressions": "^7.0.0",
+    "@babel/plugin-syntax-dynamic-import": "^7.0.0",
+    "@babel/plugin-syntax-import-meta": "^7.0.0",
     "@babel/plugin-transform-object-assign": "^7.0.0",
-    "@babel/preset-env": "^7.1.6",
-    "babel-core": "^6.26.3",
+    "@babel/preset-env": "^7.0.0",
     "babel-loader": "^8.0.6",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-stage-0": "^6.24.1",
     "lodash": ">=4.17.13"
   },
   "homepage": "https://github.com/zhangdaren/miniprogram-to-uniapp#readme",
@@ -51,5 +65,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.30"
+  "version": "1.0.32"
 }

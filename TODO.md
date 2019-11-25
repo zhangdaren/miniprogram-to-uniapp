@@ -140,3 +140,26 @@ https://www.jianshu.com/p/422a05e2f0f4
         }
     }
 });
+
+
+组件嵌套组件时，page->actionsheet->btn
+btn的事件，只能取到当前它的对象，而不是取到actionsheet，但小程序里是可以的。。。
+@btnclick="handleBtnClick"
+
+
+this.$emit('actionclick', {
+  index: index
+});
+
+在外部，小程序里用e.detail.index   ，uni用e.index
+
+
+使用了npm库的小程序   有个src目录
+
+<view url="/page/url/index={{item.id}}&data='abc'"></view>
+
+//替换，，用函数、
+
+小程序 typescript
+
+var t = getApp(),

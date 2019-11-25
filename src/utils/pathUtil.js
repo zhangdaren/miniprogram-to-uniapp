@@ -1,5 +1,6 @@
-var fs = require('fs')
-var path = require('path')
+const fs = require('fs');
+const path = require('path');
+const util = require('util');
 
 /**
  * 复制文件
@@ -98,17 +99,28 @@ function delDir(path) {
 /**
  * 清空目录，支持忽略指定目录或文件名，只处理一级目录，忽略子目录
  * @param {*} path   要搜索的目录
- * @param {*} ignore 忽略的目录名或文件名，暂只支持全字匹配，有需求再改为正则匹配
+ * @param {*} ignore 忽略的目录名或文件名，支持正则表达式
  */
 function emptyDirSyncEx(folder, ignore) {
+	if (ignore) {
+		if (!util.isRegExp(ignore)) {
+			ignore = new RegExp(ignore);
+		}
+	} else {
+		ignore = /unpackage|node_modules/i;
+	}
 	fs.readdir(folder, function (err, files) {
 		files.forEach(function (fileName) {
 			var fileDir = path.join(folder, fileName);
 			fs.stat(fileDir, function (err, stats) {
 				if (stats.isDirectory()) {
-					if (fileName !== ignore) delDir(fileDir);
+					if (!ignore.test(fileName)) {
+						delDir(fileDir);
+					}
 				} else {
-					if (fileName !== ignore) fs.unlinkSync(fileDir);
+					if (!ignore.test(fileName)) {
+						fs.unlinkSync(fileDir);
+					}
 				}
 			})
 		})
@@ -194,7 +206,7 @@ function isInFolder(folderArr, filePath) {
  * @param {*} fileDir   当前文件所在目录 
  */
 function relativePath(filePath, root, fileDir) {
-	if(!filePath) return filePath;
+	if (!filePath) return filePath;
 	if (/^\//.test(filePath)) {
 		//如果是以/开头的，表示根目录
 		filePath = path.join(root, filePath);
@@ -209,6 +221,20 @@ function relativePath(filePath, root, fileDir) {
 	return filePath.split("\\").join("/");
 }
 
+
+/**
+ * 获取类似于小程序配置文件里路径信息，由文件目录+文件名(无后缀名)组成
+ * 如：
+ * @param {*} filePath  //文件路径
+ */
+function getFileKey(filePath) {
+	if (!filePath) return "";
+	let fileFolder = path.dirname(filePath);
+	fileFolder = path.relative(global.miniprogramRoot, fileFolder);
+	let fileNameNoExt = getFileNameNoExt(filePath);
+	return path.join(fileFolder, fileNameNoExt);
+}
+
 module.exports = {
 	copyFile,
 	copyFolder,
@@ -220,4 +246,5 @@ module.exports = {
 	isInFolder,
 	relativePath,
 	emptyDirSyncEx,
+	getFileKey,
 };

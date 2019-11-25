@@ -20,6 +20,7 @@ const babelUtil = require('../utils/babelUtil.js');
 const appConverter = require('./js/appConverter');
 const pageConverter = require('./js/pageConverter');
 const componentConverter = require('./js/componentConverter');
+const singleJSConverter = require('./js/singleJSConverter');
 
 
 /**
@@ -32,6 +33,22 @@ export default {
     return DATA
   },
   components: {},
+  props:PROPS,
+  methods: METHODS,
+  computed: COMPUTED,
+  watch:WATCH,
+}
+`;
+
+/**
+ * Behavior的模板
+ */
+const behaviorTemplate =
+	`
+module.exports = {
+  data() {
+    return DATA
+  },
   props:PROPS,
   methods: METHODS,
   computed: COMPUTED,
@@ -115,25 +132,6 @@ function handleOnLoadFun(liftCycleArr, key, funName) {
 	return node;
 }
 
-/**
- * 处理require()里的路径
- * @param {*} path      CallExpression类型的path，未做校验
- * @param {*} fileDir   当前文件所在目录
- */
-function requireHandle(path, fileDir) {
-	let callee = path.node.callee;
-	if (t.isIdentifier(callee, { name: "require" })) {
-		//处理require()路径
-		let arguments = path.node.arguments;
-		if (arguments && arguments.length) {
-			if (t.isStringLiteral(arguments[0])) {
-				let filePath = arguments[0].value;
-				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
-				path.node.arguments[0] = t.stringLiteral(filePath);
-			}
-		}
-	}
-}
 
 
 /**
@@ -145,10 +143,15 @@ function requireHandle(path, fileDir) {
 function defineValueHandle(ast, vistors, file_js) {
 	//处理没有在data里面声明的变量
 	var dataArr = vistors.data.getData();
+	var propsArr = vistors.props.getData();
 	//转为json对象，这样方便查找
 	let dataJson = {};
 	dataArr.forEach(obj => {
 		dataJson[obj.key.name] = obj.value.name;
+	});
+	let propsJson = {};
+	propsArr.forEach(obj => {
+		propsJson[obj.key.name] = obj.value.name;
 	});
 	traverse(ast, {
 		noScope: true,
@@ -166,8 +169,8 @@ function defineValueHandle(ast, vistors, file_js) {
 							if (t.isIdentifier(subElement.key)) {
 								const name = subElement.key.name;
 								const value = subElement.value;
-								//与data对比
-								if (!dataJson.hasOwnProperty(name)) {
+								//与data和props对比
+								if (!dataJson.hasOwnProperty(name) && !propsJson.hasOwnProperty(name)) {
 									// const logStr = "data里没有的变量:    " + name + " -- " + value.type + "    file: " + nodePath.relative(global.miniprogramRoot, file_js);
 									// console.log(logStr);
 
@@ -194,6 +197,10 @@ function defineValueHandle(ast, vistors, file_js) {
 
 									vistors.data.handle(t.objectProperty(t.identifier(name), initialValue));
 									dataJson[name] = name;
+								}else{
+									//TODO：
+									//如果props有个变量abc，使用this.setData({abc:1})会报错，但在小程序里是正确的，
+									//如果要改的话，要用一个中间变量，并且把页面里所有的地方都要替换，工作量有点繁琐。
 								}
 							}
 						}
@@ -205,7 +212,6 @@ function defineValueHandle(ast, vistors, file_js) {
 
 }
 
-
 /**
  * 组件模板处理
  * @param {*} ast 
@@ -215,9 +221,9 @@ function defineValueHandle(ast, vistors, file_js) {
  * @param {*} isPage           判断当前文件是Page还是Component(还有第三种可能->App，划分到Page)
  * @param {*} wxsKey           获取当前文件wxs信息的key
  * @param {*} file_js          当前转换的文件路径
- * @param {*} isSingleFile     表示是否为单个js文件，而不是vue文件一部分
+ * @param {*} astType          ast类型: App、Page、Component、Behavior和VantComponent
  */
-const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile) {
+const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents, isPage, wxsKey, file_js, astType) {
 	let buildRequire = null;
 
 	//需要替换的函数名
@@ -226,68 +232,71 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 	//存储data的引用，用于后面添加wxparse的数据变量
 	let astDataPath = null;
 
-	if (!isSingleFile) {
-		defineValueHandle(ast, vistors, file_js);
+	defineValueHandle(ast, vistors, file_js);
+
+	//
+	if (isApp) {
+		//app.js文件,要单独处理
+		buildRequire = template(appTemplate);
+
+		//20191028 回滚
+		//[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug
+		// 修复app.js函数和变量的引用关系
+		// repairAppFunctionLink(vistors);
+
+		//占个位
+		ast = buildRequire({
+			METHODS: babelUtil.arrayToObject([])
+		});
+	} else {
+		//插入setData()
+		const node = babelUtil.getSetDataFunAST();
+		vistors.methods.handle(node);
+
+		//非app.js文件
+		if (astType === "Behavior") {
+			buildRequire = template(behaviorTemplate);
+		} else {
+			buildRequire = template(componentTemplate);
+		}
+
+		//处理data下变量名与函数重名的问题，或函数名为系统关键字，如delete等
+		const dataArr = vistors.data.getData();
+		let dataNameList = { }; 
+		for (const item of dataArr) {
+			dataNameList[item.key.name] = true;
+		}
+
+		const methods = vistors.methods.getData();
+		for (const item of methods) {
+			const keyName = item.key.name;
+			if (dataNameList[keyName] || utils.isJavascriptKeyWord(keyName)) {
+				item.key.name += "Fun";
+				replaceFunNameList.push(keyName);  //默认无重复吧，后期用set
+				//留存全局变量，以便替换template
+			}
+		}
+
+		//储存全局变量
+		let fileKey = pathUtil.getFileKey(file_js);
+		if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+		global.pagesData[fileKey].replaceFunNameList = replaceFunNameList;
 
 		//
-		if (isApp) {
-			//app.js文件,要单独处理
-			buildRequire = template(appTemplate);
+		ast = buildRequire({
+			PROPS: babelUtil.arrayToObject(vistors.props.getData()),
+			DATA: babelUtil.arrayToObject(vistors.data.getData()),
+			METHODS: babelUtil.arrayToObject(methods),
+			COMPUTED: babelUtil.arrayToObject(vistors.computed.getData()),
+			WATCH: babelUtil.arrayToObject(vistors.watch.getData()),
+		});
 
-			//20191028 回滚
-			//[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug
-			// 修复app.js函数和变量的引用关系
-			// repairAppFunctionLink(vistors);
-
-			//占个位
-			ast = buildRequire({
-				METHODS: babelUtil.arrayToObject([])
-			});
-		} else {
-			//插入setData()
-			const node = babelUtil.getSetDataFunAST();
-			vistors.methods.handle(node);
-
-			//非app.js文件
-			buildRequire = template(componentTemplate);
-
-			//处理data下变量名与函数重名的问题，或函数名为系统关键字，如delete等
-			const dataArr = vistors.data.getData();
-			let dataNameList = { "delete": true, "import": true }; //默认替换delete，import，暂定这几个关键字
-			for (const item of dataArr) {
-				dataNameList[item.key.name] = true;
-			}
-
-			const methods = vistors.methods.getData();
-			for (const item of methods) {
-				const keyName = item.key.name;
-				if (dataNameList[keyName] || utils.isReservedTag(keyName)) {
-					item.key.name += "Fun";
-					replaceFunNameList.push(keyName);  //默认无重复吧，后期用set
-					//留存全局变量，以便替换template
-				}
-			}
-
-			//储存全局变量
-			if (!global.pageData[file_js]) global.pageData[file_js] = {};
-			global.pageData[file_js].replaceFunNameList = replaceFunNameList;
-
-			//
-			ast = buildRequire({
-				PROPS: babelUtil.arrayToObject(vistors.props.getData()),
-				DATA: babelUtil.arrayToObject(vistors.data.getData()),
-				METHODS: babelUtil.arrayToObject(methods),
-				COMPUTED: babelUtil.arrayToObject(vistors.computed.getData()),
-				WATCH: babelUtil.arrayToObject(vistors.watch.getData()),
-			});
-
-			if (global.isTransformWXS) {
-				//处理wxs里变量的引用问题
-				let liftCycleArr = vistors.lifeCycle.getData();
-				let funName = "beforeMount";
-				if (isPage) funName = "onLoad";
-				handleOnLoadFun(liftCycleArr, wxsKey, funName);
-			}
+		if (global.isTransformWXS) {
+			//处理wxs里变量的引用问题
+			let liftCycleArr = vistors.lifeCycle.getData();
+			let funName = "beforeMount";
+			if (isPage) funName = "onLoad";
+			handleOnLoadFun(liftCycleArr, wxsKey, funName);
 		}
 	}
 
@@ -324,7 +333,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				traverse(path.node, {
 					noScope: true,
 					CallExpression(path2) {
-						requireHandle(path2, fileDir);
+						babelUtil.requirePathHandle(path2, fileDir);
 					}
 				});
 
@@ -423,12 +432,12 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 					babelUtil.addComment(path, `${generate(path.node).code}`);
 
 					//替换节点
-					//装13之选 ，一堆代码只为还原一行代码: setTimeout(()=>{this.uParseArticle = contentData});
+					//装13之选 ，一堆代码只为还原一行代码: setTimeout(()=>{this.uParseArticle = contentData}, 200);
 					const left = t.memberExpression(t.identifier(wxParseArgs.target), t.identifier(wxParseArgs.bindName), false);
 					const right = t.identifier(wxParseArgs.data);
 					const assExp = t.assignmentExpression("=", left, right);
 					const bState = t.blockStatement([t.expressionStatement(assExp)]);
-					const args = [t.ArrowFunctionExpression([], bState)];
+					const args = [t.ArrowFunctionExpression([], bState), t.numericLiteral(200)];  //延时200ms防止百度小程序解析不出来
 					const callExp = t.callExpression(t.identifier("setTimeout"), args);
 					const expState = t.expressionStatement(callExp);
 					path.replaceWith(expState);
@@ -451,7 +460,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 					babelUtil.globalDataHandle(callee);
 				}
 			} else {
-				requireHandle(path, fileDir);
+				babelUtil.requirePathHandle(path, fileDir);
 			}
 
 			// if (t.isIdentifier(callee, { name: "getApp" })) {
@@ -644,9 +653,8 @@ function handleJSImage(ast, file_js) {
  * @param {*} isApp             是否为入口app.js文件
  * @param {*} usingComponents   使用的自定义组件列表
  * @param {*} file_js           当前处理的文件路径
- * @param {*} isSingleFile      表示是否为单个js文件，而不是vue文件一部分
  */
-async function jsHandle(fileData, isApp, usingComponents, file_js, isSingleFile) {
+async function jsHandle(fileData, isApp, usingComponents, file_js) {
 	//先反转义
 	let javascriptContent = fileData;
 
@@ -672,7 +680,7 @@ async function jsHandle(fileData, isApp, usingComponents, file_js, isSingleFile)
 	const isVueFile = babelUtil.checkVueFile(javascriptAst);
 
 	//判断文件类型
-	const astType = babelUtil.getAstType(javascriptAst, nodePath.relative(global.targetFolder, file_js));
+	let astType = babelUtil.getAstType(javascriptAst, nodePath.relative(global.targetFolder, file_js));
 
 	let isPage = false;  //是否为页面
 	let astInfoObject = null;
@@ -685,12 +693,16 @@ async function jsHandle(fileData, isApp, usingComponents, file_js, isSingleFile)
 				astInfoObject = pageConverter(javascriptAst, file_js, true);
 				isPage = true;
 				break;
+			case "Behavior":
+				astInfoObject = componentConverter(javascriptAst, file_js, false);
+				break;
 			case "Component":
 			case "VantComponent":
 				astInfoObject = componentConverter(javascriptAst, file_js, false);
 				break;
 			default:
-				console.log("你是什么垃……类型？", astType);
+				// console.log("其他类型：", astType);
+				astType = "";
 				break;
 		}
 	}
@@ -703,8 +715,9 @@ async function jsHandle(fileData, isApp, usingComponents, file_js, isSingleFile)
 	// } = componentConverter(javascriptAst, miniprogramRoot, file_js, isVueFile);
 
 	let codeText = "";
+	let convertedJavascript;
 	if (astInfoObject) {
-		let convertedJavascript = astInfoObject.convertedJavascript;
+		convertedJavascript = astInfoObject.convertedJavascript;
 		let vistors = astInfoObject.vistors;
 		let declareStr = astInfoObject.declareStr;
 
@@ -725,41 +738,43 @@ async function jsHandle(fileData, isApp, usingComponents, file_js, isSingleFile)
 			}
 		}
 
+		if (astType !== "App") {
+			//引入自定义组件
+			//import firstcompoent from '../firstcompoent/firstcompoent'
+			let jsFolder = nodePath.dirname(file_js);
+			for (const key in usingComponents) {
+				let filePath = usingComponents[key];
 
-		//引入自定义组件
-		//import firstcompoent from '../firstcompoent/firstcompoent'
-		let jsFolder = nodePath.dirname(file_js);
-		for (const key in usingComponents) {
-			let filePath = usingComponents[key];
+				//相对路径处理
+				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, jsFolder);
 
-			//相对路径处理
-			filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, jsFolder);
-
-			//中划线转驼峰
-			let componentName = utils.toCamel2(key);
-			//
-			let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
-			declareStr += `${generate(node).code}\r\n`;
+				//中划线转驼峰
+				let componentName = utils.toCamel2(key);
+				//
+				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
+				declareStr += `${generate(node).code}\r\n`;
+			}		
 		}
 
 		if (!isVueFile) {
 			//放到预先定义好的模板中
-			convertedJavascript = componentTemplateBuilder(convertedJavascript, vistors, isApp, usingComponents, isPage, wxsKey, file_js, isSingleFile);
+			convertedJavascript = componentTemplateBuilder(convertedJavascript, vistors, isApp, usingComponents, isPage, wxsKey, file_js, astType);
 		}
-
-
 		// console.log(`${generate(convertedJavascript).code}`);
 
 		//生成文本并写入到文件
-		if (isSingleFile) {
-			codeText = `${generate(convertedJavascript).code}`;
-		} else {
+		if (astType && astType !== "Behavior") {
 			codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
+		} else {
+			codeText = `${generate(convertedJavascript).code}`;
 		}
+	}else{
+		convertedJavascript = singleJSConverter(javascriptAst, file_js);
+		codeText = `${generate(convertedJavascript).code}`;
 	}
 
 	//如果解析报错，那么还是返回原文件内容
-	if (isParseError || !astInfoObject) {
+	if (isParseError) {
 		codeText = fileData;
 	}
 	return codeText;

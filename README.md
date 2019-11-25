@@ -71,10 +71,36 @@ $ wtu -i miniprogramProject -w
 * 合并使用require导入的wxs文件   
 * 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径   
 * 修复变量名与函数重名的情况   
+* 支持解析include标签
    
-
    
 ## 更新记录   
+### v1.0.32(20191125)   
+* [新增] 支持```<include src="url"></include>```标签
+* [优化] 更新babel版本   
+* [优化] 漏网之鱼里对url的提示   
+* [优化] 组件里Behavior转换为mixins   
+* [优化] 重构转换流程来适应include标签转换   
+* [优化] 变量名和函数名为JS关键字时，对其重命名   
+* [优化] 不再推荐转换为vue项目(因为初始化太繁琐，让给有时间的人去折腾吧)   
+* [优化] 更新u-parse，修复百度小程序解析img不显示、富文本解析不出来的bug   
+* [优化] 重新转换时，不删除unpackage和node_modules目录，减少因文件占用而清空文件夹失败的机率   
+* [修复] catchtap事件转换    
+* [修复] 单引号含双引号的属性    
+* [修复] app.vue也添加了组件的bug   
+* [修复] 单独js文件里路径没有处理的bug   
+* [修复] Vue.component()组件名对应不上的bug   
+* [修复] url('{{}}xxx')含引号，导致转换错误的bug   
+* [修复] 当package.json内容为空时解析报错的bug   
+* [修复] wxParseData含三元/二元表达式的变量提取   
+* [修复] ```var app = getApp(), http = app.http;```转换失败的bug   
+* [修复] setData()时，props含此变量，但data里没有，而导致变量重复声明的bug(此问题未完美解决，因为props里变量不能setData)   
+
+### v1.0.31(20191119)   
+* [优化] setData()支持回调函数   
+* [修复] 解析app时判断prop报错的bug   
+* [修复] 一些小bug   
+
 ### v1.0.30(20191118)   
 * [优化] 重构大部分代码，优化页面类型判断逻辑，app、page和component分别进行解析       
 * [优化] 组件里生命周期的转换(ready-->mounted，ready-->mounted)、pageLifetimes、lifetimes、behaviors、externalClasses、relations和options等节点处理     
@@ -105,6 +131,7 @@ $ wtu -i miniprogramProject -w
 3. [Babel 插件手册](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/zh-Hans/plugin-handbook.md#toc-inserting-into-a-container)  中文版Babel插件手册   
 5. [Babel官网](https://babeljs.io/docs/en/babel-types)   有问题直接阅读官方文档哈   
 6. [微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)  补充了我一些未考虑到的规则。   
+7. 更新babel版本，命令：npx babel-upgrade --write
    
    
 ## 最后

@@ -153,13 +153,28 @@ var isUniAppTag = makeMap(
     "trisition-group,trisition,web"
 )
 
-
-// "default"  //不能用dealut作变量
-//export
-//import
-//return 
-// 方法和绑定 的值 名都不能为这些
-
+/**
+ * 是否为javascript保留关键字，不能用作变量或函数名
+ * // 方法和绑定 的值 名都不能为这些
+ * 加上_开头的方法
+ * 加上id data作为的属性名
+ * 
+ */
+var isJavascriptKeyWord = makeMap(
+    "abstract,arguments,boolean,break,byte," +
+    "case,catch,char,class,const," +
+    "continue,debugger,default,delete,do," +
+    "double,else,enum,eval,export," +
+    "extends,false,final,finally,float," +
+    "for,function,goto,if,implements," +
+    "import,in,instanceof,int,interface," +
+    "let,long,native,new,null," +
+    "package,private,protected,public,return," +
+    "short,static,super,switch,synchronized," +
+    "this,throw,throws,transient,true," +
+    "try,typeof,var,void,volatile," +
+    "while,with,yield"
+);
 
 //是否为vue内置关键字或方法
 // "_init"
@@ -204,5 +219,6 @@ module.exports = {
     sleep,
     isReservedTag,
     getValueAlias,
-    getComponentAlias
+    getComponentAlias,
+    isJavascriptKeyWord
 }
