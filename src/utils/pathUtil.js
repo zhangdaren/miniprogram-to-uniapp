@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const util = require('util');
+const nodeUtil = require('util');
+const utils = require('./utils');
 
 /**
  * 复制文件
@@ -103,7 +104,7 @@ function delDir(path) {
  */
 function emptyDirSyncEx(folder, ignore) {
 	if (ignore) {
-		if (!util.isRegExp(ignore)) {
+		if (!nodeUtil.isRegExp(ignore)) {
 			ignore = new RegExp(ignore);
 		}
 	} else {
@@ -232,7 +233,8 @@ function getFileKey(filePath) {
 	let fileFolder = path.dirname(filePath);
 	fileFolder = path.relative(global.miniprogramRoot, fileFolder);
 	let fileNameNoExt = getFileNameNoExt(filePath);
-	return path.join(fileFolder, fileNameNoExt);
+	let key = path.join(fileFolder, fileNameNoExt);
+	return utils.normalizePath(key);
 }
 
 module.exports = {

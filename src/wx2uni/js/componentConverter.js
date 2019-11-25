@@ -160,9 +160,11 @@ const componentVistor = {
 				var properties = path.node.value.properties;
 				if (properties) {
 					properties.forEach(function (item) {
-						item.key.name = util.getValueAlias(item.key.name);
-						// let _name = util.getValueAlias(name);
-						vistors[name].handle(item);
+						if(item && item.key && item.key.name){
+							item.key.name = util.getValueAlias(item.key.name);
+							// let _name = util.getValueAlias(name);
+							vistors[name].handle(item);
+						}
 					});
 				}
 				path.skip();

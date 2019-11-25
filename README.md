@@ -75,6 +75,11 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.33(20191125)   
+* [修复] pages为空的bug    
+* [修复] wxParseData不为xxx.nodes的形态，导致转换报错的bug    
+
+
 ### v1.0.32(20191125)   
 * [新增] 支持```<include src="url"></include>```标签
 * [优化] 更新babel版本   

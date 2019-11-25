@@ -73,15 +73,15 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			let pages = [];
 			for (const key in appJson.pages) {
 				let pagePath = appJson.pages[key];
-				let rkey = path.join(targetFolder, pagePath);
-				let data = routerData[rkey];
+				pagePath = utils.normalizePath(pagePath);
+				let data = routerData[pagePath];
 
 				// let usingComponents = {};
 
 				// if (data && JSON.stringify(data) != "{}") {
 				// 	usingComponents = data.usingComponents;
 				// }
-
+ 
 				if (data) {
 					let dataBak = clone(data);
 					delete dataBak.usingComponents;

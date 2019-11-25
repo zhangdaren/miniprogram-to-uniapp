@@ -229,3 +229,9 @@ proE: {
 let a = 1;
 var a = 4;
 ```
+
+## ```<solt :name="tabItem"></solt>```
+v-slot 不支持动态插槽名，只发现一例
+
+
+## <template is="wxParse" data="{{ wxParseData:item.html }}"></template>

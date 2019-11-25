@@ -250,7 +250,12 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						//<template is="wxParse" data="{{ wxParseData:content.nodes }}"></template>
 						var reg_val = /wxParseData:(.*?)\.nodes/i;
 						if (data) {
-							let varName = data.match(reg_val)[1];
+							let varName = "";
+							if (reg_val.test(data)) {
+								varName = "article_" + data.match(reg_val)[1];
+							}else {
+								varName = data.replace(/wxParseData:/, "");
+							}
 							//处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
 							//仅提取变量，"或"操作符和三元运算符暂不考虑。
 							varName = varName.replace(/[\s\(\[]/g, ""); //替换掉空格和括号
@@ -258,7 +263,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 								type: "tag",
 								name: "u-parse",
 								attribs: {
-									":content": "article_" + varName
+									":content": varName
 								}
 							};
 							continue;
