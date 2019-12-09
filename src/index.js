@@ -419,14 +419,27 @@ async function filesHandle(fileData, miniprogramRoot) {
 						let fileContentJs = "";
 						let fileContentCss = "";
 
+						//取key，理论随便哪个文件都能取到。
+						let fileKey = pathUtil.getFileKey(file_js);
+						//存入全局对象
+						if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+
+						global.pagesData[fileKey]["data"] = {
+							type: "all",
+							path: targetFilePath
+						};
+
 						//读取.wxml文件
 						if (file_wxml && fs.existsSync(file_wxml)) {
 							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
 							if (data_wxml) {
-								let {templateString, templateStringMin} = await wxmlHandle(data_wxml, file_wxml, false);
+								let { templateString, templateStringMin } = await wxmlHandle(data_wxml, file_wxml, false);
 								fileContentWxml = templateString;
 								fileContentMinWxml = templateStringMin;
 								wxsInfoHandle(tFolder, file_wxml);
+
+								global.pagesData[fileKey]["data"]["wxml"] = fileContentWxml;
+								global.pagesData[fileKey]["data"]["minWxml"] = fileContentMinWxml;
 							} else {
 								//存个空标签
 								fileContentWxml = "<template><view></view></template>";
@@ -442,6 +455,12 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 								//根据与data变量重名的函数名，将wxml里引用的地方进行替换
 								fileContentWxml = replaceFunName(fileContentWxml, pathUtil.getFileKey(file_js));
+								fileContentMinWxml = replaceFunName(fileContentMinWxml, pathUtil.getFileKey(file_js));
+
+								global.pagesData[fileKey]["data"]["wxml"] = fileContentWxml;
+								global.pagesData[fileKey]["data"]["minWxml"] = fileContentMinWxml;
+
+								global.pagesData[fileKey]["data"]["js"] = fileContentJs;
 							}
 						}
 
@@ -466,6 +485,8 @@ async function filesHandle(fileData, miniprogramRoot) {
 								} else {
 									fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
 								}
+
+								global.pagesData[fileKey]["data"]["css"] = fileContentCss;
 							} else {
 								fs.copySync(file_wxss, cssFilePath);
 							}
@@ -478,18 +499,6 @@ async function filesHandle(fileData, miniprogramRoot) {
 							return;
 						}
 
-						//取key，理论随便哪个文件都能取到。
-						let fileKey = pathUtil.getFileKey(file_js);
-						//存入全局对象
-						if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
-						global.pagesData[fileKey]["data"]= {
-								type: "all",
-								path: targetFilePath,
-								js: fileContentJs,
-								wxml: fileContentWxml,
-								minWxml:fileContentMinWxml,
-								css: fileContentCss
-						}
 
 						// fileContent = fileContentWxml + fileContentJs + fileContentCss;
 
@@ -503,7 +512,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
 							if (data_wxml) {
-								let {templateString, templateStringMin} = await wxmlHandle(data_wxml, file_wxml, onlyWxmlFile);
+								let { templateString, templateStringMin } = await wxmlHandle(data_wxml, file_wxml, onlyWxmlFile);
 								fileContent = templateString;
 								if (fileContent) {
 									let props = [];
@@ -631,7 +640,9 @@ function replaceFunName(fileContentWxml, key) {
 		const replaceFunNameList = global.pagesData[key].replaceFunNameList;
 		// let reg_funName = /="(abc|xyz)"/g;
 		let reg_funName = new RegExp('=\"(' + replaceFunNameList.join('|') + ')\"', "mg");
-		result = fileContentWxml.replace(reg_funName, '="$1Fun"');
+		result = fileContentWxml.replace(reg_funName, function (match, $1) {
+			return `="${utils.getValueAlias($1)}"`;
+		});
 	}
 	return result;
 }

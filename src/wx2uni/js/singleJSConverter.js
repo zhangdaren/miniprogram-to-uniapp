@@ -19,6 +19,14 @@ const singleJSVistor = {
 		//处理require()里面的路径
 		babelUtil.requirePathHandle(path, fileDir);
 	},
+	ImportDeclaration(path) {
+		//定义的导入的模块
+		//处理import模板的路径，转换当前路径以及根路径为相对路径
+		let filePath = path.node.source.value;
+		filePath = nodePath.join(nodePath.dirname(filePath), pathUtil.getFileNameNoExt(filePath)); //去掉扩展名
+		filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+		path.node.source.value = filePath;
+	},
 	// VariableDeclaration(path) {
 	// 	traverse(path.node, {
 	// 		noScope: true,

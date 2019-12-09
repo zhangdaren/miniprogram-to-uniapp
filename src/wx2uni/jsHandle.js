@@ -197,7 +197,7 @@ function defineValueHandle(ast, vistors, file_js) {
 
 									vistors.data.handle(t.objectProperty(t.identifier(name), initialValue));
 									dataJson[name] = name;
-								}else{
+								} else {
 									//TODO：
 									//如果props有个变量abc，使用this.setData({abc:1})会报错，但在小程序里是正确的，
 									//如果要改的话，要用一个中间变量，并且把页面里所有的地方都要替换，工作量有点繁琐。
@@ -232,6 +232,8 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 	//存储data的引用，用于后面添加wxparse的数据变量
 	let astDataPath = null;
 
+	let appGlobalDataFunNameList = {};
+
 	defineValueHandle(ast, vistors, file_js);
 
 	//
@@ -243,6 +245,23 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 		//[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug
 		// 修复app.js函数和变量的引用关系
 		// repairAppFunctionLink(vistors);
+
+		//收集globalData里的函数
+		//然后遍历生命周期里，将函数调整过来
+		const lifeCycleArr = vistors.lifeCycle.getData();
+
+		//提取globalData里面函数名
+		for (const item of lifeCycleArr) {
+			if (item.key.name === "globalData") {
+				let globalDataArr = item.value.properties;
+				for (const subItem of globalDataArr) {
+					const isFun = t.isObjectMethod(subItem) || (t.isObjectProperty(subItem) && (t.isFunctionExpression(subItem.value) || t.isArrowFunctionExpression(subItem.value)));
+					if (isFun) {
+						appGlobalDataFunNameList[subItem.key.name] = true;
+					}
+				}
+			}
+		}
 
 		//占个位
 		ast = buildRequire({
@@ -262,7 +281,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 		//处理data下变量名与函数重名的问题，或函数名为系统关键字，如delete等
 		const dataArr = vistors.data.getData();
-		let dataNameList = { }; 
+		let dataNameList = {};
 		for (const item of dataArr) {
 			dataNameList[item.key.name] = true;
 		}
@@ -270,9 +289,9 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 		const methods = vistors.methods.getData();
 		for (const item of methods) {
 			const keyName = item.key.name;
-			if (dataNameList[keyName] || utils.isJavascriptKeyWord(keyName)) {
-				item.key.name += "Fun";
-				replaceFunNameList.push(keyName);  //默认无重复吧，后期用set
+			if (dataNameList[keyName] || utils.isReservedName(keyName)) {
+				item.key.name = utils.getValueAlias(item.key.name);
+				replaceFunNameList.push(keyName);
 				//留存全局变量，以便替换template
 			}
 		}
@@ -457,7 +476,17 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						}
 					}
 				} else {
-					babelUtil.globalDataHandle(callee);
+					if (isApp) {
+						//修复app内生命周期函数里调用了globalData里的函数的调用关系
+						let calleeName = callee.node.property.name;
+						if (appGlobalDataFunNameList[calleeName]) {
+							let me = t.memberExpression(callee.node.object, t.identifier("globalData"));
+							let memberExp = t.memberExpression(me, callee.node.property);
+							callee.replaceWith(memberExp);
+						}
+					} else {
+						babelUtil.globalDataHandle(callee);
+					}
 				}
 			} else {
 				babelUtil.requirePathHandle(path, fileDir);
@@ -518,7 +547,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						let parent = path.parent;
 						//如果父级是AssignmentExpression，则不需再进行转换
 						if (parent && !t.isAssignmentExpression(parent)) {
-							property.node.name = item + "Fun";
+							property.node.name = utils.getValueAlias(item);
 						}
 					}
 				}
@@ -753,7 +782,7 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 				//
 				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
 				declareStr += `${generate(node).code}\r\n`;
-			}		
+			}
 		}
 
 		if (!isVueFile) {
@@ -768,7 +797,7 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 		} else {
 			codeText = `${generate(convertedJavascript).code}`;
 		}
-	}else{
+	} else {
 		convertedJavascript = singleJSConverter(javascriptAst, file_js);
 		codeText = `${generate(convertedJavascript).code}`;
 	}

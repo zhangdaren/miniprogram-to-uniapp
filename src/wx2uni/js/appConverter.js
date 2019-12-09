@@ -24,12 +24,7 @@ let globalData = {};
 let fileDir = "";
 
 /*
- *
  * 注：为防止深层遍历，将直接路过子级遍历，所以使用enter进行全遍历时，孙级节点将跳过
- * 
- * //noScope: true, 
- * //babel ^v7.7.0 需要加这个参数，这个参数是个迷，文档没有，不然会报Cannot read property 'buildError' of undefined
- * //https://segmentfault.com/a/1190000020999346#articleHeader2
  * 
  */
 const vistor = {

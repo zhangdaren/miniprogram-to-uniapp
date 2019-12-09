@@ -202,10 +202,28 @@ var getComponentAlias = function (name) {
 }
 
 /**
- * 获取变量别名
+ * 判断name是否为预置的名字
+ * @param {*} tag 
+ */
+var isReservedName = function (name) {
+    return isJavascriptKeyWord(name) || isVueMethod(name);
+};
+
+
+/**
+ * 获取变量/函数别名
+ * 1.变量或函数名为js系统关键字，返回name + "_fun" 形式
+ * 2.以_开头的变量或函数名，返回"re" + name形式
  */
 var getValueAlias = function (name) {
-    return isReservedTag(name) ? (name + "_val") : name;
+    if (!name) return name;
+    var rusult = name;
+    if (isJavascriptKeyWord(name)) {
+        rusult = name + "Fun";
+    } else if (isVueMethod(name)) {
+        rusult = name.replace(/_|\$/g, "") + "Fun";
+    }
+    return rusult;
 }
 
 
@@ -220,5 +238,6 @@ module.exports = {
     isReservedTag,
     getValueAlias,
     getComponentAlias,
-    isJavascriptKeyWord
+    isJavascriptKeyWord,
+    isReservedName
 }

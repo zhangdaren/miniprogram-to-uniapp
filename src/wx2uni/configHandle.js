@@ -81,25 +81,25 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				// if (data && JSON.stringify(data) != "{}") {
 				// 	usingComponents = data.usingComponents;
 				// }
- 
+
+				let obj;
 				if (data) {
 					let dataBak = clone(data);
 					delete dataBak.usingComponents;
 
-					let obj = {
+					obj = {
 						"path": pagePath,
 						"style": {
 							...dataBak
 						}
 					};
-					pages.push(obj);
-				}else{
-					let obj = {
+				} else {
+					obj = {
 						"path": pagePath,
 						"style": {}
 					};
-					pages.push(obj);
 				}
+				pages.push(obj);
 			}
 			appJson.pages = pages;
 

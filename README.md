@@ -75,6 +75,22 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.34(20191209)   
+* [修复] 生成多余template标签的问题(代码串掉的问题)    
+* [修复] 重命名以_和$开头以及使用js系统关键字命名(如import和default等)的函数名    
+* [修复] pages为空的bug    
+* [修复] 清除wxParse相关的css引用    
+* [修复] 页面没有json时，也应记录到pages里    
+* [修复] 单独js里，当import导入包的路径，没有相对路径标识时，添加相对标识    
+* [修复] bind字符串里多余的引号(试处理：```<view url="/page/url/index={{item.id}}&data='abc'"></view>```)   
+* [修复] app.js里生命周期的代码调用globalData里函数的引用关系("_abc(){}"-->"abcFun(){}", "import(){}"-->"importFun(){}")   
+* [修复] ```<view>{{x<10?"吃瓜1":"吃瓜2">}}<text>我也来吃瓜</text></view>  ```解决出错的问题(原因是小于号"<"后没有空格，暂不支持```<view>{{x<10}}<text>吃瓜群众</text></view>```)   
+
+
+### v1.0.33(20191125)   
+* [修复] pages为空的bug    
+* [修复] wxParseData不为xxx.nodes的形态，导致转换报错的bug    
+
 ### v1.0.33(20191125)   
 * [修复] pages为空的bug    
 * [修复] wxParseData不为xxx.nodes的形态，导致转换报错的bug    

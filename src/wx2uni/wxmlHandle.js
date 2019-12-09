@@ -56,7 +56,6 @@ function checkEmptyTag(ast) {
 
 
 
-
 /**
  * wxml文件处理
  * @param {*} fileData wxml文件内容
@@ -82,7 +81,7 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	convertedTemplate = checkEmptyTag(convertedTemplate);
 
 	//把语法树转成文本
-	templateConvertedString = templateParser.astToString(convertedTemplate);
+	let templateConvertedString = templateParser.astToString(convertedTemplate);
 
 	//去掉首尾空，有可能文件内容都删除完了。
 	templateConvertedString = templateConvertedString.trim();
@@ -93,29 +92,32 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 		const componentData = globalTemplateComponents[name];
 		//这里判断一下，可能有两个页面同时引用了某个组件
 		if (componentData.ast && !componentData.data) {
-			// console.log("file_wxml-------", file_wxml, "------------" + name)
-			let tempComponent = await templateConverter(componentData.ast, false, file_wxml, onlyWxmlFile, templateParser);
-			let tempComponentString = templateParser.astToString(tempComponent);
-			let isMultiTag2 = checkMultiTag(componentData.ast);
-			if (isMultiTag2) {
-				tempComponentString = `<template>\r\n<view>\r\n${tempComponentString}\r\n</view>\r\n</template>\r\n\r\n`;
-			} else {
-				tempComponentString = `<template>\r\n${tempComponentString}\r\n</template>\r\n\r\n`;
-			}
-			tempComponentString += '<script>\r\n' +
-				'    export default {\r\n' +
-				'    		name: "' + componentData.alias + '",\r\n' +
-				'    		props: ["item"]\r\n' +
-				'    	}\r\n' +
-				'</script>\r\n';
-			componentData.data = tempComponentString;
+			//这里需要缓存，不然可能会串掉！
+			(async function (file_wxml, onlyWxmlFile) {
+				// console.log("file_wxml-------", file_wxml, "------------" + name)
+				let tempComponent = await templateConverter(componentData.ast, false, file_wxml, onlyWxmlFile, templateParser);
+				let tempComponentString = templateParser.astToString(tempComponent);
+				let isMultiTag2 = checkMultiTag(componentData.ast);
+				if (isMultiTag2) {
+					tempComponentString = `<template>\r\n<view>\r\n${tempComponentString}\r\n</view>\r\n</template>\r\n\r\n`;
+				} else {
+					tempComponentString = `<template>\r\n${tempComponentString}\r\n</template>\r\n\r\n`;
+				}
+				tempComponentString += '<script>\r\n' +
+					'    export default {\r\n' +
+					'    		name: "' + componentData.alias + '",\r\n' +
+					'    		props: ["item"]\r\n' +
+					'    	}\r\n' +
+					'</script>\r\n';
+				componentData.data = tempComponentString;
+
+			})(file_wxml, onlyWxmlFile);
 		}
 	}
 
 	//不加template标签的wxml，用于导入include
 	const templateConvertedStringMin = templateConvertedString;
 	if (templateConvertedString) {
-
 		if (isMultiTag) {
 			templateConvertedString = `<template>\r\n<view>\r\n${templateConvertedString}\r\n</view>\r\n</template>\r\n\r\n`;
 		} else {
@@ -142,9 +144,7 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 				templateConvertedString += wxsStr + "\r\n";
 			}
 		}
-
 	}
-
 	return {
 		templateString: templateConvertedString,
 		templateStringMin: templateConvertedStringMin

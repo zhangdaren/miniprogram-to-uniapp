@@ -59,28 +59,6 @@ The data property "currentIndex" is already declared as a prop. Use prop default
 
 
 
-Component({
-    options: {
-        addGlobalClass: !0
-    },
-    properties: {
-        currentIndex: {
-            type: Object,
-            value: {}
-        },
-    },
-    lifetimes: {
-        detached: function() {
-            clearInterval(this.appTimeInterval), this.appTimeInterval = null;
-        },
-        ready: function() {
-            this.getTime();
-        }
-    },
-    appTimeInterval: null,  //这个没转换    
-        IntervalTime: null,
-            fullScreen: !1,
-});
 
 
   properties: {

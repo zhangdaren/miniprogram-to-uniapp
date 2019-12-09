@@ -137,6 +137,31 @@ function checkExp(str) {
 }
 
 /**
+ * 疑难代码处理(暂时处理一下)
+ * htmlparse2在解析<view>{{a<1?2:0}}<text>{{chigua}}</text></view>时，会将小于号解析为标签的开头，导致解析出问题
+ */
+function difficultCodeHandle(node) {
+	if (node.type === "tag") {
+		//如果tag的name里包含?时
+		if (node.name.indexOf("?") > -1) {
+			var txt = "";
+			if (node.children) {
+				for (const key in node.children) {
+					const item = node.children[key];
+					txt += item.data + "</" + item.type + ">";
+					difficultCodeHandle(item);
+				}
+			}
+			delete node.children;
+			//修改tag类型
+			node.type = "text";
+			node.data = "<" + node.name + ">" + txt;
+		}
+	}
+}
+
+
+/**
  * wmxml转换
  * // style="color: {{step === index + 1 ? 'red': 'black'}}; font-size:{{abc}}">
  * // <view style="width : {{item.dayExpressmanEarnings / maxIncome * 460 + 250}}rpx;"></view>
@@ -237,6 +262,8 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 				global.pageWxsInfo[key].push(obj);
 				delete ast[i];
 				continue;
+			} else {
+				difficultCodeHandle(node);
 			}
 
 			//处理template标签<template is="head" data="{{title: 'addPhoneContact'}}"/>
@@ -253,7 +280,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 							let varName = "";
 							if (reg_val.test(data)) {
 								varName = "article_" + data.match(reg_val)[1];
-							}else {
+							} else {
 								varName = data.replace(/wxParseData:/, "");
 							}
 							//处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
@@ -644,6 +671,15 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 							value = value + "'";
 						}
 
+						//试处理：<view url="/page/url/index={{item.id}}&data='abc'"></view>
+						let tmpArr = value.split(" + ");
+						let tmpReg = /='(.*?)'/g;
+						tmpArr.forEach((str, index) => {
+							tmpArr[index] = str.replace(tmpReg, "=$1");
+						});
+						value = tmpArr.join(" + ");
+
+
 						//如果value={{true}}或value={{false}}，则不添加bind
 						if (wx_key == k && value !== "true" && value !== "false") {
 							//处理<view style="display:{{}}"></view>，转换后，可能末尾多余一个+，编译会报错
@@ -662,7 +698,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 			node.attribs = attrs;
 
 			//处理include标签
-			if (node.name == "include") {
+			if (node.name === "include") {
 				let fileKey = pathUtil.getFileKey(file_wxml);
 				let src = node.attribs.src;
 				src = pathUtil.relativePath(src, global.miniprogramRoot, wxmlFolder);
@@ -736,9 +772,10 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 			// 	vistors.data.handle(path.node);
 			// }
 		}
+
 		//因为是树状结构，所以需要进行递归
 		if (node.children) {
-			templateConverter(node.children, true, file_wxml, onlyWxmlFile, templateParser);
+			await templateConverter(node.children, true, file_wxml, onlyWxmlFile, templateParser);
 		}
 	}
 	return ast;

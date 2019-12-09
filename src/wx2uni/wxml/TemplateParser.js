@@ -1,5 +1,12 @@
 // const Parser = require('./Parser') //基类
 const htmlparser = require('htmlparser2')   //html的AST类库
+
+//为啥见一些转换器都用这个来转换，而且这个库的star数还是0
+// const {
+//   Parser,
+//   DomHandler
+// } = require('stricter-htmlparser2')
+
 class TemplateParser {
   constructor() {
   }
@@ -46,6 +53,23 @@ class TemplateParser {
       parser.end();
     });
   }
+
+  // parse(sourceCode) {
+  //   //借鉴自：https://github.com/dcloudio/uni-app/blob/v3/packages/uni-migration/lib/mp-weixin/transform/template-transformer/parser.js
+  //   对于```<view>{{a<10?'折（客房）':'无折扣'}}<text>{{sale_price}}元</text></view>```仍然解析无力，弃用，仅作参考
+  //   return new Promise((resolve, reject) => {
+  //     const handler = new DomHandler()
+  //     new Parser(handler, {
+  //       xmlMode: false,
+  //       lowerCaseAttributeNames: false,
+  //       recognizeSelfClosing: true,
+  //       lowerCaseTags: false
+  //     }).end(sourceCode);
+
+  //     const dom = Array.isArray(handler.dom) ? handler.dom : [handler.dom];
+  //     resolve(dom);
+  //   });
+  // }
   /**
    * AST转文本方法
    * @param ast

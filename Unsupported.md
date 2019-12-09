@@ -26,6 +26,11 @@
 ~~## Method "_init" conflicts with an exsting Vue instance method, avoid defining component methods that start with _ or $.~~
 ~~方法名与vue内置方法名重名了，需手动修改（工具已做相关修复）~~   
 
+~~## include标签
+~~include标签不是蛮好转换，看过几份源代码，仅有一份代码里，使用了它。~~   
+~~建议手动将内容拷贝进来。~~   
+
+
 ## ```<import src="*.wxml"/>```支持部分语法处理   
 
 常规我们见到的代码是这样的(摘自官方小程序示例demo)：   
@@ -75,10 +80,6 @@ self.data.xxx   ==>  self.xxx
 _.data.xxx      ==>  _.xxx   
 _this.data.xxx  ==>  _this.xxx   
 
-
-## include标签
-include标签不是蛮好转换，看过几份源代码，仅有一份代码里，使用了它。   
-建议手动将内容拷贝进来。   
 
 
 ## wx:if="{{}}"   
@@ -130,9 +131,9 @@ wxs里使用class关键字来声明变量，手动改名
 
 
 ## 小程序组件不支持的语法   
-* ~~behaviors暂不支持，原样复制~~   
 * relations暂不支持，原样复制   
 * moved生命周期uni-app暂不支持，原样复制   
+* ~~behaviors暂不支持，原样复制~~   
 * ~~pageLifetimes(组件所在页面的生命周期函数),原样复制~~   
 
 
@@ -235,3 +236,10 @@ v-slot 不支持动态插槽名，只发现一例
 
 
 ## <template is="wxParse" data="{{ wxParseData:item.html }}"></template>
+
+
+## 返回顶部不生效
+可参考：[scroll-view](https://uniapp.dcloud.io/component/scroll-view)里的写法
+
+同样也可以简单粗暴的修改代码为：```this.scrollTop = Math.random();```
+原理见：[scroll-view组件返回顶部不生效！（附第三方解决方案）](https://ask.dcloud.net.cn/article/36612)
