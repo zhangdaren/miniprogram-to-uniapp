@@ -11,18 +11,16 @@
   <text class="col-7">{{order.extract_shop.region.province}} {{order.extract_shop.region.city}} {{order.extract_shop.region.region}} {{order.extract_shop.address}}</text>
 * [todo] setData时，data里面没有的就不赋值(一般是接口返回的数据，都往data里填)   
 * [todo] 导出目录检测，有文件是否覆盖，，是 否   
-* [todo] wx-charts替换   
-* [todo] ```<form-id :id="item.id" ></form-id>```
-* ```:data = "content"```
+~~* [todo] wx-charts替换   ~~
+~~* [todo] ```<form-id :id="item.id" ></form-id>```~~
+~~* ```:data = "content"```~~
 * 组件里：behaviors: ['wx://form-field']
 
-* 由二次循环改为三次循环，，需要改保存时机，全部代码保存于内存，统一保存
-* 分两步走，，
-prop data里有的就重名
-wxml有的也重名
-函数里使用了也重名
 
-* 标签属性上用了也重名
+mmt
+wxaSortPicker
+
+
 
 * prop里有data 生命周期也有data
 
@@ -57,10 +55,6 @@ data{defaultVal:""}
 data里没有currentIndex,，对比出来，误在data里增加了currentIndex，导致报错
 The data property "currentIndex" is already declared as a prop. Use prop default value instead.
 
-
-
-
-
   properties: {
     currentIndex: {
       type: Number,
@@ -83,43 +77,6 @@ https://www.jianshu.com/p/422a05e2f0f4
 
 
 
-
-
-????????????????
-(0, require("../common/component").VantComponent)({
-    props: {
-        safeAreaInsetBottom: {
-            type: Boolean,
-            value: !0
-        }
-    },
-    computed: {
-        rootClass: function() {
-            var o = this.data, t = o.safeAreaInsetBottom, n = o.isIPhoneX;
-            return this.classNames("van-goods-action", "custom-class", e({}, "van-goods-action--safe", n && t));
-        }
-    }
-});
-
-(0, i.VantComponent)({
-    mixins: [ e.link, n.button, t.openType ],
-    props: {
-        text: String,
-        loading: Boolean,
-        disabled: Boolean,
-        type: {
-            type: String,
-            value: "danger"
-        }
-    },
-    methods: {
-        onClick: function(i) {
-            this.$emit("click", i.detail), this.jumpLink();
-        }
-    }
-});
-
-
 组件嵌套组件时，page->actionsheet->btn
 btn的事件，只能取到当前它的对象，而不是取到actionsheet，但小程序里是可以的。。。
 @btnclick="handleBtnClick"
@@ -134,10 +91,8 @@ this.$emit('actionclick', {
 
 使用了npm库的小程序   有个src目录
 
-<view url="/page/url/index={{item.id}}&data='abc'"></view>
 
 //替换，，用函数、
 
 小程序 typescript
 
-var t = getApp(),

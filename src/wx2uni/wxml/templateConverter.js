@@ -4,6 +4,7 @@ const clone = require('clone');
 const utils = require('../../utils/utils.js');
 const pathUtil = require('../../utils/pathUtil.js');
 const objectStringToObject = require('object-string-to-object');
+const paramsHandle = require('../paramsHandle');
 
 
 //html标签替换规则，可以添加更多
@@ -160,6 +161,19 @@ function difficultCodeHandle(node) {
 	}
 }
 
+/**
+ * 替换template里参数里的内置关键字，如data、id等  
+ * "{{data.text}}"  --> {{dataAttr.text}}   
+ * "{{id}}"  --> {{idAttr}}   
+ * @param {*} params 
+ */
+function replaceReserverdKeyword(params) {
+	return params.replace(/{{(.*?)}}/g, function (match, $1) {
+		var result = paramsHandle($1);
+		result = result.replace(/;/g, "");
+		return "{{" + result + "}}";
+	});
+}
 
 /**
  * wmxml转换
@@ -173,21 +187,21 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 	let reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
 	let props = [];
 	const fileName = pathUtil.getFileNameNoExt(file_wxml);
+	const fileKey = pathUtil.getFileKey(file_wxml);
+	const isComponent = global.pagesData[fileKey] && global.pagesData[fileKey]["data"] && global.pagesData[fileKey]["data"]["component"] || false;
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
 
-		for (const k in node.attribs) {
-			// console.log("iterator", node.attribs[k]);
-
-			if (reg_tag.test(node.attribs[k])) {
-				// 拆解node.attribs[k]
-				// 模板里，所有{{}}内的都提取（去除不含.的和很多点的）
-				// <template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>
-
-				// 解析，!= == === ? / % [] 等切割,存入全局对象，以最前面那个？？？  感觉这里还是有点问题，多层怎么办？
-
-				var allData = {
-
+		//这里先过滤一下，只有组件才会有porps的问题。
+		//PS：目测没有在data里声明而在template里使用，这个功能暂时不做。
+		if (isComponent) {
+			//替换template里参数里的内置关键字
+			for (const k in node.attribs) {
+				if (reg_tag.test(node.attribs[k])) {
+					let params = node.attribs[k];
+					if (utils.hasReserverdPorps(params)) {
+						node.attribs[k] = replaceReserverdKeyword(params);
+					}
 				}
 			}
 		}
@@ -238,6 +252,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 				if (src) {
 					//说明是外链的
 					// console.log("src---", src);
+					src = pathUtil.relativePath(src, global.miniprogramRoot, wxmlFolder);
 					obj = {
 						"module": module,
 						"type": "link",
@@ -611,13 +626,6 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					let wx_key = replaceBindToAt(k);
 					attrs[wx_key] = node.attribs[k];
 
-					// let nodeValue = node.attribs[k];
-					// node.attribs[k] = nodeValue.replace(/'(.*?)'|"(.*?)"/g, function (match, pos, orginText) {
-					// 	console.log(match, pos, orginText)
-					// 	if(pos)
-					// 	return pos;
-					// });
-
 					//替换xx="xx:'{{}}';" 为xx="xx:{{}};"
 					//测试用例：
 					//<view style="width:'{{width}}'"></view>
@@ -630,6 +638,22 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					if (wx_key == k) {
 						wx_key = replaceWxBind(k);
 						attrs[wx_key] = node.attribs[k];
+					}
+
+					//调整组件的属性名(试运行)
+					let newAttrKey = reg_tag.test(attrs[wx_key]) ? utils.getAttrAlias(wx_key) : wx_key;
+					if (newAttrKey !== wx_key) {
+						const logStr = "[命名替换]:  " + wx_key + "  -->  " + newAttrKey + "    file: " + path.relative(global.sourceFolder, file_wxml);
+
+						attrs[newAttrKey] = attrs[wx_key];
+						//删除原key
+						delete attrs[wx_key];
+						//修改原key名
+						wx_key = k = newAttrKey;
+
+						//存入日志，方便查看
+						utils.log(logStr);
+						global.log.push(logStr);
 					}
 
 					//其他属性
@@ -672,10 +696,13 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						}
 
 						//试处理：<view url="/page/url/index={{item.id}}&data='abc'"></view>
+						//<view style="{{iphoneXBottom=='68rpx'?'padding-bottom:150rpx':''}}"></view>
 						let tmpArr = value.split(" + ");
-						let tmpReg = /='(.*?)'/g;
+						let tmpReg = /([a-zA-Z0-9])='(.*?)'(?!\?)/g;
 						tmpArr.forEach((str, index) => {
-							tmpArr[index] = str.replace(tmpReg, "=$1");
+							tmpArr[index] = str.replace(tmpReg, function (match, $1, $2) {
+								return $2 ? $1 + "=" + $2 : match;
+							});
 						});
 						value = tmpArr.join(" + ");
 
@@ -740,6 +767,15 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 			// 	}
 			// }
 
+			if (isComponent) {
+				//替换template里参数里的内置关键字
+				if (reg_tag.test(node.data)) {
+					let params = node.data;
+					if (utils.hasReserverdPorps(params)) {
+						node.data = replaceReserverdKeyword(params);
+					}
+				}
+			}
 		} else if (node.type === 'Literal') {
 			//处理wxml里导入wxml的情况
 			//暂未想好怎么转换

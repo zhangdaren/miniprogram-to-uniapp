@@ -31,6 +31,10 @@
 ~~建议手动将内容拷贝进来。~~   
 
 
+## 小程序里使用了npm库，暂时无法转换
+遇到的这类小程序太少了，而我对于这类不太熟，如果有朋友愿意提供demo，那么可以支持的。
+
+
 ## ```<import src="*.wxml"/>```支持部分语法处理   
 
 常规我们见到的代码是这样的(摘自官方小程序示例demo)：   
@@ -43,12 +47,12 @@
 
 为了解决这个问题，我收集到一些```<template/>```的写法：   
 
-*	```<template is="msgItem"  data="{{'abc'}}"/>```
-*	```<template is="t1" data="{{newsList, type}}"/>``` 【目前支持转换的写法】  
-*	```<template is="head" data="{{title: 'action-sheet'}}"/>``` 【目前支持转换的写法】   
-*	```<template is="head" wx:if="{{index%2 === 0}}" data="{{title: 'action-sheet'}}"/>``` 【目前支持转换的写法】   
-*	```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
-*	```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
+*    ```<template is="msgItem"  data="{{'abc'}}"/>```
+*    ```<template is="t1" data="{{newsList, type}}"/>``` 【目前支持转换的写法】  
+*    ```<template is="head" data="{{title: 'action-sheet'}}"/>``` 【目前支持转换的写法】   
+*    ```<template is="head" wx:if="{{index%2 === 0}}" data="{{title: 'action-sheet'}}"/>``` 【目前支持转换的写法】   
+*    ```<template is="courseLeft" wx:if="{{index%2 === 0}}" data="{{...item}}"></template>```
+*    ```<template is="{{index%2 === 0 ? 'courseLeft' : 'courseRight'}}" data="{{...item}}"></template>```
 * ```<template is="stdInfo" wx:for="{{stdInfo}}" data="{{...stdInfo[index], ...{index: index, name: item.name} }}"></template>```
 
 目前仅针对第二、三、四种写法可以实现完美转换。而其它写法，目前uni-app并不支持v-bind=""和动态组件语法，暂无法支持。   
@@ -243,3 +247,55 @@ v-slot 不支持动态插槽名，只发现一例
 
 同样也可以简单粗暴的修改代码为：```this.scrollTop = Math.random();```
 原理见：[scroll-view组件返回顶部不生效！（附第三方解决方案）](https://ask.dcloud.net.cn/article/36612)
+
+
+## 组件里properties里的变量在代码里使用this.setData()去修改导致报错
+data里没有currentIndex,，对比出来，误在data里增加了currentIndex，导致报错   
+
+``` javascript
+//转换后的微信小程序代码：
+Component({
+    properties: {
+        currentIndex: {
+            type: Number,
+            value: 0
+        },
+    },
+    methods: {
+        bannerChange: function(e) {
+            this.setData({
+                currentIndex: e.detail.current
+            });           
+        }      
+    }
+});
+
+//转换后的uni-app代码：
+export default {
+    props: {
+        currentIndex: {
+            type: Number,
+            default: 0
+        }
+    },
+    methods: {
+        bannerChange: function(e) {
+            this.setData({
+                currentIndex: e.detail.current
+            });
+        }
+    }
+}
+```
+
+观察上面代码可以发现：   
+1.properties里面声明了currentIndex   
+2.在bannerChange里使用setData进行修改，导致报错:   
+[Vue warn]: Avoid adding reactive properties to a Vue instance or its root $data at runtime - declare it upfront in the data option. (变量没有在data里面声明)   
+
+原因是小程序里properties和data指向的是同一个对象，而vue里面就不一样了，分得很开，子组件没有权限对props里面的变量进行修改的。   
+解决方案：自行修改代码，将props里面的变量在data里面进行重名并缓存一份，需要修改template和js代码。   
+
+>https://www.jianshu.com/p/422a05e2f0f4
+>其实在小程序里，properties和data指向的是同一个js对象，换一种说法，我们可以理解为：小程序会把properties对象和data对象合并成一个对象，
+>所以我们得出一个结论：我们不要把data和properties里的变量设置成同一个名字，如果他们名字相同，properties里的会覆盖data里的。

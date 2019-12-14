@@ -3,7 +3,9 @@
 输入小程序项目路径，输出uni-app项目。
    
 实现项目下面的js+wxml+wxss转换为vue文件，模板语法、生命周期函数等进行相应转换，其他文件原样复制，生成uni-app所需要的配置文件。   
-
+PS:
+很多人问：wx.xxx()为什么不替换为uni.xxx()呢？
+答案是暂时不需要，不是替换不了，而是uni-app早已对wx相关函数进行兼容，所以可以直接使用，而不需要再调整了。
    
         
 ## 安装   
@@ -75,6 +77,18 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.35(20191214)   
+* [优化] 优化wxs引用的路径    
+* [优化] 支持this的别名为单个字符的情况(一般是混淆的源码/摊手~~)    
+* [优化] 当data或:id作为组件参数时，对这类关键字在template和js里进行重名(在uni-app里，data和:id等是不能作为参数名的)   
+* [修复] bind里引号为空时误删的bug    
+* [修复] ++this.xxx.xxx转换有误的bug   
+* [修复] Component里lifetimes没处理到的bug    
+* [修复] app.js里生命周期的代码调用globalData里函数的引用关系(变量引用)    
+* [修复] wxparse样式未删除完全的bug   
+* [试处理] 修复template里多余引号时转换失败的bug(如代码：```<view url="/page/url/index={{item.id}}&data='abc'"></view>```)   
+
+
 ### v1.0.34(20191209)   
 * [修复] 生成多余template标签的问题(代码串掉的问题)    
 * [修复] 重命名以_和$开头以及使用js系统关键字命名(如import和default等)的函数名("_abc(){}"-->"abcFun(){}", "import(){}"-->"importFun(){}")    
@@ -83,58 +97,12 @@ $ wtu -i miniprogramProject -w
 * [修复] 页面没有json时，也应记录到pages里    
 * [修复] 单独js里，当import导入包的路径，没有相对路径标识时，添加相对标识    
 * [修复] bind字符串里多余的引号(试处理：```<view url="/page/url/index={{item.id}}&data='abc'"></view>```)   
-* [修复] app.js里生命周期的代码调用globalData里函数的引用关系   
+* [修复] app.js里生命周期的代码调用globalData里函数的引用关系(函数引用)   
 * [修复] ```<view>{{x<10?"吃瓜1":"吃瓜2">}}<text>我也来吃瓜</text></view>  ```解决出错的问题(原因是小于号"<"后没有空格，暂不支持```<view>{{x<10}}<text>吃瓜群众</text></view>```)   
 
-
-### v1.0.33(20191125)   
-* [修复] pages为空的bug    
-* [修复] wxParseData不为xxx.nodes的形态，导致转换报错的bug    
-
-### v1.0.33(20191125)   
-* [修复] pages为空的bug    
-* [修复] wxParseData不为xxx.nodes的形态，导致转换报错的bug    
-
-
-### v1.0.32(20191125)   
-* [新增] 支持```<include src="url"></include>```标签
-* [优化] 更新babel版本   
-* [优化] 漏网之鱼里对url的提示   
-* [优化] 组件里Behavior转换为mixins   
-* [优化] 重构转换流程来适应include标签转换   
-* [优化] 变量名和函数名为JS关键字时，对其重命名   
-* [优化] 不再推荐转换为vue项目(因为初始化太繁琐，让给有时间的人去折腾吧)   
-* [优化] 更新u-parse，修复百度小程序解析img不显示、富文本解析不出来的bug   
-* [优化] 重新转换时，不删除unpackage和node_modules目录，减少因文件占用而清空文件夹失败的机率   
-* [修复] catchtap事件转换    
-* [修复] 单引号含双引号的属性    
-* [修复] app.vue也添加了组件的bug   
-* [修复] 单独js文件里路径没有处理的bug   
-* [修复] Vue.component()组件名对应不上的bug   
-* [修复] url('{{}}xxx')含引号，导致转换错误的bug   
-* [修复] 当package.json内容为空时解析报错的bug   
-* [修复] wxParseData含三元/二元表达式的变量提取   
-* [修复] ```var app = getApp(), http = app.http;```转换失败的bug   
-* [修复] setData()时，props含此变量，但data里没有，而导致变量重复声明的bug(此问题未完美解决，因为props里变量不能setData)   
-
-### v1.0.31(20191119)   
-* [优化] setData()支持回调函数   
-* [修复] 解析app时判断prop报错的bug   
-* [修复] 一些小bug   
-
-### v1.0.30(20191118)   
-* [优化] 重构大部分代码，优化页面类型判断逻辑，app、page和component分别进行解析       
-* [优化] 组件里生命周期的转换(ready-->mounted，ready-->mounted)、pageLifetimes、lifetimes、behaviors、externalClasses、relations和options等节点处理     
-* [优化] 组件里observer和observers替换换为watch   
-* [修复] 组件名同时包含驼峰和短横线转换时转换错误，导致找不到组件的bug(如```diy-imageSingle```应转换为```diyImageSingle```) 
-* [修复] 替换wxParse时，参数里this的指向问题，以及优化wxParse代码的判断   
-* [修复] 模板绑定里使用单引号包含双引号导致转换失败(如: ```<view style='font-family: "Guildford Pro";'></view>```)   
-* [修复] props里默认值字段名value替换为default; 当type为Array或Object时，默认值使用工厂函数返回   
-   
 ## [历史更新记录](ReleaseNote.md)   
     
 ## [关于不支持转换的语法说明](Unsupported.md)  
-
 
 ## 感谢   
 * 感谢转转大佬的文章：[[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)， 本项目基于此文章里面的代码开发，在此表示感谢~   

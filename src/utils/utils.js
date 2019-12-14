@@ -1,5 +1,6 @@
 const chalk = require('chalk');
 
+
 function log(msg, type = 'error') {
     if (type === 'error') {
         return console.log(chalk.red(`[wx-to-uni-app]: ${msg}`));
@@ -12,6 +13,14 @@ function log(msg, type = 'error') {
 const isWin = /^win/.test(process.platform);
 const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path);
 
+
+/**
+ * 是否为数字
+ * @param {*} n 
+ */
+function isNumber(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+}
 
 /**
  * 判断是否为url
@@ -101,6 +110,55 @@ function sleep(numberMillis) {
 
 
 /**
+ * 提取template里参数里所包含的变量   
+ * 如下，仅试举几例：   
+ * {{styleS==1}}  -->  {"styleS":true}   
+ * {{ item.is_buy ? '砍价成功' : '已结束' }}  -->  {"item.is_buy":true}   
+ * "swiper-tab-item {{options.scoreType == -1 ? 'on' : ''}}"  -->  {"options.scoreType":true}   
+ * 例外：   
+ * {{abc.styleS['a.b.c']==3}}  //'a.b.c'这种暂时处理不到   
+ * @param {*} str 
+ */
+function getTemplateParams(str) {
+    let reg_tag = /{{.*?}}/;
+    var result = {};
+    if (reg_tag.test(str)) {
+        str = str.replace(/url\(['"]{{(.*?)}}['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}");
+        str.replace(/{{(.*?)}}/g, function (match, $1) {
+            var obj = splitStr($1);
+            result = {
+                ...result,
+                ...obj
+            };
+        });
+    }
+    return result;
+}
+
+/**
+ * 切割字符串，提取str里符合“变量”特征的字符串，并返回object   
+ * 与getTemplateParams配合使用
+ * @param {*} str 
+ */
+function splitStr(str) {
+    //可能在引号对里面有这些切割标记，这里当场干掉
+    var newStr = str.replace(/\s|['"].*?['"]|,.*?:/g, "");
+    //去掉引号
+    newStr = newStr.replace(/\(|\)|{|}|\[|\]/g, ":");
+    //切割
+    var arr = newStr.trim().split(/\.\.\.|===|!==|==|\&\&|\|\||\?|:|<|>|\(|\)|\*|\/|\+|\-|!|<=|>=|%|,/);
+    var result = {};
+    //去重， 去.length
+    arr.forEach(function (item, i) {
+        if (item && !isNumber(item)) {
+            result[item] = true;
+        }
+    })
+    return result;
+}
+
+
+/**
  * copy to vue.js
  * Make a map and return a function for checking if a key
  * is in that map.
@@ -176,9 +234,21 @@ var isJavascriptKeyWord = makeMap(
     "while,with,yield"
 );
 
+
+
+/**
+ * 判断指定参数是否含有特定关键字，比如id、data和default等
+ * @param {*} params 
+ */
+function hasReserverdPorps(params) {
+    return /\b(data|id|default)\b/.test(params);
+}
+
+
+
 //是否为vue内置关键字或方法
 // "_init"
-var isVueMethod = function (tag) {
+function isVueMethod(tag) {
     return /[(^_)(^$)]/.test(tag);
 }
 
@@ -186,36 +256,75 @@ var isVueMethod = function (tag) {
  * 判断tag是否为预置的名字
  * @param {*} tag 
  */
-var isReservedTag = function (tag) {
+function isReservedTag(tag) {
     return isHTMLTag(tag) || isSVG(tag) || isUniAppTag(tag) || isVueMethod(tag);
 };
-
-
-// 区分大小写
-var isBuiltInTag = makeMap('slot,component', true);
 
 /**
  * 获取组件别名
  */
-var getComponentAlias = function (name) {
+function getComponentAlias(name) {
     return isReservedTag(name) ? (name + "-diy") : name;
 }
 
 /**
- * 判断name是否为预置的名字
+ * 判断name是否为预置的名字    
  * @param {*} tag 
  */
-var isReservedName = function (name) {
+function isReservedName(name) {
     return isJavascriptKeyWord(name) || isVueMethod(name);
 };
 
 
 /**
+ * 是否为属性关键字，目前已知data、v-bind:data和v-bind:id不能作为属性名
+ */
+var isReservedAttr = makeMap(
+    "id"
+);
+
+
+/**
+ * 判断标签属性name是否为预置的名字
+ * @param {*} name 
+ */
+function isReservedAttrName(name) {
+    if (!name) return name;
+    const reg = /:/;
+    var newName = name.replace(reg, "");
+    return (reg.test(name) && (isReservedAttr(newName)) || newName === "data");
+};
+
+
+/**
+ * 获取属性别名   
+ * 目前已知data、v-bind:data和v-bind:id不能作为属性名
+ */
+function getAttrAlias(name) {
+    var result = name;
+    if (isReservedAttr(name) || name === "data") {
+        result += "Attr";
+    }
+    return result;
+}
+/**
+ * 获取props别名   
+ * 目前已知data、v-bind:data和v-bind:id不能作为参数名
+ */
+function getPropsAlias(name) {
+    var result = name;
+    if (isJavascriptKeyWord(name) || isReservedAttr(name) || name === "data") {
+        result += "Attr";
+    }
+    return result;
+}
+
+/**
  * 获取变量/函数别名
- * 1.变量或函数名为js系统关键字，返回name + "_fun" 形式
+ * 1.变量或函数名为js系统关键字，返回name + "Fun" 形式
  * 2.以_开头的变量或函数名，返回"re" + name形式
  */
-var getValueAlias = function (name) {
+function getFunctionAlias(name) {
     if (!name) return name;
     var rusult = name;
     if (isJavascriptKeyWord(name)) {
@@ -236,8 +345,14 @@ module.exports = {
     toCamel2,
     sleep,
     isReservedTag,
-    getValueAlias,
+    getFunctionAlias,
     getComponentAlias,
     isJavascriptKeyWord,
-    isReservedName
+    isReservedName,
+
+    getAttrAlias,
+    isReservedAttrName,
+    getPropsAlias,
+    getTemplateParams,
+    hasReserverdPorps,
 }

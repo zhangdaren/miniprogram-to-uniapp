@@ -37,9 +37,9 @@ const componentVistor = {
 		babelUtil.getAppFunHandle(path);
 	},
 	ExpressionStatement(path) {
+		const parent = path.parentPath.parent;
 		if (t.isCallExpression(path.node.expression)) {
 			const calleeName = t.isIdentifier(path.node.expression.callee) ? path.node.expression.callee.name.toLowerCase() : "";
-			const parent = path.parentPath.parent;
 			if (t.isFile(parent) && calleeName != "app" && calleeName != "page" && calleeName != "component" && calleeName != "vantcomponent") {
 				//定义的外部函数
 				declareStr += `${generate(path.node).code}\r\n`;
@@ -48,7 +48,9 @@ const componentVistor = {
 		} else if (t.isAssignmentExpression(path.node.expression)) {
 			//有可能app.js里是这种结构，exports.default = App({});
 			//path.node 为AssignmentExpression类型，所以这里区分一下
-			declareStr += `${generate(path.node).code}\r\n`;
+			if (t.isFile(parent)) {
+				declareStr += `${generate(path.node).code}\r\n`;
+			}
 		}
 	},
 	ImportDeclaration(path) {
@@ -65,82 +67,86 @@ const componentVistor = {
 		path.skip();
 	},
 	VariableDeclaration(path) {
-		//将require()里的地址都处理一遍
-		traverse(path.node, {
-			noScope: true,
-			CallExpression(path2) {
-				let callee = path2.get("callee");
-				let property = path2.get("property");
-				if (t.isIdentifier(callee.node, { name: "require" })) {
-					let arguments = path2.node.arguments;
-					if (arguments && arguments.length) {
-						if (t.isStringLiteral(arguments[0])) {
-							let filePath = arguments[0].value;
-							filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
-							path2.node.arguments[0] = t.stringLiteral(filePath);
-						}
-					}
-				} else if (t.isIdentifier(callee.node, { name: "getApp" })) {
-					/**
-					 * getApp().xxx; 
-					 * 替换为:
-					 * getApp().globalData.xxx;
-					 * 
-					 * 虽然var app = getApp()已替换，还是会有漏网之鱼，如var t = getApp();
-					 */
-					const me = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
-					path2.replaceWith(me);
-					path2.skip();
-				}
-			},
-			VariableDeclarator(path2) {
-				if (t.isMemberExpression(path2.node.init) && path2.node.init.object) {
-					let id = path2.node.id;
-					let init = path2.node.init;
-					let property = init.property;
-					let objectPath = path2.node.init.object;
-					let subOject = objectPath.object;
-					let subProperty = objectPath.property;
-					if (t.isIdentifier(subOject, { name: "app" })) {
-						//这里没法调babelUtil.globalDataHandle()，子节点没有replaceWidth方法了(或许有转换方法，暂未知)
-						let getApp = t.callExpression(t.identifier('getApp'), []);
-						let subMe = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), subProperty);
-						let me = t.MemberExpression(subMe, property);
-						let vd = t.variableDeclarator(path2.node.id, me);
-						path.replaceWith(vd);
-						path.skip();
-					}
-				} else if (t.isCallExpression(path2.node.init)) {
-					//处理外部声明的require，如var md5 = require("md5.js");
-					const initPath = path2.node.init;
-					let callee = initPath.callee;
-					if (t.isIdentifier(callee, { name: "require" })) {
-						let arguments = initPath.arguments;
+		const parent = path.parentPath.parent;
+		if (t.isFile(parent)) {
+
+			//将require()里的地址都处理一遍
+			traverse(path.node, {
+				noScope: true,
+				CallExpression(path2) {
+					let callee = path2.get("callee");
+					let property = path2.get("property");
+					if (t.isIdentifier(callee.node, { name: "require" })) {
+						let arguments = path2.node.arguments;
 						if (arguments && arguments.length) {
 							if (t.isStringLiteral(arguments[0])) {
 								let filePath = arguments[0].value;
 								filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
-								initPath.arguments[0] = t.stringLiteral(filePath);
+								path2.node.arguments[0] = t.stringLiteral(filePath);
 							}
 						}
+					} else if (t.isIdentifier(callee.node, { name: "getApp" })) {
+						/**
+						 * getApp().xxx; 
+						 * 替换为:
+						 * getApp().globalData.xxx;
+						 * 
+						 * 虽然var app = getApp()已替换，还是会有漏网之鱼，如var t = getApp();
+						 */
+						const me = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
+						path2.replaceWith(me);
+						path2.skip();
 					}
-					//删除var wxParse = require("../../../wxParse/wxParse.js");
-					if (path2.node && path2.node.id && path2.node.id.name && path2.node.id.name.toLowerCase() === "wxparse") {
-						// babelUtil.addComment(path.parentPath, `${generate(path.node).code}`);  //没法改成注释，只能删除
-						path.remove();
+				},
+				VariableDeclarator(path2) {
+					if (t.isMemberExpression(path2.node.init) && path2.node.init.object) {
+						let id = path2.node.id;
+						let init = path2.node.init;
+						let property = init.property;
+						let objectPath = path2.node.init.object;
+						let subOject = objectPath.object;
+						let subProperty = objectPath.property;
+						if (t.isIdentifier(subOject, { name: "app" })) {
+							//这里没法调babelUtil.globalDataHandle()，子节点没有replaceWidth方法了(或许有转换方法，暂未知)
+							let getApp = t.callExpression(t.identifier('getApp'), []);
+							let subMe = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), subProperty);
+							let me = t.MemberExpression(subMe, property);
+							let vd = t.variableDeclarator(path2.node.id, me);
+							path.replaceWith(vd);
+							path.skip();
+						}
+					} else if (t.isCallExpression(path2.node.init)) {
+						//处理外部声明的require，如var md5 = require("md5.js");
+						const initPath = path2.node.init;
+						let callee = initPath.callee;
+						if (t.isIdentifier(callee, { name: "require" })) {
+							let arguments = initPath.arguments;
+							if (arguments && arguments.length) {
+								if (t.isStringLiteral(arguments[0])) {
+									let filePath = arguments[0].value;
+									filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+									initPath.arguments[0] = t.stringLiteral(filePath);
+								}
+							}
+						}
+						//删除var wxParse = require("../../../wxParse/wxParse.js");
+						if (path2.node && path2.node.id && path2.node.id.name && path2.node.id.name.toLowerCase() === "wxparse") {
+							// babelUtil.addComment(path.parentPath, `${generate(path.node).code}`);  //没法改成注释，只能删除
+							path.remove();
+						}
 					}
+				},
+				MemberExpression(path) {
+					babelUtil.globalDataHandle(path);
 				}
-			},
-			MemberExpression(path) {
-				babelUtil.globalDataHandle(path);
-			}
-		});
-		const parent = path.parentPath.parent;
-		if (t.isFile(parent)) {
+			});
+			// const parent = path.parentPath.parent;
+			// if (t.isFile(parent)) {
 			//定义的外部变量
 			// vistors.variable.handle(path.node);
 			declareStr += `${generate(path.node).code}\r\n`;
 			path.skip();
+			// }
 		}
 	},
 	FunctionDeclaration(path) {

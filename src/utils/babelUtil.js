@@ -56,6 +56,7 @@ function globalDataHandle(path) {
             let me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
             path.replaceWith(me);
             path.skip();
+
         }
     }
 }
@@ -121,8 +122,7 @@ function getAstType(ast, _file_js) {
                 path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
             } else if (t.isAssignmentExpression(exp)) {
                 const right = exp.node.right;
-                if (t.isCallExpression(right))
-                {
+                if (t.isCallExpression(right)) {
                     type = right.callee.name;
                 }
             }
@@ -346,20 +346,32 @@ function handleSetData(path, isThis) {
  * @param {*} fileDir   当前文件所在目录
  */
 function requirePathHandle(path, fileDir) {
-	let callee = path.node.callee;
-	if (t.isIdentifier(callee, { name: "require" })) {
-		//处理require()路径
-		let arguments = path.node.arguments;
-		if (arguments && arguments.length) {
-			if (t.isStringLiteral(arguments[0])) {
-				let filePath = arguments[0].value;
-				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
-				path.node.arguments[0] = t.stringLiteral(filePath);
-			}
-		}
-	}
+    let callee = path.node.callee;
+    if (t.isIdentifier(callee, { name: "require" })) {
+        //处理require()路径
+        let arguments = path.node.arguments;
+        if (arguments && arguments.length) {
+            if (t.isStringLiteral(arguments[0])) {
+                let filePath = arguments[0].value;
+                filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+                path.node.arguments[0] = t.stringLiteral(filePath);
+            }
+        }
+    }
 }
 
+
+/**
+ * 判断path是否为this或this的别名，如_this、that、self、_等
+ */
+function isThisExpression(path) {
+    let name = path.node.name;
+    return t.isThisExpression(path)
+        || t.isIdentifier(path.node, { name: "that" })
+        || t.isIdentifier(path.node, { name: "_this" })
+        || t.isIdentifier(path.node, { name: "self" })
+        || name && name.length === 1 && /[a-zA-Z_]/.test(name);
+}
 
 
 module.exports = {
@@ -374,4 +386,5 @@ module.exports = {
     getSetDataFunAST,
     createObjectProperty,
     requirePathHandle,
+    isThisExpression,
 }

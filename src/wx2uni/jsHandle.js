@@ -209,7 +209,57 @@ function defineValueHandle(ast, vistors, file_js) {
 			}
 		}
 	});
+}
 
+/**
+ * 修复app.js，globalData对象里的this.globalData引用关系
+ * 转换this.globalData.xxx --> this.xxx   
+ */
+function appGlobalDataFunHandle(ast) {
+	traverse(ast, {
+		noScope: true,
+		MemberExpression(path) {
+			let object = path.get('object');
+			let property = path.get('property');
+			if (babelUtil.isThisExpression(object) && t.isIdentifier(property.node, { name: "globalData" })) {
+				path.replaceWith(object);
+				path.skip();
+			}
+		}
+	});
+}
+
+/**
+ * 修复app.js里生命周期函数里调用的非生命周期函数的引用关系
+ */
+function applifeCycleFunHandle(ast, appGlobalDataFunNameList, appGlobalDataValueNameList) {
+	traverse(ast, {
+		noScope: true,
+		CallExpression(path) {
+			let callee = path.get("callee");
+			if (t.isMemberExpression(callee)) {
+				//clearInterval(position_timer); 是没有callee.node.property.name的
+				let calleeName = callee.node.property.name;
+				if (appGlobalDataFunNameList[calleeName]) {
+					let me = t.memberExpression(callee.node.object, t.identifier("globalData"));
+					let memberExp = t.memberExpression(me, callee.node.property);
+					callee.replaceWith(memberExp);
+				}
+			}
+		},
+		MemberExpression(path) {
+			let object = path.get('object');
+			let property = path.get('property');
+			// console.log(property.node.name);
+			// console.log(property.node.name);
+			//app.js里非生命周期函数里引用globalData里变量的引用关系修改
+			if (babelUtil.isThisExpression(object) && appGlobalDataValueNameList[property.node.name]) {
+				let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('globalData')), property.node);
+				path.replaceWith(me);
+				path.skip();
+			}
+		}
+	});
 }
 
 /**
@@ -232,8 +282,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 	//存储data的引用，用于后面添加wxparse的数据变量
 	let astDataPath = null;
 
-	let appGlobalDataFunNameList = {};
-
 	defineValueHandle(ast, vistors, file_js);
 
 	//
@@ -250,7 +298,10 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 		//然后遍历生命周期里，将函数调整过来
 		const lifeCycleArr = vistors.lifeCycle.getData();
 
-		//提取globalData里面函数名
+		let appGlobalDataFunNameList = {};
+		let appGlobalDataValueNameList = {};
+
+		//提取globalData里面变量名和函数名
 		for (const item of lifeCycleArr) {
 			if (item.key.name === "globalData") {
 				let globalDataArr = item.value.properties;
@@ -258,8 +309,24 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 					const isFun = t.isObjectMethod(subItem) || (t.isObjectProperty(subItem) && (t.isFunctionExpression(subItem.value) || t.isArrowFunctionExpression(subItem.value)));
 					if (isFun) {
 						appGlobalDataFunNameList[subItem.key.name] = true;
+					} else {
+						appGlobalDataValueNameList[subItem.key.name] = true;
 					}
 				}
+			}
+		}
+
+		/**
+		 * 处理app.js里函数之间的引用关系，globalData引用关系
+		 */
+		for (const item of lifeCycleArr) {
+			if (item.key.name === "globalData") {
+				let globalDataArr = item.value.properties;
+				for (const subItem of globalDataArr) {
+					appGlobalDataFunHandle(subItem);
+				}
+			} else {
+				applifeCycleFunHandle(item, appGlobalDataFunNameList, appGlobalDataValueNameList);
 			}
 		}
 
@@ -290,7 +357,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 		for (const item of methods) {
 			const keyName = item.key.name;
 			if (dataNameList[keyName] || utils.isReservedName(keyName)) {
-				item.key.name = utils.getValueAlias(item.key.name);
+				item.key.name = utils.getFunctionAlias(item.key.name);
 				replaceFunNameList.push(keyName);
 				//留存全局变量，以便替换template
 			}
@@ -397,10 +464,9 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				//这两个为空的话，会报错，所以删除，其他的不管先
 				if (path.node.value && path.node.value.properties && path.node.value.properties.length == 0) path.remove();
 			} else if (name === 'methods') {
-				let liftCycleArr = vistors.lifeCycle.getData();
-				for (let key in liftCycleArr) {
-					// console.log(liftCycleArr[key]);
-					path.insertBefore(liftCycleArr[key]);
+				let lifeCycleArr = vistors.lifeCycle.getData();
+				for (let key in lifeCycleArr) {
+					path.insertBefore(lifeCycleArr[key]);
 				}
 				//这里不能停止，否则后面的this.data.xxx不会被转换 20190918
 				//path.skip();
@@ -476,15 +542,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						}
 					}
 				} else {
-					if (isApp) {
-						//修复app内生命周期函数里调用了globalData里的函数的调用关系
-						let calleeName = callee.node.property.name;
-						if (appGlobalDataFunNameList[calleeName]) {
-							let me = t.memberExpression(callee.node.object, t.identifier("globalData"));
-							let memberExp = t.memberExpression(me, callee.node.property);
-							callee.replaceWith(memberExp);
-						}
-					} else {
+					if (!isApp) {
 						babelUtil.globalDataHandle(callee);
 					}
 				}
@@ -521,15 +579,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				//this.triggerEvent()转换为this.$emit()
 				let obj = t.memberExpression(object.node, t.identifier("$emit"));
 				path.replaceWith(obj);
-			} else if (t.isIdentifier(property.node, { name: "data" })) {
-				//将this.data.xxx转换为this.xxx
-				if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" }) || t.isIdentifier(object.node, { name: "_" })) {
-					let parent = path.parent;
-					//如果父级是AssignmentExpression，则不需再进行转换
-					if (parent && !t.isAssignmentExpression(parent)) {
-						path.replaceWith(object);
-					}
-				}
+
 			} else if (t.isIdentifier(object.node, { name: "app" }) || t.isIdentifier(object.node, { name: "App" })) {
 				//app.xxx ==> app.globalData.xxx
 				// let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('globalData')), property.node);
@@ -538,16 +588,55 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 				//这里先注释，貌似不用走到这里来----------------------------
 				// babelUtil.globalDataHandle(object);
+			} else if (t.isMemberExpression(object)) {
+				let subObject = object.get('object');
+				let subProperty = object.get('property');
+				if (babelUtil.isThisExpression(subObject)) {
+					if (utils.isReservedAttrName(property.node.name)) {
+						//把不支持的属性保留名进行重名(试运行)
+						let newAttrName = utils.getAttrAlias(property.node.name);
+						const logStr = "[命名替换]:  " + property.node.name + "  -->  " + newAttrName + "    file: " + nodePath.relative(global.sourceFolder, file_js);
+						let me = t.MemberExpression(subObject.node, t.identifier(newAttrName));
+						path.replaceWith(me);
+						path.skip();
+
+						//存入日志，方便查看，以防上面那么多层级搜索出问题
+						utils.log(logStr);
+						global.log.push(logStr);
+					}
+				}
+			} else if (babelUtil.isThisExpression(object) && t.isIdentifier(property.node, { name: "data" })) {
+				//将this.data.xxx转换为this.xxx
+				let parent = path.parent;
+				//如果父级是AssignmentExpression，则不需再进行转换
+				if (parent && !t.isAssignmentExpression(parent)) {
+					if (t.isUpdateExpression(parent)) {
+						//++this.data.notify_count;
+						object.replaceWith(object.node.object);
+						path.skip();
+					} else {
+						path.replaceWith(object);
+					}
+				}
 			}
 
 			//替换与data变量重名的函数引用
 			for (const item of replaceFunNameList) {
 				if (t.isIdentifier(property.node, { name: item })) {
-					if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" }) || t.isIdentifier(object.node, { name: "self" }) || t.isIdentifier(object.node, { name: "_" })) {
+					if (babelUtil.isThisExpression(object)) {
 						let parent = path.parent;
 						//如果父级是AssignmentExpression，则不需再进行转换
 						if (parent && !t.isAssignmentExpression(parent)) {
-							property.node.name = utils.getValueAlias(item);
+							let newName = utils.getFunctionAlias(item);
+							if (newName !== property.node.name) {
+								const logStr = "[命名替换]:  " + property.node.name + "  -->  " + newName + "    file: " + nodePath.relative(global.sourceFolder, file_js);
+
+								property.node.name = newName;
+
+								//存入日志，方便查看
+								utils.log(logStr);
+								global.log.push(logStr);
+							}
 						}
 					}
 				}
@@ -559,34 +648,16 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			//		isCheck: app.data.isCheck
 			//	  });
 			//}
-			if (t.isMemberExpression(object)) {
-				babelUtil.globalDataHandle(object);
-			} else {
-				babelUtil.globalDataHandle(path);
+
+
+			if (!isApp) {
+
+				if (t.isMemberExpression(object)) {
+					babelUtil.globalDataHandle(object);
+				} else {
+					babelUtil.globalDataHandle(path);
+				}
 			}
-
-
-			//20191028 回滚
-			//[HBuilder X v2.3.7.20191024-alpha] 修复 在 App.vue 的 onLaunch 中，不支持 this.globalData 的 Bug
-			// if (isApp) {
-			// 	//仅在App.vue里将this.globalData.xxx转换为this.$options.globalData.xxx
-			// 	//这里是暂时方案，后缀可能屏蔽(现在是uni-app无法支持this.globalData方式)
-			// 	if (t.isThisExpression(object) || t.isIdentifier(object.node, { name: "that" }) || t.isIdentifier(object.node, { name: "_this" })) {
-			// 		if (t.isIdentifier(property.node, { name: "globalData" })) {
-			// 			let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('$options')), t.identifier('globalData'));
-			// 			path.replaceWith(me);
-			// 			path.skip();
-			// 		}
-			// 	}
-
-			// 	if (t.isCallExpression(object.node) && t.isIdentifier(object.node.callee, { name: "getApp" })) {
-			// 		// getApp().data.A4SingleBlack = 1  -->  this.$option.globalDatagetApp().data.A4SingleBlack = 1
-
-			// 		let me = t.MemberExpression(t.MemberExpression(t.ThisExpression(), t.identifier('$options')), t.identifier('globalData'));
-			// 		path.replaceWith(me);
-			// 		path.skip();
-			// 	}
-			// }
 
 			//解决this.setData的问题
 			//20190719 
@@ -631,7 +702,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			// 	//getApp().globalData.userInfo => this.globalData.userInfo
 			// 	object.replaceWith(t.thisExpression());
 			// }
-		},
+		}
 	});
 	return ast;
 }
@@ -697,7 +768,7 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 	let isParseError = false; //标识是否解析报错
 	try {
 		//解析成AST
-		javascriptAst = await javascriptParser.parse(javascriptContent);
+		javascriptAst = javascriptParser.parse(javascriptContent);
 	} catch (error) {
 		isParseError = true;
 		const logStr = "Error: 解析文件出错: " + error + "      file: " + file_js;

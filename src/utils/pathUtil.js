@@ -219,7 +219,7 @@ function relativePath(filePath, root, fileDir) {
 	if (!/^[\.\/]/.test(filePath)) {
 		filePath = "./" + filePath;
 	}
-	return filePath.split("\\").join("/");
+	return utils.normalizePath(filePath);
 }
 
 

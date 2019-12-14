@@ -1,5 +1,45 @@
 # Miniprogram to uni-app - Release Notes   
 ======================================
+
+## v1.0.33(20191125)   
+* [修复] pages为空的bug    
+* [修复] wxParseData不为xxx.nodes的形态，导致转换报错的bug    
+
+## v1.0.32(20191125)   
+* [新增] 支持```<include src="url"></include>```标签
+* [优化] 更新babel版本   
+* [优化] 漏网之鱼里对url的提示   
+* [优化] 组件里Behavior转换为mixins   
+* [优化] 重构转换流程来适应include标签转换   
+* [优化] 变量名和函数名为JS关键字时，对其重命名   
+* [优化] 不再推荐转换为vue项目(因为初始化太繁琐，让给有时间的人去折腾吧)   
+* [优化] 更新u-parse，修复百度小程序解析img不显示、富文本解析不出来的bug   
+* [优化] 重新转换时，不删除unpackage和node_modules目录，减少因文件占用而清空文件夹失败的机率   
+* [修复] catchtap事件转换    
+* [修复] 单引号含双引号的属性    
+* [修复] app.vue也添加了组件的bug   
+* [修复] 单独js文件里路径没有处理的bug   
+* [修复] Vue.component()组件名对应不上的bug   
+* [修复] url('{{}}xxx')含引号，导致转换错误的bug   
+* [修复] 当package.json内容为空时解析报错的bug   
+* [修复] wxParseData含三元/二元表达式的变量提取   
+* [修复] ```var app = getApp(), http = app.http;```转换失败的bug   
+* [修复] setData()时，props含此变量，但data里没有，而导致变量重复声明的bug(此问题未完美解决，因为props里变量不能setData)   
+
+## v1.0.31(20191119)   
+* [优化] setData()支持回调函数   
+* [修复] 解析app时判断prop报错的bug   
+* [修复] 一些小bug   
+
+## v1.0.30(20191118)   
+* [优化] 重构大部分代码，优化页面类型判断逻辑，app、page和component分别进行解析       
+* [优化] 组件里生命周期的转换(ready-->mounted，ready-->mounted)、pageLifetimes、lifetimes、behaviors、externalClasses、relations和options等节点处理     
+* [优化] 组件里observer和observers替换换为watch   
+* [修复] 组件名同时包含驼峰和短横线转换时转换错误，导致找不到组件的bug(如```diy-imageSingle```应转换为```diyImageSingle```) 
+* [修复] 替换wxParse时，参数里this的指向问题，以及优化wxParse代码的判断   
+* [修复] 模板绑定里使用单引号包含双引号导致转换失败(如: ```<view style='font-family: "Guildford Pro";'></view>```)   
+* [修复] props里默认值字段名value替换为default; 当type为Array或Object时，默认值使用工厂函数返回   
+   
 ## v1.0.29(20191030)   
 * [调整] 暂时屏蔽命令行里的-o命令，导出路径默认为“输入目录_uni”(此前版本当输入输出为同一目录或其他非空目录时，可能会引起误删文件的隐患)   
 * [优化] 程序入口app的判断逻辑   

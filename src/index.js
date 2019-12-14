@@ -382,6 +382,16 @@ async function filesHandle(fileData, miniprogramRoot) {
 					//当前文件引用的自定义组件
 					let usingComponents = {};
 
+					//取key，理论随便哪个文件都能取到。
+					let fileKey = pathUtil.getFileKey(file_js);
+					//存入全局对象
+					if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+
+					global.pagesData[fileKey]["data"] = {
+						type: "all",
+						path: targetFilePath
+					};
+
 					//解析json
 					if (file_json) {
 						try {
@@ -406,7 +416,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 							routerData[key] = data;
 							usingComponents = data.usingComponents;
-							// console.log(key + " -- ", data.navigationBarTitleText)
+							global.pagesData[fileKey]["data"]["component"] = data["component"];
 						} catch (error) {
 							console.log(error);
 							global.log.push("Error: " + error);
@@ -418,16 +428,6 @@ async function filesHandle(fileData, miniprogramRoot) {
 						let fileContentMinWxml = "";
 						let fileContentJs = "";
 						let fileContentCss = "";
-
-						//取key，理论随便哪个文件都能取到。
-						let fileKey = pathUtil.getFileKey(file_js);
-						//存入全局对象
-						if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
-
-						global.pagesData[fileKey]["data"] = {
-							type: "all",
-							path: targetFilePath
-						};
 
 						//读取.wxml文件
 						if (file_wxml && fs.existsSync(file_wxml)) {
@@ -641,7 +641,7 @@ function replaceFunName(fileContentWxml, key) {
 		// let reg_funName = /="(abc|xyz)"/g;
 		let reg_funName = new RegExp('=\"(' + replaceFunNameList.join('|') + ')\"', "mg");
 		result = fileContentWxml.replace(reg_funName, function (match, $1) {
-			return `="${utils.getValueAlias($1)}"`;
+			return `="${utils.getFunctionAlias($1)}"`;
 		});
 	}
 	return result;
@@ -941,6 +941,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 				str += '代码<template is="abc" data=""/>里data属性，除了不支持...扩展运算符(因uni-app现在还不支持v-bind="")，其余参数形式都支持，望知悉！\r\n';
 				str += '\r\n日志说明：\r\n';
 				str += '1. image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
+				str += '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如data、id都能做属性名，但uni-app里不支持，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
 
 				str = "\r\n转换完成: " + str;
 
