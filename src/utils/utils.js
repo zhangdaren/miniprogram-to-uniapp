@@ -241,7 +241,7 @@ var isJavascriptKeyWord = makeMap(
  * @param {*} params 
  */
 function hasReserverdPorps(params) {
-    return /\b(data|id|default)\b/.test(params);
+    return /\b(data)\b/.test(params) || /\b(id)\b/.test(params) || /\b(default)\b/.test(params);
 }
 
 
@@ -249,7 +249,7 @@ function hasReserverdPorps(params) {
 //是否为vue内置关键字或方法
 // "_init"
 function isVueMethod(tag) {
-    return /[(^_)(^$)]/.test(tag);
+    return /^_|^\$/.test(tag);
 }
 
 /**
@@ -320,17 +320,23 @@ function getPropsAlias(name) {
 }
 
 /**
- * 获取变量/函数别名
- * 1.变量或函数名为js系统关键字，返回name + "Fun" 形式
- * 2.以_开头的变量或函数名，返回"re" + name形式
+ * 获取函数别名
+ * 1.函数名为js系统关键字，返回name + "Fun" 形式
+ * 2.以_开头的函数名，返回"re" + name形式
  */
 function getFunctionAlias(name) {
     if (!name) return name;
     var rusult = name;
-    if (isJavascriptKeyWord(name)) {
+    // if (isJavascriptKeyWord(name)) {
+    //     rusult = name + "Fun";
+    // } else if (isVueMethod(name)) {
+    //     rusult = name.replace(/^_|^\$/g, "") + "Fun";
+    // }
+
+    if (isVueMethod(name)) {
+        rusult = name.replace(/^_|^\$/g, "") + "Fun";
+    } else {
         rusult = name + "Fun";
-    } else if (isVueMethod(name)) {
-        rusult = name.replace(/_|\$/g, "") + "Fun";
     }
     return rusult;
 }

@@ -638,11 +638,17 @@ function replaceFunName(fileContentWxml, key) {
 	let result = fileContentWxml;
 	if (global.pagesData[key] && global.pagesData[key].replaceFunNameList) {
 		const replaceFunNameList = global.pagesData[key].replaceFunNameList;
-		// let reg_funName = /="(abc|xyz)"/g;
-		let reg_funName = new RegExp('=\"(' + replaceFunNameList.join('|') + ')\"', "mg");
-		result = fileContentWxml.replace(reg_funName, function (match, $1) {
-			return `="${utils.getFunctionAlias($1)}"`;
+		// let reg_funName = /(@.*?)="(abc|xyz)"/g;  //仅仅转换事件上面的函数
+		let reg_funName = new RegExp('(@.*?)=\"(' + replaceFunNameList.join('|') + ')\"', "mg");
+		result = fileContentWxml.replace(reg_funName, function (match, $1, $2) {
+			return $1 + `="${utils.getFunctionAlias($2)}"`;
 		});
+
+		//转换其他位置，如标签内容
+		for (const name of replaceFunNameList) {
+			let reg_funName2 = new RegExp('\\b' + name + '\\(', "mg");
+			result = result.replace(reg_funName2, utils.getFunctionAlias(name) + "(");
+		}
 	}
 	return result;
 }

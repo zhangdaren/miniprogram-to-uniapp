@@ -601,7 +601,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 						path.skip();
 
 						//存入日志，方便查看，以防上面那么多层级搜索出问题
-						utils.log(logStr);
+						utils.log(logStr, "base");
 						global.log.push(logStr);
 					}
 				}
@@ -634,7 +634,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 								property.node.name = newName;
 
 								//存入日志，方便查看
-								utils.log(logStr);
+								utils.log(logStr, "base");
 								global.log.push(logStr);
 							}
 						}

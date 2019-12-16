@@ -176,6 +176,26 @@ function replaceReserverdKeyword(params) {
 }
 
 /**
+ * 封装了一下replaceReserverdKeyword
+ * @param {*} params 
+ * @param {*} isComponent 
+ */
+function replaceReserverdKeywordByParams(params, isComponent) {
+	let result = params;
+	if (isComponent && params) {
+		let reg_tag = /{{.*?}}/; //注：连续test时，这里不能加/g，因为会被记录上次index位置
+		//替换template里参数里的内置关键字
+		if (reg_tag.test(params)) {
+			if (utils.hasReserverdPorps(params)) {
+				result = replaceReserverdKeyword(params);
+			}
+		}
+	}
+	return result;
+}
+
+
+/**
  * wmxml转换
  * // style="color: {{step === index + 1 ? 'red': 'black'}}; font-size:{{abc}}">
  * // <view style="width : {{item.dayExpressmanEarnings / maxIncome * 460 + 250}}rpx;"></view>
@@ -195,14 +215,9 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 		//这里先过滤一下，只有组件才会有porps的问题。
 		//PS：目测没有在data里声明而在template里使用，这个功能暂时不做。
 		if (isComponent) {
-			//替换template里参数里的内置关键字
+			//试运行：修复template里data、id或default变量
 			for (const k in node.attribs) {
-				if (reg_tag.test(node.attribs[k])) {
-					let params = node.attribs[k];
-					if (utils.hasReserverdPorps(params)) {
-						node.attribs[k] = replaceReserverdKeyword(params);
-					}
-				}
+				node.attribs[k] = replaceReserverdKeywordByParams(node.attribs[k], isComponent);
 			}
 		}
 
@@ -412,6 +427,8 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 				}
 			}
 
+
+
 			//进行标签替换  
 			if (tagConverterConfig[node.name]) {
 				node.name = tagConverterConfig[node.name];
@@ -472,6 +489,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 			}
 
 			for (let k in node.attribs) {
+
 				let target = attrConverterConfigUni[k];
 				if (target) {
 					//单独判断style的绑定情况
@@ -652,7 +670,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						wx_key = k = newAttrKey;
 
 						//存入日志，方便查看
-						utils.log(logStr);
+						utils.log(logStr, "base");
 						global.log.push(logStr);
 					}
 
@@ -767,15 +785,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 			// 	}
 			// }
 
-			if (isComponent) {
-				//替换template里参数里的内置关键字
-				if (reg_tag.test(node.data)) {
-					let params = node.data;
-					if (utils.hasReserverdPorps(params)) {
-						node.data = replaceReserverdKeyword(params);
-					}
-				}
-			}
+			node.data = replaceReserverdKeywordByParams(node.data, isComponent);
 		} else if (node.type === 'Literal') {
 			//处理wxml里导入wxml的情况
 			//暂未想好怎么转换

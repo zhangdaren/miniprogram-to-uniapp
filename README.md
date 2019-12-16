@@ -77,6 +77,15 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.36(20191216)   
+* [修复] 调整变量时误加Fun的bug   
+* [修复] 识别单独app变量   
+* [修复] 单js文件里未替换getApp()为getApp().globalData    
+* [修复] 进一步完善：变量与函数同步的情况   
+* [修复] 进一步完善：重命名以_和$开头以及使用js系统关键字命名   
+* [试运行] 替换template里data、id或default变量(目前仅支持Component里替换)   
+
+
 ### v1.0.35(20191214)   
 * [优化] 优化wxs引用的路径    
 * [优化] 支持this的别名为单个字符的情况(一般是混淆的源码/摊手~~)    
@@ -87,7 +96,6 @@ $ wtu -i miniprogramProject -w
 * [修复] app.js里生命周期的代码调用globalData里函数的引用关系(变量引用)    
 * [修复] wxparse样式未删除完全的bug   
 * [试处理] 修复template里多余引号时转换失败的bug(如代码：```<view url="/page/url/index={{item.id}}&data='abc'"></view>```)   
-
 
 ### v1.0.34(20191209)   
 * [修复] 生成多余template标签的问题(代码串掉的问题)    

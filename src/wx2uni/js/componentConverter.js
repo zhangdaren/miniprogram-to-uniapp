@@ -183,8 +183,8 @@ function lifeCycleHandle(path) {
 			if (properties) {
 				properties.forEach(function (item) {
 					if (item && item.key && item.key.name) {
-						//还有问题，先不更新
-						item.key.name = utils.getFunctionAlias(item.key.name);
+						//还有问题，先不更新!!!
+						// item.key.name = utils.getFunctionAlias(item.key.name);
 						vistors[name].handle(item);
 					}
 				});

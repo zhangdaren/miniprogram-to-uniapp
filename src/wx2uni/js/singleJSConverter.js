@@ -18,6 +18,27 @@ const singleJSVistor = {
 	CallExpression(path) {
 		//处理require()里面的路径
 		babelUtil.requirePathHandle(path, fileDir);
+
+		//
+		let callee = path.get("callee");
+		let property = path.get("property");
+		if (t.isIdentifier(callee.node, { name: "getApp" })) {
+			/**
+			 * getApp() -- >  getApp().globalData
+			 * getApp().xxx -- >  getApp().globalData.xx
+			 */
+			let arguments = path.node.arguments;
+			if (arguments.length == 0) {
+				const parent = path.parent;
+				if (parent && parent.property && t.isIdentifier(parent.property, { name: "globalData" })) {
+					//如果已经getApp().globalData就不进行处理了
+				} else {
+					//一般来说getApp()是没有参数的。
+					path.replaceWith(t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData")));
+					path.skip();
+				}
+			}
+		}
 	},
 	ImportDeclaration(path) {
 		//定义的导入的模块
