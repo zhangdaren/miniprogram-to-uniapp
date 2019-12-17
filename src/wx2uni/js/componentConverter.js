@@ -89,9 +89,12 @@ const componentVistor = {
 						 * 
 						 * 虽然var app = getApp()已替换，还是会有漏网之鱼，如var t = getApp();
 						 */
-						const me = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
-						path2.replaceWith(me);
-						path2.skip();
+						const parent2 = path2.parentPath;
+						if (t.isMemberExpression(parent2.node) && parent2.node.property && parent2.node.property.name !== "globalData") {
+							const me = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
+							path2.replaceWith(me);
+							path2.skip();
+						}
 					}
 				},
 				VariableDeclarator(path2) {
@@ -189,6 +192,7 @@ function lifeCycleHandle(path) {
 					}
 				});
 			}
+			path.skip();
 			break;
 		case 'computed':
 		case 'watch':
@@ -203,6 +207,8 @@ function lifeCycleHandle(path) {
 			///////////////////////////////////
 			//TODO: observers需要处理成深度监听，但还得判断data/prop里是使用类型的
 			//判断data是否有prop一致的，还需要分割,进行
+
+			path.skip();
 			break;
 		case 'props':  // VantComponent组件
 		case 'properties':
@@ -298,30 +304,35 @@ function lifeCycleHandle(path) {
 					vistors.props.handle(item.node);
 				});
 			}
+			path.skip();
 			break;
 		case 'attached':
 			//组件特有生命周期: attached-->beforeMount
 			let newPath_a = clone(path);
 			newPath_a.node.key.name = "beforeMount";
 			vistors.lifeCycle.handle(newPath_a.node);
+			path.skip();
 			break;
 		case 'detached':
 			//组件特有生命周期: detached-->destroyed
 			let newPath_d = clone(path);
 			newPath_d.node.key.name = "destroyed";
 			vistors.lifeCycle.handle(newPath_d.node);
+			path.skip();
 			break;
 		case 'ready':
 			//组件特有生命周期: ready-->mounted
 			let newPath_r = clone(path);
 			newPath_r.node.key.name = "mounted";
 			vistors.lifeCycle.handle(newPath_r.node);
+			path.skip();
 			break;
 		case 'moved':
 			//组件特有生命周期: moved-->moved  //这个vue没有对应的生命周期
 			let newPath_m = clone(path);
 			newPath_m.node.key.name = "moved";
 			vistors.lifeCycle.handle(newPath_m.node);
+			path.skip();
 			break;
 		case 'pageLifetimes':
 			//组件所在页面的生命周期函数pageLifetimes，原样放入生命周期内
@@ -347,12 +358,14 @@ function lifeCycleHandle(path) {
 					vistors.lifeCycle.handle(item);
 				});
 			}
+			path.skip();
 			break;
 		case 'behaviors':
 			//组件的behaviors，重名为mixins，放入生命周期
 			let newPath_b = clone(path);
 			newPath_b.node.key.name = "mixins";
 			vistors.lifeCycle.handle(newPath_b.node);
+			path.skip();
 			break;
 		case 'lifetimes':
 			//组件特有生命周期组lifetimes，不处理
@@ -364,6 +377,7 @@ function lifeCycleHandle(path) {
 		case 'options':
 			//组件的options
 			vistors.lifeCycle.handle(path.node);
+			path.skip();
 			break;
 		case 'methods':
 			//组件特有生命周期: methods
@@ -373,12 +387,14 @@ function lifeCycleHandle(path) {
 					vistors.methods.handle(item);
 				});
 			}
+			path.skip();
 			break;
 		default:
 			vistors.lifeCycle.handle(path.node);
+			path.skip();
 			break;
 	}
-	path.skip();
+
 }
 
 /**

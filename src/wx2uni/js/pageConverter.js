@@ -93,9 +93,12 @@ const componentVistor = {
 						 * 
 						 * 虽然var app = getApp()已替换，还是会有漏网之鱼，如var t = getApp();
 						 */
-						const me = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
-						path2.replaceWith(me);
-						path2.skip();
+						const parent2 = path2.parentPath;
+						if (t.isMemberExpression(parent2.node) && parent2.node.property && parent2.node.property.name !== "globalData") {
+							const me = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
+							path2.replaceWith(me);
+							path2.skip();
+						}
 					}
 				},
 				VariableDeclarator(path2) {
@@ -107,7 +110,7 @@ const componentVistor = {
 						let subOject = objectPath.object;
 						let subProperty = objectPath.property;
 						if (t.isIdentifier(subOject, { name: "app" })) {
-							//这里没法调babelUtil.globalDataHandle()，子节点没有replaceWidth方法了(或许有转换方法，暂未知)
+							//这里调babelUtil.globalDataHandle(path2.get("init"))即可
 							let getApp = t.callExpression(t.identifier('getApp'), []);
 							let subMe = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), subProperty);
 							let me = t.MemberExpression(subMe, property);

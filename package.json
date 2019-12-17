@@ -21,7 +21,7 @@
     "htmlparser2": "^3.10.1",
     "moment": "^2.24.0",
     "node-pinyin": "^0.2.3",
-    "object-string-to-object": "^1.0.1",
+    "object-string-to-object": "^1.0.2",
     "prettier": "^1.17.1"
   },
   "deprecated": false,
@@ -65,5 +65,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.36"
+  "version": "1.0.37"
 }

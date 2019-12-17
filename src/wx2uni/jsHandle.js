@@ -651,7 +651,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 
 			if (!isApp) {
-
 				if (t.isMemberExpression(object)) {
 					babelUtil.globalDataHandle(object);
 				} else {

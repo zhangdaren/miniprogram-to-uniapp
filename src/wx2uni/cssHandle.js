@@ -30,7 +30,7 @@ async function cssHandle(fileContent, file_wxss) {
 
 			//wxss文件所在目录
 			let fileDir = path.dirname(file_wxss);
-			let reg_import = /@import +['"](.*?)\.wxss['"];*/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
+			let reg_import = /@import\s*['"](.*?)\.wxss['"];*/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
 			fileContent = fileContent.replace(reg_import, function (match, $1) {
 				//先转绝对路径，再转相对路径
 				let filePath = $1;

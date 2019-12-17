@@ -293,17 +293,26 @@ function isReservedAttrName(name) {
     const reg = /:/;
     var newName = name.replace(reg, "");
     return (reg.test(name) && (isReservedAttr(newName)) || newName === "data");
-};
+}
 
 
 /**
  * 获取属性别名   
  * 目前已知data、v-bind:data和v-bind:id不能作为属性名
+ * @param {*} key     key name 
+ * @param {*} value   value name ,判断是否为绑定了数据
  */
-function getAttrAlias(name) {
-    var result = name;
-    if (isReservedAttr(name) || name === "data") {
-        result += "Attr";
+function getAttrAlias(key, value) {
+    var result = key;
+    if (value) {
+        let reg_tag = /{{.*?}}/;
+        if ((reg_tag.test(value) && isReservedAttr(key)) || key === "data") {
+            result += "Attr";
+        }
+    } else {
+        if (isReservedAttr(key) || key === "data") {
+            result += "Attr";
+        }
     }
     return result;
 }

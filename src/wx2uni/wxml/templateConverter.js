@@ -212,12 +212,38 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
 
-		//这里先过滤一下，只有组件才会有porps的问题。
-		//PS：目测没有在data里声明而在template里使用，这个功能暂时不做。
+		//这里先过滤一下，只有组件才会有porps的问题。  页面里面碰到再说吧
 		if (isComponent) {
-			//试运行：修复template里data、id或default变量
 			for (const k in node.attribs) {
-				node.attribs[k] = replaceReserverdKeywordByParams(node.attribs[k], isComponent);
+				//试运行：修复template里data、id或default变量
+				let oldValue = node.attribs[k];
+				let newValue = replaceReserverdKeywordByParams(oldValue, isComponent);
+				if (newValue !== oldValue) {
+					let logStr = "[绑定值命名替换]:  " + oldValue + "  -->  " + newValue + "    file: " + path.relative(global.sourceFolder, file_wxml);
+					node.attribs[k] = newValue;
+
+					//存入日志，方便查看
+					utils.log(logStr, "base");
+					global.log.push(logStr);
+				}
+
+				///////////////////////////////////////////////////////////////
+				if (node.type === "tag" && node.name === "template") {
+					//template标签的data不需要转换，下面自会转换。
+				} else {
+					//调整组件的属性名(试运行)
+					let newAttrKey = utils.getAttrAlias(k, node.attribs[k]);
+					if (newAttrKey !== k) {
+						logStr = "[命名替换]:  " + k + "  -->  " + newAttrKey + "    file: " + path.relative(global.sourceFolder, file_wxml);
+						node.attribs[newAttrKey] = node.attribs[k];
+						//删除原key
+						delete node.attribs[k];
+
+						//存入日志，方便查看
+						utils.log(logStr, "base");
+						global.log.push(logStr);
+					}
+				}
 			}
 		}
 
@@ -311,7 +337,8 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 							if (reg_val.test(data)) {
 								varName = "article_" + data.match(reg_val)[1];
 							} else {
-								varName = data.replace(/wxParseData:/, "");
+								varName = data.replace(/wxParseData:/, "").replace(/{{(.*?)}}/, "$1");
+
 							}
 							//处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
 							//仅提取变量，"或"操作符和三元运算符暂不考虑。
@@ -364,7 +391,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 								for (const objKey in obj) {
 									const value = obj[objKey];
 									if (value.indexOf("\"") > -1 || value.indexOf("'") > -1) {
-										node.attribs[objKey] = value;
+										node.attribs[objKey] = value.replace(/^['"]|['"]$/g, "");
 									} else {
 										node.attribs[":" + objKey] = value;
 									}
@@ -426,8 +453,6 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					}
 				}
 			}
-
-
 
 			//进行标签替换  
 			if (tagConverterConfig[node.name]) {
@@ -569,12 +594,15 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					//wx:for与wx:for-items互斥
 					let value = wx_for ? wx_for : wx_forItems;
 
+					//处理<view wx:for="{{ dates }}" wx:key="dates"></view>
+					if (value.replace(/{{ *(.*?) *}}/, '$1').trim() === wx_key) wx_key = "index";
+
 					//替换{{}}
 					if (wx_key) {
 						//如果wx:key="*this"、wx:key="*item"或wx:key="*"时，那么直接设置为空
 						wx_key = wx_key.indexOf("*") === -1 ? wx_key : "";
 						wx_key = wx_key.trim();
-						wx_key = wx_key.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'");
+						wx_key = wx_key.replace(/{{ *(.*?) *}}/, '$1').replace(/\"/g, "'");
 						//修复index，防止使用的item.id来替换index
 						wx_key = wx_key.indexOf(".") === -1 ? wx_key : "index";
 
@@ -610,7 +638,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						if (value.indexOf(" in ") == -1) {
 							//将双引号转换单引号
 							value = value.replace(/\"/g, "'");
-							value = value.replace(/{{ ?(.*?) ?}}/, '(' + wx_forItem + ', ' + wx_key + ') in $1');
+							value = value.replace(/{{ *(.*?) *}}/, '(' + wx_forItem + ', ' + wx_key + ') in $1');
 
 							if (value == node.attribs[k]) {
 								//奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
@@ -644,6 +672,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					let wx_key = replaceBindToAt(k);
 					attrs[wx_key] = node.attribs[k];
 
+
 					//替换xx="xx:'{{}}';" 为xx="xx:{{}};"
 					//测试用例：
 					//<view style="width:'{{width}}'"></view>
@@ -658,28 +687,13 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						attrs[wx_key] = node.attribs[k];
 					}
 
-					//调整组件的属性名(试运行)
-					let newAttrKey = reg_tag.test(attrs[wx_key]) ? utils.getAttrAlias(wx_key) : wx_key;
-					if (newAttrKey !== wx_key) {
-						const logStr = "[命名替换]:  " + wx_key + "  -->  " + newAttrKey + "    file: " + path.relative(global.sourceFolder, file_wxml);
-
-						attrs[newAttrKey] = attrs[wx_key];
-						//删除原key
-						delete attrs[wx_key];
-						//修改原key名
-						wx_key = k = newAttrKey;
-
-						//存入日志，方便查看
-						utils.log(logStr, "base");
-						global.log.push(logStr);
-					}
-
 					//其他属性
 					//处理下面这种嵌套关系的样式或绑定的属性
 					//style="background-image: url({{avatarUrl}});color:{{abc}};font-size:12px;"
 					let value = attrs[wx_key];
 					//将双引号转换单引号
 					value = value.replace(/\"/g, "'");
+
 
 					let hasBind = reg_tag.test(value);
 					if (hasBind) {
@@ -724,6 +738,14 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						});
 						value = tmpArr.join(" + ");
 
+						//解析<button sessionFrom="{'nickname': '{{userInfo.nickname}}'}"></button> 
+						//大括号+单引号
+						// value = value.replace(/\'{\'(.*?)':\s*'/, "'{'+" + "'$1:'");
+
+						//这里有问题~~~~~~~~~~~~~~~~~~ 
+						//这里有问题~~~~~~~~~~~~~~~~~~ 
+						//这里有问题~~~~~~~~~~~~~~~~~~ 
+						//这里有问题~~~~~~~~~~~~~~~~~~ 
 
 						//如果value={{true}}或value={{false}}，则不添加bind
 						if (wx_key == k && value !== "true" && value !== "false") {

@@ -26,7 +26,7 @@ function checkMultiTag(ast) {
 	let isMultiTag = false;
 	let count = 0;
 	ast.forEach(node => {
-		if (node.type == "tag") {
+		if (node.type == "tag" && node.name !== "wxs") {
 			count++;
 			//如果根元素含有wx:for，需要在外面再包一层
 			if (node.attribs["wx:for"] || node.attribs["v-for"]) isMultiTag = true;
