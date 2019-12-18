@@ -23,6 +23,10 @@ let globalData = {};
 //当前文件所在目录
 let fileDir = "";
 
+//key
+let fileKey = "";
+
+
 /*
  * 注：为防止深层遍历，将直接路过子级遍历，所以使用enter进行全遍历时，孙级节点将跳过
  * 
@@ -37,9 +41,13 @@ const vistor = {
 				declareStr += `${generate(path.node).code}\r\n`;
 				path.skip();
 			}
-		} else if (t.isAssignmentExpression(path.node.expression)) {
-			//有可能app.js里是这种结构，exports.default = App({});
-			//path.node 为AssignmentExpression类型，所以这里区分一下
+			// } else if (t.isAssignmentExpression(path.node.expression)) {
+			// 	//有可能app.js里是这种结构，exports.default = App({});
+			// 	//path.node 为AssignmentExpression类型，所以这里区分一下
+			// 	if (t.isFile(parent)) {
+			// 		declareStr += `${generate(path.node).code}\r\n`;
+			// 	}
+		} else {
 			if (t.isFile(parent)) {
 				declareStr += `${generate(path.node).code}\r\n`;
 			}
@@ -63,7 +71,6 @@ const vistor = {
 	VariableDeclaration(path) {
 		const parent = path.parentPath.parent;
 		if (t.isFile(parent)) {
-
 			//将require()里的地址都处理一遍
 			traverse(path.node, {
 				noScope: true,
@@ -112,6 +119,11 @@ const vistor = {
 								}
 							}
 						}
+					} else if (t.isThisExpression(path2.node.init)) {
+						//记录当前文件里使用过的this别名
+						if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+						if (!global.pagesData[fileKey]["thisNameList"]) global.pagesData[fileKey]["thisNameList"] = [];
+						global.pagesData[fileKey]["thisNameList"].push(2)
 					}
 				}
 			});
@@ -253,6 +265,7 @@ const appConverter = function (ast, _file_js, isVueFile) {
 	//globalData对象
 	globalData = {};
 	fileDir = nodePath.dirname(_file_js);
+	fileKey = pathUtil.getFileKey(_file_js);
 	//
 	vistors = {
 		props: new Vistor(),
@@ -264,6 +277,19 @@ const appConverter = function (ast, _file_js, isVueFile) {
 		methods: new Vistor(),
 		lifeCycle: new Vistor(),
 	}
+
+	//记录使用过的this别名，暂时使用这种办法先，或者正则提取也行，计划用正则
+	// traverse(ast, {
+	// 	noScope: true,
+	// 	VariableDeclarator(path) {
+	// 		if (t.isThisExpression(path.node.init)) {
+	// 			//记录当前文件里使用过的this别名
+	// 			if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+	// 			if (!global.pagesData[fileKey]["thisNameList"]) global.pagesData[fileKey]["thisNameList"] = [];
+	// 			global.pagesData[fileKey]["thisNameList"].push(path.node.id.name);
+	// 		}
+	// 	}
+	// });
 
 	traverse(ast, vistor);
 

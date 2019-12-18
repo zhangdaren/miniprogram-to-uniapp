@@ -240,7 +240,7 @@ function applifeCycleFunHandle(ast, appGlobalDataFunNameList, appGlobalDataValue
 			if (t.isMemberExpression(callee)) {
 				//clearInterval(position_timer); 是没有callee.node.property.name的
 				let calleeName = callee.node.property.name;
-				if (appGlobalDataFunNameList[calleeName]) {
+				if (callee.node.object.name !== "wx" && appGlobalDataFunNameList[calleeName]) {
 					let me = t.memberExpression(callee.node.object, t.identifier("globalData"));
 					let memberExp = t.memberExpression(me, callee.node.property);
 					callee.replaceWith(memberExp);
@@ -250,10 +250,9 @@ function applifeCycleFunHandle(ast, appGlobalDataFunNameList, appGlobalDataValue
 		MemberExpression(path) {
 			let object = path.get('object');
 			let property = path.get('property');
-			// console.log(property.node.name);
-			// console.log(property.node.name);
+			// console.log(object.node.name, property.node.name);
 			//app.js里非生命周期函数里引用globalData里变量的引用关系修改
-			if (babelUtil.isThisExpression(object) && appGlobalDataValueNameList[property.node.name]) {
+			if (babelUtil.isThisExpression(object, global.pagesData["app"]["thisNameList"]) && appGlobalDataValueNameList[property.node.name]) {
 				let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('globalData')), property.node);
 				path.replaceWith(me);
 				path.skip();
@@ -575,6 +574,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			let object = path.get('object');
 			let property = path.get('property');
 
+
 			if (t.isIdentifier(property.node, { name: "triggerEvent" })) {
 				//this.triggerEvent()转换为this.$emit()
 				let obj = t.memberExpression(object.node, t.identifier("$emit"));
@@ -591,7 +591,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			} else if (t.isMemberExpression(object)) {
 				let subObject = object.get('object');
 				let subProperty = object.get('property');
-				if (babelUtil.isThisExpression(subObject)) {
+				if (!isApp && babelUtil.isThisExpression(subObject)) {
 					if (utils.isReservedAttrName(property.node.name)) {
 						//把不支持的属性保留名进行重名(试运行)
 						let newAttrName = utils.getAttrAlias(property.node.name);
@@ -620,28 +620,6 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 				}
 			}
 
-			//替换与data变量重名的函数引用
-			for (const item of replaceFunNameList) {
-				if (t.isIdentifier(property.node, { name: item })) {
-					if (babelUtil.isThisExpression(object)) {
-						let parent = path.parent;
-						//如果父级是AssignmentExpression，则不需再进行转换
-						if (parent && !t.isAssignmentExpression(parent)) {
-							let newName = utils.getFunctionAlias(item);
-							if (newName !== property.node.name) {
-								const logStr = "[命名替换]:  " + property.node.name + "  -->  " + newName + "    file: " + nodePath.relative(global.sourceFolder, file_js);
-
-								property.node.name = newName;
-
-								//存入日志，方便查看
-								utils.log(logStr, "base");
-								global.log.push(logStr);
-							}
-						}
-					}
-				}
-			}
-
 			//如果是在log("ischeck=====", app.data.isCheck);里
 			//或在 xx:function(){
 			//	that.setData({
@@ -649,8 +627,29 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 			//	  });
 			//}
 
-
 			if (!isApp) {
+				//替换与data变量重名的函数引用
+				for (const item of replaceFunNameList) {
+					if (t.isIdentifier(property.node, { name: item })) {
+						if (babelUtil.isThisExpression(object)) {
+							let parent = path.parent;
+							//如果父级是AssignmentExpression，则不需再进行转换
+							if (parent && !t.isAssignmentExpression(parent)) {
+								let newName = utils.getFunctionAlias(item);
+								if (newName !== property.node.name) {
+									const logStr = "[命名替换]:  " + property.node.name + "  -->  " + newName + "    file: " + nodePath.relative(global.sourceFolder, file_js);
+
+									property.node.name = newName;
+
+									//存入日志，方便查看
+									utils.log(logStr, "base");
+									global.log.push(logStr);
+								}
+							}
+						}
+					}
+				}
+
 				if (t.isMemberExpression(object)) {
 					babelUtil.globalDataHandle(object);
 				} else {
@@ -762,6 +761,16 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 
 	//去除无用代码
 	javascriptContent = javascriptParser.beforeParse(javascriptContent);
+
+	//缓存当前文件所使用过的this别名
+	let list = javascriptParser.getAliasThisNameList(javascriptContent);
+
+	//保存
+	let fileKey = pathUtil.getFileKey(file_js);
+	if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+	if (!global.pagesData[fileKey]["thisNameList"]) global.pagesData[fileKey]["thisNameList"] = {};
+	global.pagesData[fileKey]["thisNameList"] = list;
+
 
 	let javascriptAst = null;
 	let isParseError = false; //标识是否解析报错

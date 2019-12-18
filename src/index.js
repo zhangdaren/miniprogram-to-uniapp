@@ -824,7 +824,8 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 		// 			wxml: "",
 		// 			minWxml: "",
 		// 		   	css: ""
-		//     }
+		//     },
+		//     thisNameList:[]
 		// 	}
 	};
 	global.globalUsingComponents = {};  //后面添加的全局组件

@@ -77,6 +77,14 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.38(20191218)   
+* [优化] 提取页面里所有this的别名，进行近乎精确的替换   
+* [修复] 更多的getApp()的转换   
+* [修复] css里资源路径被遗漏处理的bug   
+* [修复] app.js转换变量出现错乱的bug(如this、globalData等)   
+* [试处理]] ```<button sessionFrom="{'nickname': '{{userInfo.nickname}}', 'avatarUrl': '{{userInfo.avatar}}'}"></button>```   
+
+
 ### v1.0.37(20191217)   
 * [修复] wx:for与wx:key值相同的情况   
 * [修复] Component里lifetimes未处理的bug   
@@ -86,7 +94,6 @@ $ wtu -i miniprogramProject -w
 * [修复] ```<template is="wxParse" data="{{wxParseData:articleNodes}}"/>```未被正确解析的bug   
 * [修复] ```@import"/wxss/6.wxss";```import后面没空格导致没转换到的bug   
 * [修复] template里面是对象时，解析出错的bug(```<button sessionFrom="{'nickname': '{{userInfo.nickname}}'}"></button>```)   
-
 
 ### v1.0.36(20191216)   
 * [修复] 调整变量时误加Fun的bug   

@@ -212,37 +212,34 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
 
-		//这里先过滤一下，只有组件才会有porps的问题。  页面里面碰到再说吧
-		if (isComponent) {
-			for (const k in node.attribs) {
-				//试运行：修复template里data、id或default变量
-				let oldValue = node.attribs[k];
-				let newValue = replaceReserverdKeywordByParams(oldValue, isComponent);
-				if (newValue !== oldValue) {
-					let logStr = "[绑定值命名替换]:  " + oldValue + "  -->  " + newValue + "    file: " + path.relative(global.sourceFolder, file_wxml);
-					node.attribs[k] = newValue;
+		for (const k in node.attribs) {
+			//试运行：修复template里data、id或default变量
+			let oldValue = node.attribs[k];
+			let newValue = replaceReserverdKeywordByParams(oldValue, isComponent);
+			if (newValue !== oldValue) {
+				let logStr = "[绑定值命名替换]:  " + oldValue + "  -->  " + newValue + "    file: " + path.relative(global.sourceFolder, file_wxml);
+				node.attribs[k] = newValue;
+
+				//存入日志，方便查看
+				utils.log(logStr, "base");
+				global.log.push(logStr);
+			}
+
+			///////////////////////////////////////////////////////////////
+			if (node.type === "tag" && node.name === "template") {
+				//template标签的data不需要转换，下面自会转换。
+			} else {
+				//调整组件的属性名(试运行)
+				let newAttrKey = utils.getAttrAlias(k, node.attribs[k]);
+				if (newAttrKey !== k) {
+					logStr = "[命名替换]:  " + k + "  -->  " + newAttrKey + "    file: " + path.relative(global.sourceFolder, file_wxml);
+					node.attribs[newAttrKey] = node.attribs[k];
+					//删除原key
+					delete node.attribs[k];
 
 					//存入日志，方便查看
 					utils.log(logStr, "base");
 					global.log.push(logStr);
-				}
-
-				///////////////////////////////////////////////////////////////
-				if (node.type === "tag" && node.name === "template") {
-					//template标签的data不需要转换，下面自会转换。
-				} else {
-					//调整组件的属性名(试运行)
-					let newAttrKey = utils.getAttrAlias(k, node.attribs[k]);
-					if (newAttrKey !== k) {
-						logStr = "[命名替换]:  " + k + "  -->  " + newAttrKey + "    file: " + path.relative(global.sourceFolder, file_wxml);
-						node.attribs[newAttrKey] = node.attribs[k];
-						//删除原key
-						delete node.attribs[k];
-
-						//存入日志，方便查看
-						utils.log(logStr, "base");
-						global.log.push(logStr);
-					}
 				}
 			}
 		}
@@ -696,7 +693,43 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 
 
 					let hasBind = reg_tag.test(value);
-					if (hasBind) {
+					let isObject = /^\{['"].*?\}$/.test(value);
+					if (isObject) {
+						//试处理类似于下面这种，绑定的是一个大的对象
+						//<button sessionFrom="{'nickname': '{{userInfo.nickname}}', 'avatarUrl': '{{userInfo.avatar}}'}"></button>
+
+						let reg1 = /^(.*?){{|}}(.*?){{|}}(.*?)$/g;  //除去{{}}之外的内容
+						let reg2 = /{{(.*?)}}/g;   //{{}}里的内容，不知为啥两个正则没法写成一个。
+
+						value = value.replace(reg2, function (match, $1) {
+							if (checkExp($1)) {
+								match = "\" + (" + $1 + ") + \"";
+							} else {
+								match = "\" + " + $1 + " + \"";
+							}
+							return match;
+						});
+
+						//试处理：<view url="/page/url/index={{item.id}}&data='abc'"></view>
+						//<view style="{{iphoneXBottom=='68rpx'?'padding-bottom:150rpx':''}}"></view>
+						let tmpArr = value.split(" + ");
+						let tmpReg = /([a-zA-Z0-9])='(.*?)'(?!\?)/g;
+						tmpArr.forEach((str, index) => {
+							tmpArr[index] = str.replace(tmpReg, function (match, $1, $2) {
+								return $2 ? $1 + "=" + $2 : match;
+							});
+							//去除引号
+							tmpArr[index] = tmpArr[index].replace(/'/g, "");
+						});
+						value = tmpArr.join(" + ");
+
+						//替换引号为单引号
+						value = value.replace(/"/g, "'");
+						value = "'" + value + "'";
+
+						attrs[":" + wx_key] = value;
+						delete attrs[wx_key];
+					} else if (hasBind) {
 						let reg1 = /(?!^){{ ?/g; //中间的{{
 						let reg2 = / ?}}(?!$)/g; //中间的}}
 						let reg3 = /^{{ ?/; //起始的{{
@@ -737,15 +770,6 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 							});
 						});
 						value = tmpArr.join(" + ");
-
-						//解析<button sessionFrom="{'nickname': '{{userInfo.nickname}}'}"></button> 
-						//大括号+单引号
-						// value = value.replace(/\'{\'(.*?)':\s*'/, "'{'+" + "'$1:'");
-
-						//这里有问题~~~~~~~~~~~~~~~~~~ 
-						//这里有问题~~~~~~~~~~~~~~~~~~ 
-						//这里有问题~~~~~~~~~~~~~~~~~~ 
-						//这里有问题~~~~~~~~~~~~~~~~~~ 
 
 						//如果value={{true}}或value={{false}}，则不添加bind
 						if (wx_key == k && value !== "true" && value !== "false") {

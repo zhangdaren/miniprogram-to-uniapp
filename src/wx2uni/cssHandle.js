@@ -46,7 +46,7 @@ async function cssHandle(fileContent, file_wxss) {
 
 			//低版本node不支持零宽断言这种写法，只能换成下面的写法(已测v10+是支持的)
 			// let reg_url = /url\(['"](?<filePath>.*?)\.(?<extname>jpg|jpeg|gif|svg|png)['"]\)/gi;
-			let reg_url = /url\(['"](.*?)\.(jpg|jpeg|gif|svg|png)['"]\)/gi;
+			let reg_url = /url\(['"]?(.*?)\.(jpg|jpeg|gif|svg|png)['"]?\)/gi;
 			fileContent = fileContent.replace(reg_url, function (...args) {
 				//const groups = args.slice(-1)[0];
 				//let src = groups.filePath + "." + groups.extname;
@@ -76,7 +76,7 @@ async function cssHandle(fileContent, file_wxss) {
 						// 修复路径
 						src = utils.normalizePath(src);
 					}
-					if (!/^\//.test(src)) {
+					if (!/^[\.\/]/.test(src)) {
 						src = "./" + src;
 					}
 				}

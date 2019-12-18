@@ -45,7 +45,8 @@ const componentVistor = {
 				declareStr += `${generate(path.node).code}\r\n`;
 				path.skip();
 			}
-		} else if (t.isAssignmentExpression(path.node.expression)) {
+		// } else if (t.isAssignmentExpression(path.node.expression)) {
+		} else {
 			//有可能app.js里是这种结构，exports.default = App({});
 			//path.node 为AssignmentExpression类型，所以这里区分一下
 			if (t.isFile(parent)) {

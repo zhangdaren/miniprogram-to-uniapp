@@ -364,13 +364,14 @@ function requirePathHandle(path, fileDir) {
 /**
  * 判断path是否为this或this的别名，如_this、that、self、_等
  */
-function isThisExpression(path) {
+function isThisExpression(path, thisNameList) {
     let name = path.node.name;
     return t.isThisExpression(path)
         || t.isIdentifier(path.node, { name: "that" })
         || t.isIdentifier(path.node, { name: "_this" })
         || t.isIdentifier(path.node, { name: "self" })
-        || name && name.length === 1 && /[a-zA-Z_]/.test(name);
+        || (thisNameList && name && thisNameList[name])
+    // || name && name.length === 1 && /[a-zA-Z_]/.test(name);
 }
 
 

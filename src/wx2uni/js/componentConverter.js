@@ -38,7 +38,8 @@ const componentVistor = {
 				declareStr += `${generate(path.node).code}\r\n`;
 				path.skip();
 			}
-		} else if (t.isAssignmentExpression(path.node.expression)) {
+		// } else if (t.isAssignmentExpression(path.node.expression)) {
+		} else {
 			if (t.isFile(parent)) {
 				const callee = path.get("expression.right.callee");
 				if (t.isIdentifier(callee.node, { name: "Behavior" })) {
