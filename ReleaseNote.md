@@ -1,6 +1,23 @@
 # Miniprogram to uni-app - Release Notes   
 ======================================
 
+## v1.0.37(20191217)   
+* [修复] wx:for与wx:key值相同的情况   
+* [修复] Component里lifetimes未处理的bug   
+* [修复] 转换出现getApp().globalData.globalData的bug   
+* [修复] template含wxs标签时，转换后多添加view标签的bug   
+* [修复] 替换template里data、id或default变量未替换完全的bug   
+* [修复] ```<template is="wxParse" data="{{wxParseData:articleNodes}}"/>```未被正确解析的bug   
+* [修复] ```@import"/wxss/6.wxss";```import后面没空格导致没转换到的bug   
+* [修复] template里面是对象时，解析出错的bug(```<button sessionFrom="{'nickname': '{{userInfo.nickname}}'}"></button>```)   
+
+## v1.0.36(20191216)   
+* [修复] 调整变量时误加Fun的bug   
+* [修复] 识别单独app变量   
+* [修复] 单js文件里未替换getApp()为getApp().globalData    
+* [修复] 进一步完善：变量与函数同步的情况   
+* [修复] 进一步完善：重命名以_和$开头以及使用js系统关键字命名   
+* [试运行] 替换template里data、id或default变量(目前仅支持Component里替换)   
 
 ## v1.0.35(20191214)   
 * [优化] 优化wxs引用的路径    

@@ -263,9 +263,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 								default:
 									// console.log(extname, path.dirname(fileDir));
 									// console.log(fileDir, path.basename(path.dirname(fileDir)));
-
 									if (/.(jpg|jpeg|gif|svg|png)$/.test(extname)) {
-
 										//当前文件上层目录
 										let pFolder = path.dirname(fileDir);
 
@@ -289,8 +287,10 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 												}
 												fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
 											} else {
-												fs.copySync(pFolder, path.join(targetFolder, "static" + "/" + pFolderName));
-												ignoreFolder.push(pFolder);
+												if (pFolder !== miniprogramRoot) {
+													fs.copySync(pFolder, path.join(targetFolder, "static" + "/" + pFolderName));
+													ignoreFolder.push(pFolder);
+												}
 											}
 										}
 									} else {
@@ -728,6 +728,12 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	routerData = {};
 
 	global.log = []; //记录转换日志，最终生成文件
+	//记录日志里同类的数据
+	global.logArr = {
+		fish: [],     //漏网之鱼
+		template: [],   //template
+		rename: [],  //重名
+	};
 
 	//起始时间
 	const startTime = new Date();
@@ -929,6 +935,17 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 				vueCliHandle(configData, global.outputFolder, global.assetsFolderObject, true);
 			}
 
+			//日志分类进行输出，方便查看
+			for (const item of global.logArr.fish) {
+				global.log.push(item);
+			}
+			for (const item of global.logArr.rename) {
+				global.log.push(item);
+			}
+			for (const item of global.logArr.template) {
+				global.log.push(item);
+			}
+
 			//输出提示
 			setTimeout(() => {
 				let str = "\r\n";
@@ -941,14 +958,14 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 					tmpStr = "注意：\r\n1.";
 				} else {
 					str += "当前转换模式：【Hbuilder X】，生成HbuilderX项目。\r\n优点：上手快，项目结构较简单；\r\n缺点：资源路径会因为表达式而无法全部被修复(需手动修复)\r\n\r\n";
-					str += '注意：\r\n1.当看到"image漏网之鱼"，意味着您需要手动调整对应代码，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径(使用vue-cli模式可以解决，参数：-c)\r\n';
+					str += '注意：\r\n1.当看到"image漏网之鱼"，意味着您"可能"需要手动调整对应代码(以实际编译运行为准)，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径\r\n';
 					tmpStr = "2.";
 				}
 				str += tmpStr;
 				str += '代码<template is="abc" data=""/>里data属性，除了不支持...扩展运算符(因uni-app现在还不支持v-bind="")，其余参数形式都支持，望知悉！\r\n';
 				str += '\r\n日志说明：\r\n';
 				str += '1. image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
-				str += '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如data、id都能做属性名，但uni-app里不支持，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
+				str += '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如data、id都能做属性名，data下面的变量和函数名还能重名，但这些在uni-app里是不支持的，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
 
 				str = "\r\n转换完成: " + str;
 

@@ -602,7 +602,9 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 						//存入日志，方便查看，以防上面那么多层级搜索出问题
 						utils.log(logStr, "base");
-						global.log.push(logStr);
+						global.logArr.rename.push(logStr);
+
+
 					}
 				}
 			} else if (babelUtil.isThisExpression(object) && t.isIdentifier(property.node, { name: "data" })) {
@@ -643,7 +645,7 @@ const componentTemplateBuilder = function (ast, vistors, isApp, usingComponents,
 
 									//存入日志，方便查看
 									utils.log(logStr, "base");
-									global.log.push(logStr);
+									global.logArr.rename.push(logStr);
 								}
 							}
 						}

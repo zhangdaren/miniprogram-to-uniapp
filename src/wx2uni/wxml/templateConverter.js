@@ -222,7 +222,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 
 				//存入日志，方便查看
 				utils.log(logStr, "base");
-				global.log.push(logStr);
+				global.logArr.rename.push(logStr);
 			}
 
 			///////////////////////////////////////////////////////////////
@@ -239,7 +239,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 
 					//存入日志，方便查看
 					utils.log(logStr, "base");
-					global.log.push(logStr);
+					global.logArr.rename.push(logStr);
 				}
 			}
 		}
@@ -372,7 +372,8 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 								let str = 'template里data属性包含...扩展运算符时，不支持转换(因uni-app还不支持v-bind="")，请预先手动修改:     data--> ' + data +
 									"    file--> " + path.relative(global.miniprogramRoot, file_wxml);
 								console.log(str);
-								global.log.push(str);
+								global.logArr.template.push(str);
+
 								//////////////////////////
 								global.globalTemplateComponents[componentName].props = '';
 								//这里简单处理一下，因为data不能作为props名，这里重名一下
@@ -500,11 +501,11 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 							node.attribs.src = newImagePath.split("\\").join("/");;
 						}
 					} else {
-						if (src && !global.isVueAppCliMode) {
+						if (reg.test(src) && !global.isVueAppCliMode) {
 							let logStr = "image漏网之鱼:    src--> \"" + node.attribs.src + "\"     file--> " + path.relative(global.miniprogramRoot,
 								file_wxml);
 							console.log(logStr);
-							global.log.push(logStr);
+							global.logArr.fish.push(logStr);
 						}
 					}
 				}
@@ -591,75 +592,80 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					//wx:for与wx:for-items互斥
 					let value = wx_for ? wx_for : wx_forItems;
 
-					//处理<view wx:for="{{ dates }}" wx:key="dates"></view>
-					if (value.replace(/{{ *(.*?) *}}/, '$1').trim() === wx_key) wx_key = "index";
-
-					//替换{{}}
-					if (wx_key) {
-						//如果wx:key="*this"、wx:key="*item"或wx:key="*"时，那么直接设置为空
-						wx_key = wx_key.indexOf("*") === -1 ? wx_key : "";
-						wx_key = wx_key.trim();
-						wx_key = wx_key.replace(/{{ *(.*?) *}}/, '$1').replace(/\"/g, "'");
-						//修复index，防止使用的item.id来替换index
-						wx_key = wx_key.indexOf(".") === -1 ? wx_key : "index";
-
-						//修复for-item与key值相等的情况
-						// <view wx:for="{{goods}}" wx:for-item="good" wx:key="{{good}}"></view>
-						if (wx_forItem === wx_key) wx_key = "index";
-					}
-
-					//------------处理wx:key------------
-					//查找父级的key
-					let pKey = findParentsWithFor(node);
-					if (pKey && pKey.indexOf("index") > -1) {
-						let count = pKey.split("index").join("");
-						if (count) {
-							count = parseInt(count);
-						} else {
-							count = 1; //如果第一个找到的父级的key为index时，则默认为1
-						}
-						count++; //递增
-						wx_key = (wx_key && pKey != wx_key) ? wx_key : "index" + count;
-					} else {
-						wx_key = wx_key ? wx_key : "index";
-					}
-
-					//有种情况是直接将item设置为key，如：<view wx:for="{{school}}" wx:key="{{item}}"></view>
-					if (wx_key === "item") wx_key = "index";
-
-					//设置for-item默认值
-					wx_forItem = wx_forItem ? wx_forItem : "item";
-
 					if (value) {
-						//判断是wx:for里是否已经包含in了
-						if (value.indexOf(" in ") == -1) {
-							//将双引号转换单引号
-							value = value.replace(/\"/g, "'");
-							value = value.replace(/{{ *(.*?) *}}/, '(' + wx_forItem + ', ' + wx_key + ') in $1');
+						//处理<view wx:for="{{ dates }}" wx:key="dates"></view>
+						if (value.replace(/{{ *(.*?) *}}/, '$1').trim() === wx_key) wx_key = "index";
 
-							if (value == node.attribs[k]) {
-								//奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
-								//这里处理无{{}}的情况
-								value = '(' + wx_forItem + ', ' + wx_key + ') in ' + value;
-							}
-						} else {
-							//处理包含in的情况，如：wx:for="item in 12"
-							//这里粗糙处理一下，官方也没有这种写法
-							let tmpArr = value.split(" in ");
-							let str1 = tmpArr[0];
-							if (str1.indexOf(",") == -1) {
-								str1 += ', ' + wx_key;
-							}
-							value = '(' + str1 + ') in ' + tmpArr[1];
+						//替换{{}}
+						if (wx_key) {
+							//如果wx:key="*this"、wx:key="*item"或wx:key="*"时，那么直接设置为空
+							wx_key = wx_key.indexOf("*") === -1 ? wx_key : "";
+							wx_key = wx_key.trim();
+							wx_key = wx_key.replace(/{{ *(.*?) *}}/, '$1').replace(/\"/g, "'");
+							//修复index，防止使用的item.id来替换index
+							wx_key = wx_key.indexOf(".") === -1 ? wx_key : "index";
+
+							//修复for-item与key值相等的情况
+							// <view wx:for="{{goods}}" wx:for-item="good" wx:key="{{good}}"></view>
+							if (wx_forItem === wx_key) wx_key = "index";
 						}
 
-						attrs['v-for'] = value;
-						attrs[':key'] = wx_key;
-						if (node.attribs.hasOwnProperty("wx:key")) delete node.attribs["wx:key"];
-						if (node.attribs.hasOwnProperty("wx:for-index")) delete node.attribs["wx:for-index"];
-						if (node.attribs.hasOwnProperty("wx:for-item")) delete node.attribs["wx:for-item"];
-						if (node.attribs.hasOwnProperty("wx:for-items")) delete node.attribs["wx:for-items"];
+						//------------处理wx:key------------
+						//查找父级的key
+						let pKey = findParentsWithFor(node);
+						if (pKey && pKey.indexOf("index") > -1) {
+							let count = pKey.split("index").join("");
+							if (count) {
+								count = parseInt(count);
+							} else {
+								count = 1; //如果第一个找到的父级的key为index时，则默认为1
+							}
+							count++; //递增
+							wx_key = (wx_key && pKey != wx_key) ? wx_key : "index" + count;
+						} else {
+							wx_key = wx_key ? wx_key : "index";
+						}
+
+						//有种情况是直接将item设置为key，如：<view wx:for="{{school}}" wx:key="{{item}}"></view>
+						if (wx_key === "item") wx_key = "index";
+
+						//设置for-item默认值
+						wx_forItem = wx_forItem ? wx_forItem : "item";
+
+						if (value) {
+							//判断是wx:for里是否已经包含in了
+							if (value.indexOf(" in ") == -1) {
+								//将双引号转换单引号
+								value = value.replace(/\"/g, "'");
+								value = value.replace(/{{ *(.*?) *}}/, '(' + wx_forItem + ', ' + wx_key + ') in $1');
+
+								if (value == node.attribs[k]) {
+									//奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
+									//这里处理无{{}}的情况
+									value = '(' + wx_forItem + ', ' + wx_key + ') in ' + value;
+								}
+							} else {
+								//处理包含in的情况，如：wx:for="item in 12"
+								//这里粗糙处理一下，官方也没有这种写法
+								let tmpArr = value.split(" in ");
+								let str1 = tmpArr[0];
+								if (str1.indexOf(",") == -1) {
+									str1 += ', ' + wx_key;
+								}
+								value = '(' + str1 + ') in ' + tmpArr[1];
+							}
+
+							attrs['v-for'] = value;
+							if (node.attribs.hasOwnProperty("wx:for-index")) delete node.attribs["wx:for-index"];
+							if (node.attribs.hasOwnProperty("wx:for-item")) delete node.attribs["wx:for-item"];
+							if (node.attribs.hasOwnProperty("wx:for-items")) delete node.attribs["wx:for-items"];
+						}
+					} else {
+						const code = templateParser.astToString([node]);
+						console.log("当前这个标签只有一个wx:key --> " +  code);
 					}
+					attrs[':key'] = wx_key;
+					if (node.attribs.hasOwnProperty("wx:key")) delete node.attribs["wx:key"];
 				} else {
 					// "../list/list?type={{ item.key }}&title={{ item.title }}"
 					// "'../list/list?type=' + item.key ' + '&title=' + item.title"
