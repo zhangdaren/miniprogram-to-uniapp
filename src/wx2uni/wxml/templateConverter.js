@@ -26,6 +26,12 @@ const attrConverterConfigUni = {
 			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 		}
 	},
+	'hidden': {
+		key: 'v-if',
+		value: (str) => {
+			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
+		}
+	},
 	'wx-if': {
 		key: 'v-if',
 		value: (str) => {
@@ -416,7 +422,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 							let logStr = '因uni-app不支持动态组件，已注释代码，请手动修改。    code--> ' + code + "    file--> " + path.relative(global.miniprogramRoot,
 								file_wxml);
 							console.log(logStr);
-							global.log.push(logStr);
+							global.logArr.template.push(logStr);
 						}
 					}
 				} else {
@@ -570,19 +576,26 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					 * 解析规则：
 					 * 1.wx:for同上
 					 * 2.遍历到wx:for-items这一层时，如果有wx:for-item属性，且parent含有wx:for时，将wx:for-item的值设置为parent的wx:for遍历出的子元素的别称
+					 * 
+					 * 情况五：
+					 * <view wx:for="{{giftList}}" wx:key="item" wx:for-index="idx"></view>
+					 * 解析规则：
+					 * 1. wx:key和wx:for-index共存时，优先使用wx:for-index作为key
+					 * 
 					 */
 
 					//这里预先设置wx:for是最前面的一个属性，这样会第一个被遍历到
 					let wx_key = node.attribs["wx:key"];
 					let wx_forIndex = node.attribs["wx:for-index"];
 
+					//有宝义for-index时，使用使用
+					if (wx_forIndex) {
+						wx_key = wx_forIndex;
+					}
+
 					//处理wx:key="this"的情况
 					if (wx_key === "this") {
-						if (wx_forIndex) {
-							wx_key = wx_forIndex;
-						} else {
-							wx_key = "";
-						}
+						wx_key = "";
 					}
 
 					if (wx_key && wx_key.indexOf("*") > -1) wx_key = "";
@@ -662,7 +675,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						}
 					} else {
 						const code = templateParser.astToString([node]);
-						console.log("当前这个标签只有一个wx:key --> " +  code);
+						console.log("当前这个标签只有一个wx:key --> " + code);
 					}
 					attrs[':key'] = wx_key;
 					if (node.attribs.hasOwnProperty("wx:key")) delete node.attribs["wx:key"];
@@ -687,7 +700,10 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 
 					if (wx_key == k) {
 						wx_key = replaceWxBind(k);
-						attrs[wx_key] = node.attribs[k];
+						if (wx_key != k) {
+							attrs[wx_key] = node.attribs[k];
+							delete node.attribs[k];
+						}
 					}
 
 					//其他属性

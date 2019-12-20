@@ -77,6 +77,11 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.40(20191220)   
+* [优化] wx:key和wx:for-index共存时，优先使用wx:for-index作为key    
+* [修复] 支持hidden属性转换为v-if    
+* [修复] ```wx:item="{{item}}"```未被转换的bug   
+
 ### v1.0.39(20191219)   
 * [优化] 日志展示样式   
 * [修复] 标签上仅有wx:key时，转换出错的bug   

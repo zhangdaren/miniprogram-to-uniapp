@@ -24,8 +24,8 @@ class JavascriptParser {
 
     // return code.replace(/const\s+app\s+=\s+getApp\(\)/gm, '');  //保留getApp()
     return code.replace(/export default App;?/img, '')
-      .replace(/(var|let|const)\s+(\w+)\s+=\s+getApp\(\),/img, 'var $2 = getApp().globalData,')  //处理这种var app = getApp(), http = app.http;情况会报错
-      .replace(/(var|let|const)\s+(\w+)\s+=\s+getApp\(\)[;]/img, 'var $2 = getApp().globalData;')
+      .replace(/(var|let|const)\s+(\w+)\s+=\s+getApp\(\),/img, '$1 $2 = getApp().globalData,')  //处理这种var app = getApp(), http = app.http;情况会报错
+      .replace(/(var|let|const)\s+(\w+)\s+=\s+getApp\(\)[;]/img, '$1 $2 = getApp().globalData;')
       .replace(/^getApp\(\)\.page\({/img, 'Page({')
       .replace(/^exports\.default\s+=\s+App\({/img, 'App({');
   }

@@ -26,7 +26,7 @@ async function cssHandle(fileContent, file_wxss) {
 
 			
 			//删除掉import app.wxss的代码
-			fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse.wxss["'];?/g, "").replace(/@import\s?["'].*?\/?wxParse\/(.*?)["'];?/g, "");
+			fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse[\/\.](.*?)["'];?/g, "");
 
 			//wxss文件所在目录
 			let fileDir = path.dirname(file_wxss);
