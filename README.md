@@ -2,10 +2,11 @@
    
 输入小程序项目路径，输出uni-app项目。
    
-实现项目下面的js+wxml+wxss转换为vue文件，模板语法、生命周期函数等进行相应转换，其他文件原样复制，生成uni-app所需要的配置文件。   
-PS:
-很多人问：wx.xxx()为什么不替换为uni.xxx()呢？
-答案是暂时不需要，不是替换不了，而是uni-app早已对wx相关函数进行兼容，所以可以直接使用，而不需要再调整了。
+实现项目下面的js+wxml+wxss转换为vue文件，模板语法、生命周期函数等进行相应转换，其他文件原样复制，生成uni-app所需要的配置文件。  
+    
+PS:   
+很多人问：wx.xxx()为什么不替换为uni.xxx()呢？   
+答案是暂时不需要，不是替换不了，而是uni-app早已对wx相关函数进行兼容，所以可以直接使用，而不需要再调整了。   
    
         
 ## 安装   
@@ -77,22 +78,22 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.42(20191224)   
+* [新增] 支持解析TypeScript小程序项目    
+* [新增] 支持解析使用npm模块的小程序项目    
+* [新增] 支持解析Behavior文件为mixins文件    
+* [优化] 调整判断ast类型的逻辑    
+* [优化] 更新uParse修复版的版本为v1.2.0    
+* [修复] 解析template时多余引号的bug    
+* [修复] require路径没有扩展名，编译时找不到文件的bug(默认加上.js)    
+* [修复] 单个字符作为this的别名时，page和component页面未做相应替换的bug    
+* [修复] 当properties下面的属性是字符串时导致转换失败(如```properties: {'pullRefresh':{type: Boolean}```)    
+
+
 ### v1.0.40(20191220)   
 * [优化] wx:key和wx:for-index共存时，优先使用wx:for-index作为key    
 * [修复] 支持hidden属性转换为v-if    
 * [修复] ```wx:item="{{item}}"```未被转换的bug   
-
-### v1.0.39(20191219)   
-* [优化] 日志展示样式   
-* [修复] 标签上仅有wx:key时，转换出错的bug   
-* [修复] 根目录包含图片资源时，导致pages未进行转换的bug   
-
-### v1.0.38(20191218)   
-* [优化] 提取页面里所有this的别名，进行近乎精确的替换   
-* [修复] 更多的getApp()的转换   
-* [修复] css里资源路径被遗漏处理的bug   
-* [修复] app.js转换变量出现错乱的bug(如this、globalData等)   
-* [试处理]] ```<button sessionFrom="{'nickname': '{{userInfo.nickname}}', 'avatarUrl': '{{userInfo.avatar}}'}"></button>```   
 
 ## [历史更新记录](ReleaseNote.md)   
     

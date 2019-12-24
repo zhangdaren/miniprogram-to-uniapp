@@ -688,7 +688,6 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					let wx_key = replaceBindToAt(k);
 					attrs[wx_key] = node.attribs[k];
 
-
 					//替换xx="xx:'{{}}';" 为xx="xx:{{}};"
 					//测试用例：
 					//<view style="width:'{{width}}'"></view>
@@ -696,13 +695,13 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					//<view style="background-image:url('{{iconURL}}/invitation-red-packet-btn.png')"></view>
 					//<view style='font-weight:{{item.b==1? "bold": "normal"}};'></view>
 					//<view style="width:{{percent}}% }};"></view> //原始代码有问题
-					node.attribs[k] = node.attribs[k].replace(/url\(['"].*?{{(.*?)}}.*?['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}");
+					attrs[wx_key] = attrs[wx_key].replace(/url\(['"](.*?{{.*?}}.*?)['"]\)/g, "url($1)").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}");
 
 					if (wx_key == k) {
 						wx_key = replaceWxBind(k);
 						if (wx_key != k) {
-							attrs[wx_key] = node.attribs[k];
-							delete node.attribs[k];
+							attrs[wx_key] = attrs[k];
+							delete attrs[k];
 						}
 					}
 
@@ -713,6 +712,14 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					//将双引号转换单引号
 					value = value.replace(/\"/g, "'");
 
+					//查找{{}}里是否有?，有就加个括号括起来
+					//处理这种情况：<view class="abc abc-d-{{item.id}} {{selectId===item.id?'active':''}}"></view>
+					value = value.replace(/{{(.*?)}}/g, function (match, $1) {
+						if (checkExp(match)) {
+							match = "{{(" + $1 + ")}}";
+						}
+						return match;
+					});
 
 					let hasBind = reg_tag.test(value);
 					let isObject = /^\{['"].*?\}$/.test(value);
@@ -745,6 +752,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						});
 						value = tmpArr.join(" + ");
 
+
 						//替换引号为单引号
 						value = value.replace(/"/g, "'");
 						value = "'" + value + "'";
@@ -756,15 +764,6 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						let reg2 = / ?}}(?!$)/g; //中间的}}
 						let reg3 = /^{{ ?/; //起始的{{
 						let reg4 = / ?}}$/; //文末的}}
-
-						//查找{{}}里是否有?，有就加个括号括起来
-						//处理这种情况：<view class="abc abc-d-{{item.id}} {{selectId===item.id?'active':''}}"></view>
-						value = value.replace(/{{(.*?)}}/g, function (match, $1) {
-							if (checkExp(match)) {
-								match = "{{(" + $1 + ")}}";
-							}
-							return match;
-						});
 
 						value = value.replace(reg1, "' + ").replace(reg2, " + '");
 

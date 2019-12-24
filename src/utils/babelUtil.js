@@ -1,5 +1,6 @@
 const t = require('@babel/types');
 const clone = require('clone');
+const nodePath = require('path');
 const parse = require('@babel/parser').parse;
 const generate = require('@babel/generator').default;
 const traverse = require('@babel/traverse').default;
@@ -102,13 +103,25 @@ function addComment(path, comment) {
     }
 }
 
+
+/**
+ * 页面的类型，在这个里面才会被认定
+ */
+const astTypeList = {
+    App: true,
+    Page: true,
+    Component: true,
+    VantComponent: true,
+    Behavior: true,
+}
 /**
  * 获取ast类型
- * 目前支持识别四种类型:
+ * 目前支持识别以下几种类型:
  * 1.App
  * 2.Page
  * 3.Component
  * 4.VantComponent 
+ * 5.Behavior  -->  mixins
  * @param {*} ast 
  */
 function getAstType(ast, _file_js) {
@@ -116,14 +129,49 @@ function getAstType(ast, _file_js) {
     traverse(ast, {
         noScope: true,
         ExpressionStatement(path) {
-            const exp = path.get("expression");
-            if (t.isCallExpression(exp) && t.isIdentifier(exp.node.callee)) {
-                type = exp.node.callee.name;
-                path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
-            } else if (t.isAssignmentExpression(exp)) {
-                const right = exp.node.right;
-                if (t.isCallExpression(right)) {
-                    type = right.callee.name;
+            const parent = path.parentPath.parent;
+            if (t.isFile(parent)) {
+                const exp = path.get("expression");
+                if (t.isCallExpression(exp) && t.isIdentifier(exp.node.callee)) {
+                    let name = exp.node.callee.name;
+                    if (astTypeList[name]) {
+                        type = name;
+                        path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                    }
+                } else if (t.isAssignmentExpression(exp)) {
+                    const right = exp.node.right;
+                    if (t.isCallExpression(right)) {
+                        let name = right.callee.name;
+                        if (astTypeList[name]) {
+                            type = name;
+                            path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                        }
+                    }
+                }
+            }
+        }, ExportNamedDeclaration(path) {
+            const declaration = path.node.declaration;
+            if (t.isVariableDeclaration(declaration)) {
+                const variableDeclarator = declaration.declarations[0];
+                const init = variableDeclarator.init;
+                if (t.isCallExpression(init) && init.callee.name === "Behavior") {
+                    type = "Behavior";
+                    path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                }
+            }
+        }, ReturnStatement(path) {
+            /**
+             * 判断这种形式的代码：
+             * export const transition = function (showDefaultValue) {
+             *    return Behavior({})
+             * }
+             */
+            const argument = path.node.argument;
+            if (t.isCallExpression(argument)) {
+                let name = argument.callee.name;
+                if (name === "Behavior") {
+                    type = "Behavior2";
+                    path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
                 }
             }
         }
@@ -353,6 +401,12 @@ function requirePathHandle(path, fileDir) {
         if (arguments && arguments.length) {
             if (t.isStringLiteral(arguments[0])) {
                 let filePath = arguments[0].value;
+
+                //如果没有扩展名，默认加上.js，因为uni-app里，没加后缀名的表示不认识……
+                let extname = nodePath.extname(filePath);
+                if (!extname) filePath += ".js";
+
+                //修复路径
                 filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
                 path.node.arguments[0] = t.stringLiteral(filePath);
             }

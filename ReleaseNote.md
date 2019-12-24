@@ -1,6 +1,19 @@
 # Miniprogram to uni-app - Release Notes   
 ======================================
 
+
+## v1.0.39(20191219)   
+* [优化] 日志展示样式   
+* [修复] 标签上仅有wx:key时，转换出错的bug   
+* [修复] 根目录包含图片资源时，导致pages未进行转换的bug   
+
+## v1.0.38(20191218)   
+* [优化] 提取页面里所有this的别名，进行近乎精确的替换   
+* [修复] 更多的getApp()的转换   
+* [修复] css里资源路径被遗漏处理的bug   
+* [修复] app.js转换变量出现错乱的bug(如this、globalData等)   
+* [试处理]] ```<button sessionFrom="{'nickname': '{{userInfo.nickname}}', 'avatarUrl': '{{userInfo.avatar}}'}"></button>```   
+
 ## v1.0.37(20191217)   
 * [修复] wx:for与wx:key值相同的情况   
 * [修复] Component里lifetimes未处理的bug   

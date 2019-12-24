@@ -33,6 +33,7 @@ function wxProjectParse(folder, sourceFolder) {
 		"compileType": "",
 		"author": ""
 	};
+
 	if (fs.existsSync(file_projectConfigJson)) {
 		let data = fs.readJsonSync(file_projectConfigJson);
 		if (data.cloudfunctionRoot) {
@@ -42,34 +43,37 @@ function wxProjectParse(folder, sourceFolder) {
 
 			//如果是有云函数的项目，那么工作目录将设置为miniprogramRoot
 			// miniprogramRoot = projectConfig.miniprogramRoot;
-
-			//读取package.json
-			let file_package = path.join(folder, "package.json");
-			if (fs.existsSync(file_package)) {
-				let packageJson = fs.readJsonSync(file_package);
-				//
-				projectConfig.name = packageJson.name;
-				projectConfig.version = packageJson.version;
-				projectConfig.description = packageJson.description;
-				//author用不到，先留着
-				projectConfig.author = packageJson.author;
-			} else {
-				console.log(`Error： 找不到package.json文件(不影响转换)`);
-				// global.log.push("\r\nError： 找不到package.json文件\r\n");
-			}
+		} else if (data.miniprogramRoot) {
+			projectConfig.miniprogramRoot = path.resolve(sourceFolder, data.miniprogramRoot);
 		} else {
 			//无云函数
 			projectConfig.miniprogramRoot = folder;
-			projectConfig.name = decodeURIComponent(data.projectname);
 		}
 		projectConfig.appid = data.appid;
 		projectConfig.compileType = data.compileType;
+		projectConfig.name = decodeURIComponent(data.projectname);
 	} else {
 		projectConfig.miniprogramRoot = sourceFolder;
 		console.log(`Error： 找不到project.config.json文件`);
 		// global.log.push("\r\nError： 找不到project.config.json文件\r\n");
 		// throw (`error： 这个目录${sourceFolder}应该不是小程序的目录，找不到project.config.json文件`)
 		// return false;
+	}
+
+	//读取package.json
+	let file_package = path.join(folder, "package.json");
+	if (fs.existsSync(file_package)) {
+		let packageJson = fs.readJsonSync(file_package);
+		//
+		projectConfig.name = packageJson.name;
+		projectConfig.version = packageJson.version;
+		projectConfig.description = packageJson.description;
+		//author用不到，先留着
+		projectConfig.author = packageJson.author;
+		projectConfig.dependencies = packageJson.dependencies;  //安装的npm包
+	} else {
+		console.log(`Error： 找不到package.json文件(不影响转换)`);
+		// global.log.push("\r\nError： 找不到package.json文件\r\n");
 	}
 	return projectConfig;
 }
@@ -114,7 +118,6 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 			let isContinue = false;
 			fs.stat(fileDir, function (err, stats) {
 				if (stats.isDirectory()) {
-
 					//简单判断是否为workers目录，严格判断需要从app.json里取出workers的路径来(后续再议)
 					let isWorkersFolder = path.relative(miniprogramRoot, fileDir) === "workers";
 
@@ -139,7 +142,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 						//判断是否为页面文件所在的目录（这个判断仍然还不够十分完美~）
 						let isPageFileFolder = fs.existsSync(path.join(fileDir, fileName + ".wxml"));
 
-						if ((fileName == "images" || fileName == "image") && !isPageFileFolder) {
+						if ((fileName === "images" || fileName === "image") && !isPageFileFolder) {
 							//处理图片目录，复制到static目录里
 							fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
 							ignoreFolder.push(fileDir);
@@ -147,7 +150,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 							//处理workers目录，复制到static目录里
 							fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
 							workersFolder = fileDir;
-						} else if (fileName == "wxParse") {
+						} else if (fileName === "wxParse") {
 							fs.copySync(fileDir, newFileDir);
 							ignoreFolder.push(fileDir);
 						} else {
@@ -160,7 +163,6 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 							}
 						}
 					}
-
 					//继续往下面遍历
 					return traverseFolder(fileDir, miniprogramRoot, targetFolder, checkEnd);
 				} else {
@@ -171,9 +173,11 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 						//判断是否含有wxParse文件
 						global.hasWxParse = global.hasWxParse || (fileName.indexOf("wxParse.") > -1);
 
+
+						// || /^miniprogram_npm/.test(key)
 						//判断是否为素材目录或workers目录里面的文件
 						let isInIgnoreFolder = pathUtil.isInFolder(ignoreFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
-						if (isInIgnoreFolder && !global.isVueAppCliMode) {
+						if ((isInIgnoreFolder) && !global.isVueAppCliMode) {
 							//
 						} else {
 							//非素材目录里的文件
@@ -182,6 +186,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 							let fileNameNoExt = pathUtil.getFileNameNoExt(fileName);
 							//
 							let obj = {};
+
 							//为了适应小程序里的app.json/pages节点的特点，这里也使用同样的规则，key为去掉后缀名的路径
 							// var key = path.join(tFolder, fileNameNoExt);
 							let key = pathUtil.getFileKey(fileDir);
@@ -203,7 +208,7 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 								obj["folder"] = tFolder;
 								obj["fileName"] = fileNameNoExt;
 								//标识是否为app.js入口文件
-								const isAppFile = (path.dirname(fileDir) == global.sourceFolder) && (fileName == "app.js");
+								const isAppFile = (path.dirname(fileDir) == global.miniprogramRoot) && (fileName == "app.js");
 								obj["isAppFile"] = (isAppFile || obj["isAppFile"]);
 							}
 							switch (extname) {
@@ -384,13 +389,16 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 					//取key，理论随便哪个文件都能取到。
 					let fileKey = pathUtil.getFileKey(file_js);
-					//存入全局对象
-					if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
 
-					global.pagesData[fileKey]["data"] = {
-						type: "all",
-						path: targetFilePath
-					};
+					if (fileKey) {
+						//存入全局对象
+						if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+
+						global.pagesData[fileKey]["data"] = {
+							type: "all",
+							path: targetFilePath
+						};
+					}
 
 					//解析json
 					if (file_json) {
@@ -409,14 +417,22 @@ async function filesHandle(fileData, miniprogramRoot) {
 									delete data.usingComponents[kk];
 								} else {
 									let fileDir = path.dirname(file_json);
-									value = pathUtil.relativePath(value, global.miniprogramRoot, fileDir);
+
+									if (global.dependencies && global.dependencies[value] && !/\.\//.test(value)) {
+										//处理 "datepicker": "miniprogram-datepicker"  这种情况
+										//没有.也没有/，并且是在dependencies里有记录的。
+										let absPath = path.join(global.miniprogram_npm, value);
+										value = path.relative(fileDir, absPath);
+									} else {
+										value = pathUtil.relativePath(value, global.miniprogramRoot, fileDir);
+									}
 									data.usingComponents[kk] = value;
 								}
 							}
 
 							routerData[key] = data;
 							usingComponents = data.usingComponents;
-							global.pagesData[fileKey]["data"]["component"] = data["component"];
+							if (fileKey) global.pagesData[fileKey]["data"]["component"] = data["component"];
 						} catch (error) {
 							console.log(error);
 							global.log.push("Error: " + error);
@@ -438,8 +454,11 @@ async function filesHandle(fileData, miniprogramRoot) {
 								fileContentMinWxml = templateStringMin;
 								wxsInfoHandle(tFolder, file_wxml);
 
-								global.pagesData[fileKey]["data"]["wxml"] = fileContentWxml;
-								global.pagesData[fileKey]["data"]["minWxml"] = fileContentMinWxml;
+								if (fileKey) {
+
+									global.pagesData[fileKey]["data"]["wxml"] = fileContentWxml;
+									global.pagesData[fileKey]["data"]["minWxml"] = fileContentMinWxml;
+								}
 							} else {
 								//存个空标签
 								fileContentWxml = "<template><view></view></template>";
@@ -457,10 +476,12 @@ async function filesHandle(fileData, miniprogramRoot) {
 								fileContentWxml = replaceFunName(fileContentWxml, pathUtil.getFileKey(file_js));
 								fileContentMinWxml = replaceFunName(fileContentMinWxml, pathUtil.getFileKey(file_js));
 
-								global.pagesData[fileKey]["data"]["wxml"] = fileContentWxml;
-								global.pagesData[fileKey]["data"]["minWxml"] = fileContentMinWxml;
+								if (fileKey) {
+									global.pagesData[fileKey]["data"]["wxml"] = fileContentWxml;
+									global.pagesData[fileKey]["data"]["minWxml"] = fileContentMinWxml;
 
-								global.pagesData[fileKey]["data"]["js"] = fileContentJs;
+									global.pagesData[fileKey]["data"]["js"] = fileContentJs;
+								}
 							}
 						}
 
@@ -486,7 +507,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 									fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
 								}
 
-								global.pagesData[fileKey]["data"]["css"] = fileContentCss;
+								if (fileKey) global.pagesData[fileKey]["data"]["css"] = fileContentCss;
 							} else {
 								fs.copySync(file_wxss, cssFilePath);
 							}
@@ -534,14 +555,16 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 									//存入全局对象
 									let fileKey = pathUtil.getFileKey(file_wxml);
-									if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
-									global.pagesData[fileKey]["data"] = {
-										type: "wxml",
-										path: targetFilePath,
-										js: fileContentJs,
-										wxml: fileContent,
-										minWxml: templateStringMin,
-										css: "",
+									if (fileKey) {
+										if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+										global.pagesData[fileKey]["data"] = {
+											type: "wxml",
+											path: targetFilePath,
+											js: fileContentJs,
+											wxml: fileContent,
+											minWxml: templateStringMin,
+											css: "",
+										}
 									}
 									// fs.writeFile(targetFilePath, fileContent + fileContentJs, () => {
 									// 	console.log(`Convert component ${path.relative(global.targetFolder, targetFilePath)}.wxml success!`);
@@ -564,13 +587,15 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 									//存入全局对象
 									let fileKey = pathUtil.getFileKey(file_js);
-									if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
-									global.pagesData[fileKey]["data"] = {
-										type: "js",
-										path: targetFilePath,
-										js: fileContent,
-										wxml: "",
-										css: "",
+									if (fileKey) {
+										if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+										global.pagesData[fileKey]["data"] = {
+											type: "js",
+											path: targetFilePath,
+											js: fileContent,
+											wxml: "",
+											css: "",
+										}
 									}
 									//
 									// fs.writeFile(targetFilePath, fileContent, () => {
@@ -594,13 +619,15 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 									//存入全局对象							
 									let fileKey = pathUtil.getFileKey(file_wxss);
-									if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
-									global.pagesData[fileKey]["data"] = {
-										type: "css",
-										path: targetFilePath,
-										js: "",
-										wxml: "",
-										css: content,
+									if (fileKey) {
+										if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+										global.pagesData[fileKey]["data"] = {
+											type: "css",
+											path: targetFilePath,
+											js: "",
+											wxml: "",
+											css: content,
+										}
 									}
 
 									//写入文件
@@ -701,6 +728,39 @@ function wxsInfoHandle(tFolder, file_wxml) {
 	return str;
 }
 
+
+/**
+ * 处理小程序引用的npm包
+ * 大概思路，将miniprogram_npm目录清空，然后再将node_modules下面的包内容，根据有无src目录进行移动
+ */
+function npmHandle() {
+	if (global.miniprogram_npm_output && global.node_modules_output) {
+		let folder = global.miniprogram_npm_output;
+		fs.readdir(folder, function (err, files) {
+			// var tFolder = path.join(targetFolder, path.relative(miniprogramRoot, folder));
+			files.forEach(function (fileName) {
+				var fileDir = path.join(folder, fileName);
+				let key = pathUtil.getFileKey(fileDir, global.targetFolder);
+				// let newFileDir = path.join(tFolder, fileName);
+				fs.stat(fileDir, function (err, stats) {
+					if (stats && stats.isDirectory()) {
+						let srcFolder = path.join(global.node_modules_output, fileName);
+						let targetFolder = path.join(global.miniprogram_npm_output, fileName);
+						let subSrcFolder = path.join(srcFolder, "src");
+
+						if (fs.existsSync(subSrcFolder)) {
+							fs.copySync(subSrcFolder, targetFolder);
+						} else {
+							fs.copySync(srcFolder, targetFolder);
+						}
+					}
+				});
+			});
+		});
+	}
+}
+
+
 /**
  * 写入日志到生成目录时，再次转换将会被删除
  */
@@ -760,6 +820,12 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	//是否需要转换wxs文件，默认为true
 	global.isTransformWXS = isTransformWXS || false;
 
+	global.isTransformWXS = isTransformWXS || false;
+
+	//判断是否为ts项目,ts项目里tsconfig.json必须存在
+	let tsconfigPath = path.join(sourceFolder, "tsconfig.json");
+	global.isTSProject = fs.existsSync(tsconfigPath);
+
 	// uParse替换wxparse细节
 	// 1.全局载入u-parse, @import url("/components/gaoyia-parse/parse.css");
 	// 2.解析wxParse.wxParse('contentT', 'html', content, this, 0);
@@ -789,12 +855,26 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 		global.targetFolder = targetFolder;
 	}
 
+	//miniprogram_npm目录
+	global.miniprogram_npm = path.join(sourceFolder, "miniprogram_npm");
+	global.miniprogram_npm_output = path.join(targetFolder, "miniprogram_npm");
+	if (!fs.existsSync(global.miniprogram_npm)) {
+		global.miniprogram_npm = global.miniprogram_npm_output = "";
+	}
+
+	//node_modules目录
+	global.node_modules = path.join(sourceFolder, "node_modules");
+	global.node_modules_output = path.join(targetFolder, "node_modules");
+	if (!fs.existsSync(global.node_modules)) {
+		global.node_modules = global.node_modules_output = "";
+	}
 
 	//
 	global.log.push("miniprogram to uni-app 转换日志");
 	global.log.push("");
 	global.log.push("---基本信息---");
 	global.log.push("时间: " + moment().format('YYYY-MM-DD HH:mm:ss'));
+	global.log.push("语言: " + (global.isTSProject ? "TypeScript" : "Javascript"));
 	global.log.push("转换模式: " + (global.isVueAppCliMode ? "vue-cli" : "Hbuilder X"));
 	global.log.push("是否转换wxs文件: " + global.isTransformWXS);
 	global.log.push("");
@@ -934,6 +1014,9 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			if (global.isVueAppCliMode) {
 				vueCliHandle(configData, global.outputFolder, global.assetsFolderObject, true);
 			}
+
+			//npm目录处理
+			npmHandle();
 
 			//日志分类进行输出，方便查看
 			for (const item of global.logArr.fish) {

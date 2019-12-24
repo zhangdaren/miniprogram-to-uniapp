@@ -22,7 +22,7 @@
 		
 		<!--table类型-->
 		<wx-parse-table v-else-if="node.tag == 'table'" :class="node.classStr" :style="node.styleStr" :node="node" />
-		
+
 		<!--br类型-->
 		<!-- #ifndef H5 -->
 			<text v-else-if="node.tag == 'br'">\n</text>

@@ -19,9 +19,10 @@
 </template>
 
 <script>
-	import HtmlToJson from './libs/html2json';
-	import wxParseTemplate from './components/wxParseTemplate0';
+import HtmlToJson from './libs/html2json';
+import wxParseTemplate from './components/wxParseTemplate0';
 
+	
 	export default {
 		name: 'wxParse',
 		props: {
@@ -109,6 +110,7 @@
 		},
 		computed: {},
 		mounted() {
+			this.setHtml()
 		},
 		methods: {
 			setHtml() {
@@ -133,6 +135,8 @@
 
 				this.imageUrls = results.imageUrls;
 				// this.nodes = results.nodes;
+				
+				
 				this.nodes = [];
 				results.nodes.forEach((item) => {
 					setTimeout(() => {
@@ -158,12 +162,12 @@
 					// #ifdef MP-BAIDU
 					const query = swan.createSelectorQuery();
 					query.select('.wxParse').boundingClientRect();
-					query.exec(obj=>{
-						const rect = obj[0];
-						if(rect){
+					query.exec(obj => {
+						const rect = obj[0]
+						if (rect) {
 							res(rect.width);
 						}
-					})
+					});
 					// #endif
 					// #ifdef MP-ALIPAY
 					my.createSelectorQuery()

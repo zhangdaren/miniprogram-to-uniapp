@@ -134,6 +134,8 @@
 }
 
 .wxParse .strong,
+.wxParse .text,
+.wxParse .span,
 .wxParse .s {
   display: inline;
 }
@@ -211,12 +213,20 @@
 .wxParse .figure {
   overflow: hidden;
 }
-.wxParse .table .table{
+.wxParse .tablebox{
+	overflow: auto;
+	background-color: #f5f5f5;
+	background: #f5f5f5;
+	font-size: 13px;
+	padding: 8px;
+}
+.wxParse .table .table,.wxParse .table{
 	border-collapse:collapse;
 	box-sizing: border-box;
 	/* 内边框 */
-	border: 1px solid #dadada;
-	width: 100%;
+	/* width: 100%; */
+	overflow: auto;
+	white-space: pre;
 }
 .wxParse .tbody{
 	border-collapse:collapse;
@@ -224,20 +234,20 @@
 	/* 内边框 */
 	border: 1px solid #dadada;
 }
-.wxParse .thead, .wxParse .tfoot, .wxParse .th{
+.wxParse .table  .thead, .wxParse  .table .tfoot, .wxParse  .table .th{
 	border-collapse:collapse;
 	box-sizing: border-box;
 	background: #ececec;
 	font-weight: 40;
 }
-.wxParse .tr {
+.wxParse  .table .tr {
 	border-collapse:collapse;
 	box-sizing: border-box;
 	/* border: 2px solid #F0AD4E; */
 	overflow:auto;
 }
-.wxParse .th,
-.wxParse .td{
+.wxParse  .table .th,
+.wxParse  .table .td{
 	border-collapse:collapse;
 	box-sizing: border-box;
 	border: 2upx solid #dadada;

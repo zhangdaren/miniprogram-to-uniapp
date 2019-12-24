@@ -1,5 +1,7 @@
 <template>
-	<rich-text :nodes="nodes" :class="node.classStr" :style="'user-select:' + parseSelect"></rich-text>
+	<div class='tablebox'>
+		<rich-text :nodes="nodes" :class="node.classStr" :style="'user-select:' + parseSelect"></rich-text>
+	</div>
 </template>
 <script>
 export default {

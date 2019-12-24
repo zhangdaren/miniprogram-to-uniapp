@@ -63,7 +63,7 @@
 	import wxParseVideo from './wxParseVideo';
 	import wxParseAudio from './wxParseAudio';
 	import wxParseTable from './wxParseTable';
-	
+
 	export default {
 		// #ifdef APP-PLUS | H5
 		name: 'wxParseTemplate',

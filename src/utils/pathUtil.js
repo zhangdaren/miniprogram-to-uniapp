@@ -202,7 +202,7 @@ function isInFolder(folderArr, filePath) {
 }
 /**
  * 路径转换，转换根路径(路径前面为/)和当前路径(无/开头)为相对路径
- * @param {*} filePath  文件路径
+ * @param {*} filePath  文件相对路径
  * @param {*} root      根目录
  * @param {*} fileDir   当前文件所在目录 
  */
@@ -227,11 +227,13 @@ function relativePath(filePath, root, fileDir) {
  * 获取类似于小程序配置文件里路径信息，由文件目录+文件名(无后缀名)组成
  * 如：
  * @param {*} filePath  //文件路径
+ * @param {*} root      //根目录，默认为miniprogramRoot
  */
-function getFileKey(filePath) {
+function getFileKey(filePath, root) {
 	if (!filePath) return "";
+	if (!root) root = global.miniprogramRoot;
 	let fileFolder = path.dirname(filePath);
-	fileFolder = path.relative(global.miniprogramRoot, fileFolder);
+	fileFolder = path.relative(root, fileFolder);
 	let fileNameNoExt = getFileNameNoExt(filePath);
 	let key = path.join(fileFolder, fileNameNoExt);
 	return utils.normalizePath(key);

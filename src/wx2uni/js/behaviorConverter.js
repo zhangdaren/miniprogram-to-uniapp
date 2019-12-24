@@ -18,9 +18,11 @@ let declareStr = '';
 let file_js = "";
 //当前文件所在目录
 let fileDir = "";
-
 //key
 let fileKey = "";
+
+//behavior的参数
+let behaviorParams = [];
 
 
 /*
@@ -28,9 +30,32 @@ let fileKey = "";
  * 注：为防止深层遍历，将直接路过子级遍历，所以使用enter进行全遍历时，孙级节点将跳过
  * 
  */
-const componentVistor = {
+const behaviorVistor = {
 	IfStatement(path) {
 		babelUtil.getAppFunHandle(path);
+	},
+	ReturnStatement(path) {
+		/**
+		 * 判断这种形式的代码：
+		 * export const transition = function (showDefaultValue) {
+		 *    return Behavior({})
+		 * }
+		 * 并将参数传出去
+		 */
+		const argument = path.node.argument;
+		if (t.isCallExpression(argument)) {
+			let name = argument.callee.name;
+			if (name === "Behavior") {
+				const parent = path.findParent((path) => path.isFunctionExpression());
+				if (parent) {
+					let params = parent.node.params;
+					for (const key in params) {
+						const obj = params[key];
+						behaviorParams.push(generate(obj).code);
+					}
+				}
+			}
+		}
 	},
 	ExpressionStatement(path) {
 		const parent = path.parentPath.parent;
@@ -429,11 +454,11 @@ function lifeCycleHandle(path) {
  * 转换
  * @param {*} ast               ast
  * @param {*} _file_js          当前转换的文件路径
- * @param {*} isVueFile         是否为vue文件
  */
-const componentConverter = function (ast, _file_js, isVueFile) {
+const behaviorConverter = function (ast, _file_js) {
 	//清空上次的缓存
 	declareStr = '';
+	behaviorParams = [];
 	//
 	file_js = _file_js;
 	fileDir = nodePath.dirname(file_js);
@@ -451,13 +476,14 @@ const componentConverter = function (ast, _file_js, isVueFile) {
 		lifeCycle: new Vistor(),
 	}
 
-	traverse(ast, componentVistor);
+	traverse(ast, behaviorVistor);
 
 	return {
 		convertedJavascript: ast,
 		vistors: vistors,
 		declareStr, //定义的变量和导入的模块声明
+		behaviorParams //behavior的参数，默认为[]
 	}
 }
 
-module.exports = componentConverter;
+module.exports = behaviorConverter;

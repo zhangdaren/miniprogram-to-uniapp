@@ -232,9 +232,8 @@ function html2json(html, customHandler, imageProp, host) {
       }
     },
     chars(text) {
-		// if (!text.trim()){
-		// 	return;
-		// }
+      if (!text.trim()) return;
+
       const node = {
         node: 'text',
         text,
