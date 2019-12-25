@@ -42,7 +42,7 @@ Examples:
 $ wtu -i miniprogramProject
 ```
 
-vue-cli mode [转换项目为vue-cli项目(建议有折腾人士折腾吧)]:
+vue-cli mode [转换项目为vue-cli项目]:
 ```sh
 $ wtu -i miniprogramProject -c
 ```
