@@ -42,12 +42,12 @@ Examples:
 $ wtu -i miniprogramProject
 ```
 
-vue-cli mode [转换项目为vue-cli项目]:
+vue-cli mode [转换项目为vue-cli项目(建议有折腾人士折腾吧)]:
 ```sh
 $ wtu -i miniprogramProject -c
 ```
 
-Transform wxs file to js file [转换项目并将wxs文件转换为js文件]:
+Transform wxs file to js file [转换项目并将wxs文件转换为js文件(因uni-app已支持wxs，此功能未维护)]:
 ```sh
 $ wtu -i miniprogramProject -w
 ```
@@ -60,21 +60,23 @@ $ wtu -i miniprogramProject -w
 
 
 ## 已完成   
-* 支持有/无云开发的小程序项目转换为uni-app项目   
+* 支持无云开发的小程序项目转换为uni-app项目   
+* 支持有云开发的小程序项目转换为uni-app项目(cloudfunctions目录将被忽略，uni-app结合小程序云开发见：[使用uni-app进行微信小程序云开发经验分享](https://ask.dcloud.net.cn/article/35933))   
+* 支持解析TypeScript小程序项目   
+* 支持解析使用npm模块的小程序项目   
+* 支持解析include标签   
+* 支持解析Behavior文件为mixins文件   
 * 支持*.js', *.wxml和*.wxss文件进行相应转换，并做了大量的优化   
-* 支持app.js、page和component生命周期函数的转换   
-* 区分app.js/component，两者解析规则略有不同   
-* 添加setData()函数于methods下，解决this.setData()【代码出处：https://ask.dcloud.net.cn/article/35020】  
+* 支持识别App、Page、Component、VantComponent、Behavior和纯Javascript文件的转换   
 * ~~App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚，已回滚)~~   
-* 支持wxs文件转换，可以通过参数配置(-w)，默认为false
-* 支持vue-cli模式，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发  
 * 导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件   
 * 使用[uParse修复版](https://ext.dcloud.net.cn/plugin?id=364)替换wxParse   
 * 搜索未在data声明，而直接在setData()里使用的变量，并修复   
 * 合并使用require导入的wxs文件   
 * 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径   
 * 修复变量名与函数重名的情况   
-* 支持解析include标签
+* 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)
+* 支持vue-cli模式，可以通过参数配置(-c)，默认为false，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发(建议爱折腾人士使用)  
    
    
 ## 更新记录   
@@ -82,7 +84,7 @@ $ wtu -i miniprogramProject -w
 * [新增] 支持解析TypeScript小程序项目    
 * [新增] 支持解析使用npm模块的小程序项目    
 * [新增] 支持解析Behavior文件为mixins文件    
-* [优化] 调整判断ast类型的逻辑    
+* [优化] 判断ast类型的逻辑    
 * [优化] 更新uParse修复版的版本为v1.2.0    
 * [修复] 解析template时多余引号的bug    
 * [修复] require路径没有扩展名，编译时找不到文件的bug(默认加上.js)    
