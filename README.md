@@ -81,6 +81,9 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.45(20191230)   
+* [修复] 解析代码```var util = require("../helper.js"), utils = getApp().helper;```报错的bug   
+
 ### v1.0.44(20191230)   
 * [重大更新!] 重写解析template标签的代码，解析template后并替换相关变量    
 * [优化] 增加部分单元测试，减少bug发生    
