@@ -580,7 +580,7 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 					}
 				} else {
 					if (!isApp) {
-						babelUtil.globalDataHandle(callee);
+						babelUtil.globalDataHandle(callee, fileKey);
 					}
 				}
 			} else {
@@ -691,9 +691,9 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 				}
 
 				if (t.isMemberExpression(object)) {
-					babelUtil.globalDataHandle(object);
+					babelUtil.globalDataHandle(object, fileKey);
 				} else {
-					babelUtil.globalDataHandle(path);
+					babelUtil.globalDataHandle(path, fileKey);
 				}
 			}
 
@@ -793,11 +793,19 @@ function handleJSImage(ast, file_js) {
  * @param {*} file_js           当前处理的文件路径
  */
 async function jsHandle(fileData, isApp, usingComponents, file_js) {
+	//初始化一个解析器
+	const javascriptParser = new JavascriptParser();
+
 	//先反转义
 	let javascriptContent = fileData;
 
-	//初始化一个解析器
-	let javascriptParser = new JavascriptParser();
+	let fileKey = pathUtil.getFileKey(file_js);
+
+	//缓存当前文件所使用过的getApp别名
+	let getAppNamelist = javascriptParser.getAliasGetAppNameList(javascriptContent);
+	if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
+	if (!global.pagesData[fileKey]["getAppNamelist"]) global.pagesData[fileKey]["getAppNamelist"] = {};
+	global.pagesData[fileKey]["getAppNamelist"] = getAppNamelist;
 
 	//去除无用代码
 	javascriptContent = javascriptParser.beforeParse(javascriptContent);
@@ -806,7 +814,6 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 	let list = javascriptParser.getAliasThisNameList(javascriptContent);
 
 	//保存
-	let fileKey = pathUtil.getFileKey(file_js);
 	if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
 	if (!global.pagesData[fileKey]["thisNameList"]) global.pagesData[fileKey]["thisNameList"] = {};
 	global.pagesData[fileKey]["thisNameList"] = list;

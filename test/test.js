@@ -1,6 +1,7 @@
-
 const path = require('path');
+const expect = require('chai').expect;
 const transform = require('../src/index');
 
-//转换test-wx-to-uni项目
-transform(path.join( __dirname, "./test-wx-to-uni"));
+// vscode 配置mocha
+//https://stackoverflow.com/questions/28400459/referenceerror-describe-is-not-defined-nodejs#
+

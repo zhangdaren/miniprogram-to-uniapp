@@ -89,22 +89,8 @@ const vistor = {
 					}
 				},
 				VariableDeclarator(path2) {
-					if (t.isMemberExpression(path2.node.init) && path2.node.init.object) {
-						let id = path2.node.id;
-						let init = path2.node.init;
-						let property = init.property;
-						let objectPath = path2.node.init.object;
-						let subOject = objectPath.object;
-						let subProperty = objectPath.property;
-						if (t.isIdentifier(subOject, { name: "app" })) {
-							//这里没法调babelUtil.globalDataHandle()，子节点没有replaceWidth方法了(或许有转换方法，暂未知)
-							let getApp = t.callExpression(t.identifier('getApp'), []);
-							let subMe = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), subProperty);
-							let me = t.MemberExpression(subMe, property);
-							let vd = t.variableDeclarator(path2.node.id, me);
-							path.replaceWith(vd);
-							path.skip();
-						}
+					if (t.isMemberExpression(path2.node.init)) {
+						babelUtil.globalDataHandle(path2.node.init, fileKey)
 					} else if (t.isCallExpression(path2.node.init)) {
 						//处理外部声明的require，如var md5 = require("md5.js");
 						const initPath = path2.node.init;
@@ -119,11 +105,6 @@ const vistor = {
 								}
 							}
 						}
-					} else if (t.isThisExpression(path2.node.init)) {
-						//记录当前文件里使用过的this别名
-						if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
-						if (!global.pagesData[fileKey]["thisNameList"]) global.pagesData[fileKey]["thisNameList"] = [];
-						global.pagesData[fileKey]["thisNameList"].push(2)
 					}
 				}
 			});

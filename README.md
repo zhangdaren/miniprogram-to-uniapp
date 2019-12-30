@@ -6,7 +6,7 @@
     
 PS:   
 很多人问：wx.xxx()为什么不替换为uni.xxx()呢？   
-答案是暂时不需要，不是替换不了，而是uni-app早已对wx相关函数进行兼容，所以可以直接使用，而不需要再调整了。   
+答: 暂时不需要，不是替换不了，而是uni-app早已对wx相关函数进行兼容，所以可以直接使用，而不需要再调整了。   
    
         
 ## 安装   
@@ -56,7 +56,7 @@ $ wtu -i miniprogramProject -w
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
 
-对于使用有疑问或建议，欢迎加入QQ群：780359397进行讨论。
+对于使用有疑问或建议，欢迎加入QQ群：780359397 进行讨论。
 
 
 ## 已完成   
@@ -65,6 +65,7 @@ $ wtu -i miniprogramProject -w
 * 支持解析TypeScript小程序项目   
 * 支持解析使用npm模块的小程序项目   
 * 支持解析include标签   
+* 支持解析template标签   
 * 支持解析Behavior文件为mixins文件   
 * 支持*.js', *.wxml和*.wxss文件进行相应转换，并做了大量的优化   
 * 支持识别App、Page、Component、VantComponent、Behavior和纯Javascript文件的转换   
@@ -80,6 +81,17 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.44(20191230)   
+* [重大更新!] 重写解析template标签的代码，解析template后并替换相关变量    
+* [优化] 增加部分单元测试，减少bug发生    
+* [优化] getApp()的转换    
+* [优化] include转换后的容器标签由template改为block    
+* [修复] 解析多元表达式时引号解析错误的bug    
+* [修复] 因取页面this别名的代码漏删导致转换报错的bug    
+* [修复] wxss文件不存时，生成的vue文件多余undefined的bug    
+* [修复] project.config.json里没有字段miniprogramRoot时报错的bug    
+* [修复] wx:key为一个表达式时转换错误(测试代码：```<view wx:for="{{5-num}}" wx:key="{{num + index}}"></view>```)    
+
 ### v1.0.42(20191224)   
 * [新增] 支持解析TypeScript小程序项目    
 * [新增] 支持解析使用npm模块的小程序项目    
@@ -92,13 +104,10 @@ $ wtu -i miniprogramProject -w
 * [修复] 当properties下面的属性是字符串时导致转换失败(如```properties: {'pullRefresh':{type: Boolean}```)    
 
 
-### v1.0.40(20191220)   
-* [优化] wx:key和wx:for-index共存时，优先使用wx:for-index作为key    
-* [修复] 支持hidden属性转换为v-if    
-* [修复] ```wx:item="{{item}}"```未被转换的bug   
-
 ## [历史更新记录](ReleaseNote.md)   
     
+## [安装使用时的疑难杂症](Q&A.md)  
+
 ## [关于不支持转换的语法说明](Unsupported.md)  
 
 ## 感谢   

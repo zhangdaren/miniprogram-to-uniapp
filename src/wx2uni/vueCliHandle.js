@@ -35,37 +35,37 @@ async function vueCliHandle(configData, outputFolder, assetsFolderObject, isVueA
 			if (isVueAppCliMode) {
 				const pathArray = [
 					{
-						source: "vue_cli/public/index.html",
+						source: "vue-cli/public/index.html",
 						target: "public/index.html"
 					},
 					{
-						source: "vue_cli/.gitignore",
+						source: "vue-cli/.gitignore",
 						target: ".gitignore"
 					},
 					{
-						source: "vue_cli/babel.config.js",
+						source: "vue-cli/babel.config.js",
 						target: "babel.config.js"
 					},
 					{
-						source: "vue_cli/package.json",
+						source: "vue-cli/package.json",
 						target: "package.json",
 						raplaceArray: [
 							"<%= PROJECT_NAME %>"
 						],
 					},
 					{
-						source: "vue_cli/postcss.config.js",
+						source: "vue-cli/postcss.config.js",
 						target: "postcss.config.js"
 					},
 					{
-						source: "vue_cli/README.md",
+						source: "vue-cli/README.md",
 						target: "README.md",
 						raplaceArray: [
 							"<%= PROJECT_NAME %>"
 						],
 					},
 					{
-						source: "vue_cli/vue.config.js",
+						source: "vue-cli/vue.config.js",
 						target: "vue.config.js",
 						raplaceArray: [
 							"<%= COPY_WEBPACK_PLUGIN %>"

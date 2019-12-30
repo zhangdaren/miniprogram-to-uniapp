@@ -22,6 +22,16 @@ function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+
+/**
+ * 是否为Object
+ * @param {*} n 
+ */
+function isObject(val) {
+    return val != null && typeof val === 'object' && Array.isArray(val) === false;
+}
+
+
 /**
  * 判断是否为url
  * @param {*} str_url 网址，支持http及各种协议
@@ -350,9 +360,75 @@ function getFunctionAlias(name) {
     return rusult;
 }
 
+/**
+ * 解析 key:value形式的字符串，如"abc:"xx""解析为{abc:"xxx"}
+ * @param {*} str 
+ */
+function stringToObject(str) {
+    let index = str.indexOf(":");
+    let key = str.substring(0, index).trim();
+    let value = str.substring(index + 1).trim();
+    let result = {};
+    if (key !== value) result[key] = value;
+    return result;
+}
+
+//测试样例：后面再补上。
+// "item.type",
+// "...bbgRuleDialog",
+// "item,dataType",
+// "setting:setting",
+// "title:'open/get/Setting'",
+// "diyform:order",
+// "listName:list,ImgRoot:imgroot",
+// "type:isShowPH?'ph':'list',infos:item",
+// "type:isShowPH?'ph':'list',infos:item?1:2,index:111,ac:'ccc'",
+// "type:'detail',isEnd:false,time:[day,hour,minute,seconds],infos:infos",
+// "...kaipinglist,className:'ad-content',canIUse:canIUse",
+// "leftIndex:index+1,section3Title:item.title",
+// "...stdInfo[index],...{index:index,name:item.name}"
+
+/**
+ * 解析template标签的data参数，将返回需要进行替换的参数   
+ * 如{setting:setting}，那就不需要替换
+ * 如{"title:'open/get/Setting'"}，那就视为需要替换
+ * @param {*} attr 
+ */
+function parseTemplateAttrParams(attr) {
+    let str = attr.replace(/{{\s*(.*?)\s*}}/, '$1');
+    //先去掉...[]和...{}
+    str = str.replace(/\.\.\.{.*?}|\.\.\.\[.*?\],?/g, "");
+    str = str.replace(/\.\.\..*?,/g, "");
+    //正则
+    let reg1 = /(\w+:\[.*?\]),?/g;  //解析数组
+    let reg2 = /(\w+:\{.*?\}),?/g;  //解析对象
+    let reg3 = /(\w+:.*?),|(\w+:.*?)$/g;  //解析key:value
+
+    let result = {};
+
+    //解析数组的(带中括号的)
+    str = str.replace(reg1, function (match, $1) {
+        result = { ...result, ...stringToObject($1) };
+        return "";
+    });
+    //解析对象的(带花括号的)
+    str = str.replace(reg2, function (match, $1) {
+        result = { ...result, ...stringToObject($1) };
+        return "";
+    });
+    //解析key:value
+    str.replace(reg3, function (match, $1, $2) {
+        let tmpStr = $1 || $2;
+        result = { ...result, ...stringToObject(tmpStr) };
+    });
+    return result;
+}
+
 
 module.exports = {
     log,
+    isNumber,
+    isObject,
     normalizePath,
     isURL,
     toLowerLine,
@@ -370,4 +446,8 @@ module.exports = {
     getPropsAlias,
     getTemplateParams,
     hasReserverdPorps,
+
+    ///
+    stringToObject,
+    parseTemplateAttrParams,
 }

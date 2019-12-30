@@ -6,7 +6,7 @@
 const t = require('@babel/types');
 const traverse = require('@babel/traverse').default;
 const generate = require('@babel/generator').default;
-const JavascriptParser = require('./js/JavascriptParser');
+const JavascriptParser = require('../js/JavascriptParser');
 
 /**
  * wxs 处理入口方法

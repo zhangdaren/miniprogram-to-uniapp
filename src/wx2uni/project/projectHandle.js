@@ -1,35 +1,11 @@
 const fs = require('fs-extra');
 const path = require('path');
 
-const utils = require('../utils/utils.js');
-const pathUtil = require('../utils/pathUtil.js');
+const utils = require('../../utils/utils.js');
+const pathUtil = require('../../utils/pathUtil.js');
 
-/**
- * 处理include标签
- */
-function includeHandle() {
-	let pagesData = global.pagesData;
-	let includeInfo = global.includeInfo;
-
-	for (const key in includeInfo) {
-		const item = includeInfo[key];
-		const fileKey = item.curFileKey;
-		const includeFileKey = item.includeFileKey;
-		if (pagesData[fileKey]) {
-			let wxml = pagesData[fileKey].data.wxml;
-			if (pagesData[includeFileKey]) {
-				let includeWxml = pagesData[includeFileKey].data.minWxml;
-				includeWxml = "<template" + item.attrs + ">" + includeWxml + "</template>";
-				pagesData[fileKey].data.wxml = wxml.replace(item.includeTag, includeWxml);
-			} else {
-				// path.relative(global.miniprogramRoot, item.includeWxmlAbsPath)
-				let logStr = "Error: 找不到include所对应的wxml文件-->" + path.relative(global.miniprogramRoot, item.includeWxmlAbsPath) + "   标签：" + item.includeTag;
-				console.log(logStr);
-				global.log.push(logStr);
-			}
-		}
-	}
-}
+const includeTagHandle = require('./includeTagHandle');
+const templateTagHandle = require('./templateTagHandle');
 
 /**
  * 保存所有未保存的文件
@@ -73,7 +49,8 @@ function saveAllFile() {
  * 项目处理
  */
 function projectHandle() {
-	includeHandle();
+	includeTagHandle();
+	templateTagHandle();
 	saveAllFile();
 }
 

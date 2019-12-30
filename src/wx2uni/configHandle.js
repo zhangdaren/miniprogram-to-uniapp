@@ -67,7 +67,6 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			}
 			//app.json里面引用的全局组件
 			let globalUsingComponents = appJson.usingComponents || {};
-			globalUsingComponents = { ...globalUsingComponents, ...global.globalUsingComponents };
 
 			//将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
 			let pages = [];
@@ -158,8 +157,8 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 
 			////////////////////////////write manifest.json/////////////////////////////
 
-			//注：因json里不能含有注释，因些template/manifest.json文件里的注释已经被删除。
-			let file_manifest = path.join(__dirname, "/template/manifest.json");
+			//注：因json里不能含有注释，因些project-template/manifest.json文件里的注释已经被删除。
+			let file_manifest = path.join(__dirname, "/project-template/manifest.json");
 			let manifestJson = fs.readJsonSync(file_manifest);
 			//
 			let name = pinyin(configData.name, { style: "normal" }).join("");

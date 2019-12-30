@@ -11,6 +11,10 @@ const babelUtil = require('../../utils/babelUtil');
 //当前文件所在目录
 let fileDir = "";
 
+//key
+let fileKey = "";
+
+
 /*
  * 
  */
@@ -48,6 +52,9 @@ const singleJSVistor = {
 		filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
 		path.node.source.value = filePath;
 	},
+	MemberExpression(path) {
+		babelUtil.globalDataHandle(path, fileKey);
+	}
 	// VariableDeclaration(path) {
 	// 	traverse(path.node, {
 	// 		noScope: true,
@@ -70,6 +77,7 @@ const singleJSVistor = {
 const singleJSConverter = function (ast, _file_js) {
 	file_js = _file_js;
 	fileDir = nodePath.dirname(file_js);
+	fileKey = pathUtil.getFileKey(_file_js);
 	traverse(ast, singleJSVistor);
 	return ast;
 }

@@ -24,25 +24,40 @@ class JavascriptParser {
 
     // return code.replace(/const\s+app\s+=\s+getApp\(\)/gm, '');  //保留getApp()
     return code.replace(/export default App;?/img, '')
-      .replace(/(var|let|const)\s+(\w+)\s+=\s+getApp\(\),/img, '$1 $2 = getApp().globalData,')  //处理这种var app = getApp(), http = app.http;情况会报错
-      .replace(/(var|let|const)\s+(\w+)\s+=\s+getApp\(\)[;]/img, '$1 $2 = getApp().globalData;')
+      .replace(/(var|let|const)\s*(\w+)\s*=\s*getApp\(\)\s*,/img, '$1 $2 = getApp().globalData,')  //处理这种var app = getApp(), http = app.http;情况会报错
+      .replace(/(var|let|const)\s*(\w+)\s*=\s*getApp\(\)(?!\.)[;]?/img, '$1 $2 = getApp().globalData;')
       .replace(/^getApp\(\)\.page\({/img, 'Page({')
       // .replace(/export.*?\s*=\s*Behavior\({/, 'Behavior({')
       .replace(/^exports\.default\s+=\s+App\({/img, 'App({');
   }
+
 
   /**
    * 保存当前文件里，使用过的this别名
    * //仅仅可以过滤一半问题，毕竟有时候，压缩过的源码，this的别名还是会有混用的情况，与其他回调函数里的参数重名
    * //那时，就需要在遍历时，去动态向父级找，找到this的别名是什么，不过一般情况下够用了
    * @param {*} code 
-   * @param {*} fileKey 
    */
   getAliasThisNameList(code) {
-    const reg = /(var|let|const)\s*(.*?)\s*=\s*this\b/;
+    //test        const { computed } = this.$options();
+    const reg = /(var|let|const)\s*(\w+)\s*=\s*this\b(?![\.\[])/g;
     let result = {};
     code.replace(reg, function (match, $1, $2) {
       result[$2] = true;
+      return match; //随意返回
+    });
+    return result;
+  }
+
+  /**
+   * 获取定义的getApp()别名
+   * @param {*} code 
+   */
+  getAliasGetAppNameList(code) {
+    const reg = /(var|let|const)\s*(\w+)\s*=\s*getApp\(\)\s*,|(var|let|const)\s*(\w+)\s*=\s*getApp\(\)(?!\.)[;]?/gm;
+    let result = {};
+    code.replace(reg, function (match, $1, $2, $3, $4) {
+      result[$2 || $4] = true;
       return match; //随意返回
     });
     return result;

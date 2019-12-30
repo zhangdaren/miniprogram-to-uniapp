@@ -30,7 +30,7 @@ const lifeCycleFunction = {
  * 2. app.xxx --> getApp().globalData.xxx
  * @param {*} path 
  */
-function globalDataHandle(path) {
+function globalDataHandle(path, fileKey) {
     if (t.isMemberExpression(path)) {
         const object = path.object ? path.object : path.get("object");
         const property = path.property ? path.property : path.get("property");
@@ -48,6 +48,15 @@ function globalDataHandle(path) {
                 //app.xxx --> getApp().globalData.xxx
                 let getApp = t.callExpression(t.identifier('getApp'), []);
                 let me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
+                path.replaceWith(me);
+                path.skip();
+            }
+        } else if (fileKey && global.pagesData[fileKey] && global.pagesData[fileKey]["getAppNamelist"][objectNode.name]) {
+            //var vv = getApp();
+            //vv.data.xx --> getApp().globalData.xx
+            if (propertyNode.name === "data") {
+                let getApp = t.callExpression(t.identifier('getApp'), []);
+                let me = t.MemberExpression(getApp, t.identifier('globalData'));
                 path.replaceWith(me);
                 path.skip();
             }

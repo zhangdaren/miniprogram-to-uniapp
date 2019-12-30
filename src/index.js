@@ -10,10 +10,16 @@ const jsHandle = require('./wx2uni/jsHandle');
 const wxmlHandle = require('./wx2uni/wxmlHandle');
 const cssHandle = require('./wx2uni/cssHandle');
 const configHandle = require('./wx2uni/configHandle');
-const wxsHandle = require('./wx2uni/wxsHandle');
 const vueCliHandle = require('./wx2uni/vueCliHandle');
-const combineWxsHandle = require('./wx2uni/combineWxsHandle');
-const projectHandle = require('./wx2uni/projectHandle');
+
+const wxsHandle = require('./wx2uni/wxs/wxsHandle');
+const combineWxsHandle = require('./wx2uni/wxs/combineWxsHandle');
+
+const projectHandle = require('./wx2uni/project/projectHandle');
+
+const TemplateParser = require('./wx2uni/wxml/TemplateParser');
+//初始化一个解析器
+const templateParser = new TemplateParser();
 
 /**
  * 解析小程序项目的配置
@@ -38,17 +44,18 @@ function wxProjectParse(folder, sourceFolder) {
 		let data = fs.readJsonSync(file_projectConfigJson);
 		if (data.cloudfunctionRoot) {
 			//有云函数的
-			projectConfig.miniprogramRoot = path.resolve(sourceFolder, data.miniprogramRoot);
 			projectConfig.cloudfunctionRoot = path.resolve(sourceFolder, data.cloudfunctionRoot);
-
 			//如果是有云函数的项目，那么工作目录将设置为miniprogramRoot
 			// miniprogramRoot = projectConfig.miniprogramRoot;
-		} else if (data.miniprogramRoot) {
+		}
+
+		if (data.miniprogramRoot) {
 			projectConfig.miniprogramRoot = path.resolve(sourceFolder, data.miniprogramRoot);
 		} else {
 			//无云函数
 			projectConfig.miniprogramRoot = folder;
 		}
+
 		projectConfig.appid = data.appid;
 		projectConfig.compileType = data.compileType;
 		projectConfig.name = decodeURIComponent(data.projectname);
@@ -445,6 +452,13 @@ async function filesHandle(fileData, miniprogramRoot) {
 						let fileContentJs = "";
 						let fileContentCss = "";
 
+						if (fileKey) {
+							global.pagesData[fileKey]["data"]["wxml"] = "";
+							global.pagesData[fileKey]["data"]["minWxml"] = "";
+							global.pagesData[fileKey]["data"]["js"] = "";
+							global.pagesData[fileKey]["data"]["css"] = "";
+						}
+
 						//读取.wxml文件
 						if (file_wxml && fs.existsSync(file_wxml)) {
 							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
@@ -507,7 +521,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 									fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
 								}
 
-								if (fileKey) global.pagesData[fileKey]["data"]["css"] = fileContentCss;
+								if (fileKey) global.pagesData[fileKey]["data"]["css"] = fileContentCss || "";
 							} else {
 								fs.copySync(file_wxss, cssFilePath);
 							}
@@ -806,6 +820,11 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	//读取小程序项目配置
 	const configData = wxProjectParse(miniprogramRoot, sourceFolder);
 
+	// if(configData.compileType && configData.compileType !== "miniprogram")
+	// {
+	// 	utils.log("输入项目不是小程序项目" + configData.compileType)
+	// }
+
 	//小程序项目目录，不一定就等于输入目录，有无云开发的目录结构是不相同的。
 	miniprogramRoot = configData.miniprogramRoot;
 
@@ -835,7 +854,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	//项目是否使用wxParse（判断是否有wxParse目录和wxParse文件）
 	global.hasWxParse = false;
 
-	//记录<template name="abc"></template>内容
+	//记录<template name="abc"></template>内容，用于另存
 	global.globalTemplateComponents = {
 		//name: ast
 	};
@@ -911,11 +930,10 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 		// 			minWxml: "",
 		// 		   	css: ""
 		//     },
-		//     thisNameList:[]
+		//     thisNameList:[],
+		//     getAppNamelist:[]
 		// 	}
 	};
-	global.globalUsingComponents = {};  //后面添加的全局组件
-
 	//存储wxml组件页面里面，需要对外开放的参数(本想不做全局的，然而传参出现问题，还是全局一把梭)
 	global.props = {
 		//"文件路径":[]
@@ -951,6 +969,23 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 		// }
 	};
 
+	//存储页面里的template信息，数据格式如下所示
+	global.templateInfo = {
+		tagList: [  //所有要替换的标签
+			//{
+			//    key: "",                 //此key等同于template的name或is属性
+			// 	  attrs:""                 //include标签的参数字符串
+			//    curFileKey:"",           //wxml文件所对应的fileKey
+			//    templateTag:"",          //完整include标签
+			//    templateFileKey:"",      //template的wxml文件所对应的fileKey
+			// 	  templateWxmlAbsPath:"",  //template的wxml文件的绝对路径
+			// }
+		],
+		templateList: {  //对应的tempalte内容
+			//key: ast, //此key等同于template的name或is属性
+		}
+	}
+
 	global.wxsFileList = {}; //存储所有已经处理过的wxs文件
 
 	try {
@@ -982,17 +1017,14 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			if (!fs.existsSync(componentFolder)) {
 				fs.mkdirSync(componentFolder);
 			}
-			//
+			//1226
 			for (const name in global.globalTemplateComponents) {
 				const componentData = global.globalTemplateComponents[name];
-				const fileContent = componentData.data;
+				const fileContent = templateParser.astToString([componentData.ast]);
 				const alias = componentData.alias;  //有可能组件名与内置关键字冲突，这里使用别名
-				if (!alias) continue;
+				if (!alias || !fileContent) continue;
 
 				let componentFile = path.join(componentFolder, alias + ".vue");
-
-				//写入到全局组件
-				global.globalUsingComponents[alias] = "./components/" + alias + ".vue";
 
 				//写入文件
 				fs.writeFile(componentFile, fileContent, () => {
@@ -1005,7 +1037,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 
 			//拷贝gaoyia-parse到components
 			if (global.hasWxParse) {
-				const source = path.join(__dirname, "wx2uni/template/components");
+				const source = path.join(__dirname, "wx2uni/project-template/components");
 				const target = path.join(targetFolder, "components");
 				fs.copySync(source, target);
 			}
@@ -1045,17 +1077,16 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 					tmpStr = "2.";
 				}
 				str += tmpStr;
-				str += '代码<template is="abc" data=""/>里data属性，除了不支持...扩展运算符(因uni-app现在还不支持v-bind="")，其余参数形式都支持，望知悉！\r\n';
 				str += '\r\n日志说明：\r\n';
 				str += '1. image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
+				str += '修复提示：编译时，如有报错就将对应位置修复即可\r\n';
 				str += '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如data、id都能做属性名，data下面的变量和函数名还能重名，但这些在uni-app里是不支持的，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
-
 				str = "\r\n转换完成: " + str;
 
 				global.log.push(str);
 				utils.log(str, "base");
 				writeLog(global.outputFolder);
-			}, 3000);
+			}, 1000);
 		});
 	});
 }

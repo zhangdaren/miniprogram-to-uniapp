@@ -106,22 +106,8 @@ const componentVistor = {
 					}
 				},
 				VariableDeclarator(path2) {
-					if (t.isMemberExpression(path2.node.init) && path2.node.init.object) {
-						let id = path2.node.id;
-						let init = path2.node.init;
-						let property = init.property;
-						let objectPath = path2.node.init.object;
-						let subOject = objectPath.object;
-						let subProperty = objectPath.property;
-						if (t.isIdentifier(subOject, { name: "app" })) {
-							//这里调babelUtil.globalDataHandle(path2.get("init"))即可
-							let getApp = t.callExpression(t.identifier('getApp'), []);
-							let subMe = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), subProperty);
-							let me = t.MemberExpression(subMe, property);
-							let vd = t.variableDeclarator(path2.node.id, me);
-							path.replaceWith(vd);
-							path.skip();
-						}
+					if (t.isMemberExpression(path2.node.init)) {
+						babelUtil.globalDataHandle(path2.node.init, fileKey);
 					} else if (t.isCallExpression(path2.node.init)) {
 						//处理外部声明的require，如var md5 = require("md5.js");
 						const initPath = path2.node.init;
@@ -141,15 +127,10 @@ const componentVistor = {
 							// babelUtil.addComment(path.parentPath, `${generate(path.node).code}`);  //没法改成注释，只能删除
 							path.remove();
 						}
-					} else if (t.isThisExpression(path2.node.init)) {
-						//记录当前文件里使用过的this别名
-						if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
-						if (!global.pagesData[fileKey]["thisNameList"]) global.pagesData[fileKey]["thisNameList"] = [];
-						global.pagesData[fileKey]["thisNameList"].push(2)
 					}
 				},
 				MemberExpression(path) {
-					babelUtil.globalDataHandle(path);
+					babelUtil.globalDataHandle(path, fileKey);
 				}
 			});
 			// const parent = path.parentPath.parent;

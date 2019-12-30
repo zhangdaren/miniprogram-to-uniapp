@@ -31,11 +31,11 @@
 ~~建议手动将内容拷贝进来。~~   
 
 
-## 小程序里使用了npm库，暂时无法转换
-遇到的这类小程序太少了，而我对于这类不太熟，如果有朋友愿意提供demo，那么可以支持的。
+~~## 小程序里使用了npm库，暂时无法转换~~
+~~遇到的这类小程序太少了，而我对于这类不太熟，如果有朋友愿意提供demo，那么可以支持的。~~
 
 
-## ```<import src="*.wxml"/>```支持部分语法处理   
+~~## ```<import src="*.wxml"/>```支持部分语法处理(已支持解析)   ~~
 
 常规我们见到的代码是这样的(摘自官方小程序示例demo)：   
 ```
@@ -63,6 +63,7 @@
 2. 将```<template is="head" data="{{title: 'action-sheet'}}"/>```转换为```<component :is="head" title="'action-sheet'"`/>``   
 3. 删除```<import src="../../../common/head.wxml" />```   
 4. 因uni-app暂时还不支持动态组件，导致:is="xxx"这种语法并不能支持，为保证转换后能跑起来，已经屏蔽相关代码，且写入日志，方便查看   
+
 
 ## wxaSortPicker不支持转换   
 建议手动替换为插件市场里的wxaSortPicker     
@@ -93,17 +94,6 @@ _this.data.xxx  ==>  _this.xxx
 ## var appInstance = getApp(); 
 建议手动处理 
 
-
-## 运行wtu -V报错   
-$ wtu -v   
-/usr/local/lib/node_modules/miniprogram-to-uniapp/src/index.js:297   
-async function filesHandle(fileData, miniprogramRoot) {   
-^^^^^^^^   
-SyntaxError: Unexpected token function   
-......   
-原因：当前nodejs版本不支持es6语法   
-解决：升级nodejs版本，建议v9以上   
-
    
 ## 语法错误: This experimental syntax requires enabling the parser plugin: 'dynamicImport'   
 可能是函数名使用了系统保留关键字，如```<input @input="import"></input>```   
@@ -119,7 +109,7 @@ SyntaxError: Unexpected token function
 常见的是在data里没有声明，而直接使用(一般是在setData()调用的)，在小程序里没问题，在vue里可就不行了。   
 
 
-## 提示：data 作为属性保留名,不允许在自定义组件 diy-sharp-goods 中定义为 props   
+~~~## 提示：data 作为属性保留名,不允许在自定义组件 diy-sharp-goods 中定义为 props(已支持)~~   
 示例：   
 ```<abc data="{{ item.data }}"></abc>```
 ```properties: { data: Object }```
@@ -130,7 +120,7 @@ SyntaxError: Unexpected token function
 wxs里使用class关键字来声明变量，手动改名   
 
 
-## unexpected token default 不能使用default
+~~## unexpected token default 不能使用default(已支持)~~
 如```<text>{{default}}</text>```，编译报错，建议手动改名   
 
 
@@ -299,3 +289,4 @@ export default {
 >https://www.jianshu.com/p/422a05e2f0f4
 >其实在小程序里，properties和data指向的是同一个js对象，换一种说法，我们可以理解为：小程序会把properties对象和data对象合并成一个对象，
 >所以我们得出一个结论：我们不要把data和properties里的变量设置成同一个名字，如果他们名字相同，properties里的会覆盖data里的。
+

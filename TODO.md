@@ -26,7 +26,57 @@
 * 分包/////////////////////////////////
 
 mmt
-wxaSortPicker
+wxaSortPicker  似乎小程序和uni两个版本的数据字段不一样，不是太好替换。
+
+替换思路：
+与wxParse一致
+
+1.wxaSortPicker目录忽略？，不忽略
+
+判断标签 class
+<template name="wxaSortPickerItem">  
+  <block wx:if='{{dataType == "object"}}'>
+    <block wx:for="{{item.textArray}}" wx:for-item="child" wx:key="">
+        <view class="wxaSortPickerItem" data-text="{{child.name}}" data-value="{{child.value}}"  catchtap= "wxaSortPickerItemTap">
+          {{child.name}}       
+        </view>
+    </block>
+  </block>
+</template>
+
+取出以下三组数据，放入全局变量
+data-text="{{child.name}}" 
+data-value="{{child.value}}"  
+catchtap= "wxaSortPickerItemTap"
+
+2.替换掉var wxaSortPicker = require('../../utils/wxaSortPicker/wxaSortPicker.js');
+
+3.
+    var that = this
+		wxaSortPicker.init([
+			"澳大利亚", "阿富汗", "巴哈马"
+		], that);
+
+替换为：
+	 var that = this
+	 			that.$refs["sortPickerList"].initPage([
+			"澳大利亚", "阿富汗", "巴哈马"
+		])
+
+4.methods:
+
+  wxaSortPickerItemTap: function(e){
+    console.log(e.target.dataset.text);
+    console.log(e.target.dataset.value);//字符串数组无此字段
+  },
+  替换为
+
+wxaSortPickerItemTap(data) {
+	console.log('获取名：' + data.label)  //这里的替换是个难点！
+	console.log('获取名：' + data.value)
+}
+
+
 
 //////////////////////////////////
 
@@ -105,4 +155,92 @@ this.$emit('actionclick', {
 //替换，，用函数、
 
 小程序 typescript
+
+
+
+
+/////////////////////////////
+
+template解析
+
+两种情况：
+* <template is="xxx"></template>
+<import src="../../resource/template/activityModule/activityModule.wxml" />
+<template is="activityModule" data="{{listName:list,ImgRoot:imgroot}}" ></template>
+
+* <template name="xxx"></template>
+
+解析细节：
+0.<template is="xxx"> 当作include标签处理
+1.记录<template name="tabBar"> 
+2.并且需要记录{{listName:list,ImgRoot:imgroot}}，变量的重名信息，那么...data直接不用处理了。
+3.替换掉变量的重名
+4.wxparse分开处理
+
+
+//不支持，is不是静态的
+<template is="{{ item.type }}" data="{{ item }}"/>
+
+
+//这里都不需要特殊操作
+<template is="bbgRuleDialog" data="{{...bbgRuleDialog}}" />
+<template is="wxaSortPickerItem" data="{{item,dataType}}"/>
+<template is="wxaSortPickerTemTags" data="{{wxaSortPickerData}}"/>
+<template wx:if="{{setting.is_kefu==1}}" data="{{setting:setting}}" is="kefu_02"></template> 
+<template data="{{...authorizeItem}}" is="pop" />
+
+
+<template is="diyform" data="{{diyform:order}}"></template>
+<template  data="{{leftIndex:index+1,section3Title:item.title}}" is="section3TopDescription" />
+<template is="head" data="{{title: 'action-sheet'}}" /> 
+<template data="{{...item,className:'huadong',canIUse:canIUse}}" is="banner" />
+<template data="{{...banginfo,className:'rule data-v-f893cda0',canIUse:canIUse}}" is="navigatorfuli" />
+<template data="{{...kaipinglist,className:'ad-content',canIUse:canIUse}}" is="navigator" />
+<template data="{{type:'detail',isEnd:false,time:[day,hour,minute,seconds],infos:infos}}" is="activity" />
+<template data="{{type:isShowPH?'ph':'list',infos:item}}" is="activity" />
+<template is="activityModule" data="{{listName:list,ImgRoot:imgroot}}"></template>
+<template is="head" data="{{title: 'open/get/Setting'}}" />
+
+
+item.type
+...bbgRuleDialog
+
+item,dataType
+
+setting:setting
+
+title: 'open/get/Setting'
+
+diyform:order
+
+listName:list,ImgRoot:imgroot
+
+
+/\w+:.*?,|\w+:.*?$/
+type:isShowPH?'ph':'list',infos:item
+type:isShowPH?'ph':'list',infos:item?1:2,index:111,ac:"ccc"
+
+type:'detail',isEnd:false,time:[day,hour,minute,seconds],infos:infos
+
+...kaipinglist,className:'ad-content',canIUse:canIUse
+
+leftIndex:index+1,section3Title:item.title
+
+
+...stdInfo[index], ...{index: index, name: item.name}
+
+/\.\.\.\w.*?,|\.\.\.\w.*?$/
+/\.\.\.{.*?}/  --> {$1}
+
+
+////////////////////////////////////
+第一步：
+/\.\.\.{.*?}/  --> {$1}
+2.
+/\.\.\.\w.*?,|\.\.\.\w.*?$/  -->解析
+
+3.
+/\w+:.*?,|\w+:.*?$/  拆分
+
+三元表达式拆分？
 

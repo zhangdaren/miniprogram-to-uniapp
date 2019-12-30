@@ -7,10 +7,10 @@ const t = require('@babel/types');
 const nodePath = require('path');
 const traverse = require('@babel/traverse').default;
 const generate = require('@babel/generator').default;
-const JavascriptParser = require('./js/JavascriptParser');
+const JavascriptParser = require('../js/JavascriptParser');
 const clone = require('clone');
-const utils = require('../utils/utils.js');
-const babelUtil = require('../utils/babelUtil.js');
+const utils = require('../../utils/utils.js');
+const babelUtil = require('../../utils/babelUtil.js');
 
 //初始化一个解析器
 const javascriptParser = new JavascriptParser();

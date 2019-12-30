@@ -10,9 +10,9 @@ const templateConverter = require('./wxml/templateConverter');
 
 const pathUtil = require('../utils/pathUtil.js');
 
-
 //初始化一个解析器
 templateParser = new TemplateParser();
+
 
 /**
  * 判断是否为多根元素模式
@@ -64,6 +64,7 @@ function checkEmptyTag(ast) {
 async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	let reg = /<template([\s\S]*?)<\/template>/g;
 
+
 	//查找有多少个template
 	let tmpArr = fileData.match(reg) || [];
 	let templateNum = tmpArr.length;
@@ -86,34 +87,34 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	//去掉首尾空，有可能文件内容都删除完了。
 	templateConvertedString = templateConvertedString.trim();
 
-	//
-	const globalTemplateComponents = global.globalTemplateComponents;
-	for (const name in globalTemplateComponents) {
-		const componentData = globalTemplateComponents[name];
-		//这里判断一下，可能有两个页面同时引用了某个组件
-		if (componentData.ast && !componentData.data) {
-			//这里需要缓存，不然可能会串掉！
-			(async function (file_wxml, onlyWxmlFile) {
-				// console.log("file_wxml-------", file_wxml, "------------" + name)
-				let tempComponent = await templateConverter(componentData.ast, false, file_wxml, onlyWxmlFile, templateParser);
-				let tempComponentString = templateParser.astToString(tempComponent);
-				let isMultiTag2 = checkMultiTag(componentData.ast);
-				if (isMultiTag2) {
-					tempComponentString = `<template>\r\n<view>\r\n${tempComponentString}\r\n</view>\r\n</template>\r\n\r\n`;
-				} else {
-					tempComponentString = `<template>\r\n${tempComponentString}\r\n</template>\r\n\r\n`;
-				}
-				tempComponentString += '<script>\r\n' +
-					'    export default {\r\n' +
-					'    		name: "' + componentData.alias + '",\r\n' +
-					'    		props: ["item"]\r\n' +
-					'    	}\r\n' +
-					'</script>\r\n';
-				componentData.data = tempComponentString;
+	//1226
+	// const globalTemplateComponents = global.globalTemplateComponents;
+	// for (const name in globalTemplateComponents) {
+	// 	const componentData = globalTemplateComponents[name];
+	// 	//这里判断一下，可能有两个页面同时引用了某个组件
+	// 	if (componentData.ast && !componentData.data) {
+	// 		//这里需要缓存，不然可能会串掉！
+	// 		(async function (file_wxml, onlyWxmlFile) {
+	// 			// console.log("file_wxml-------", file_wxml, "------------" + name)
+	// 			let tempComponent = await templateConverter(componentData.ast, false, file_wxml, onlyWxmlFile, templateParser);
+	// 			let tempComponentString = templateParser.astToString(tempComponent);
+	// 			let isMultiTag2 = checkMultiTag(componentData.ast);
+	// 			if (isMultiTag2) {
+	// 				tempComponentString = `<template>\r\n<view>\r\n${tempComponentString}\r\n</view>\r\n</template>\r\n\r\n`;
+	// 			} else {
+	// 				tempComponentString = `<template>\r\n${tempComponentString}\r\n</template>\r\n\r\n`;
+	// 			}
+	// 			tempComponentString += '<script>\r\n' +
+	// 				'    export default {\r\n' +
+	// 				'    		name: "' + componentData.alias + '",\r\n' +
+	// 				'    		props: ["item"]\r\n' +
+	// 				'    	}\r\n' +
+	// 				'</script>\r\n';
+	// 			componentData.data = tempComponentString;
 
-			})(file_wxml, onlyWxmlFile);
-		}
-	}
+	// 		})(file_wxml, onlyWxmlFile);
+	// 	}
+	// }
 
 	//不加template标签的wxml，用于导入include
 	const templateConvertedStringMin = templateConvertedString;
