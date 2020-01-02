@@ -222,6 +222,32 @@ function relativePath(filePath, root, fileDir) {
 	return utils.normalizePath(filePath);
 }
 
+/**
+ * 替换路径为相对于static目录的路径
+ * @param {*} filePath  文件的路径，一般为相对路径
+ * @param {*} root      根目录
+ * @param {*} fileDir   当前文件所在目录 
+ */
+function replaceAssetPath(filePath, root, fileDir) {
+	// console.log(filePath, fileDir);
+	if (!filePath) return filePath;
+	if (!/^[\.\/]/.test(filePath)) {
+		filePath = "./" + filePath;
+	}
+	let absPath  = "";
+	if (/^\//.test(filePath)) {
+		//如果是以/开头的，表示根目录
+		absPath = path.join(root, filePath);
+	} else {
+		absPath = path.join(fileDir, filePath);
+	}
+	
+	let targetFileDir = fileDir.replace(global.miniprogramRoot, global.targetFolder);
+	let relPath = utils.normalizePath(path.relative(root, absPath));
+	relPath = getAssetsNewPath(relPath, targetFileDir);
+	return utils.normalizePath(relPath);
+}
+
 
 /**
  * 获取类似于小程序配置文件里路径信息，由文件目录+文件名(无后缀名)组成
@@ -239,6 +265,31 @@ function getFileKey(filePath, root) {
 	return utils.normalizePath(key);
 }
 
+/**
+ * 从global.assetInfo这个对象里取出与当前路径相似的新路径
+ * @param {*} filePath 
+ */
+function getAssetsNewPath(filePath, parentFolder = "") {
+	if (!filePath) return filePath;
+
+	let result = utils.normalizePath(filePath);
+	for (const key in global.assetInfo) {
+		let obj = global.assetInfo[key];
+		if (result.indexOf(key) > -1) {
+		
+			result = utils.normalizePath(obj.newPath);
+		}
+	}
+	if(parentFolder)
+	{
+		result = path.relative(parentFolder, result);
+	}else{
+		result = path.relative(global.targetFolder, result);
+	}
+	result = utils.normalizePath(result);
+	return result;
+}
+
 module.exports = {
 	copyFile,
 	copyFolder,
@@ -251,4 +302,6 @@ module.exports = {
 	relativePath,
 	emptyDirSyncEx,
 	getFileKey,
+	getAssetsNewPath,
+	replaceAssetPath,
 };

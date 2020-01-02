@@ -99,7 +99,7 @@ function wxProjectParse(folder, sourceFolder) {
 let fileData = {};
 //路由数据，用来记录对应页面的title和使用的自定义组件
 let routerData = {};
-//忽略处理或已经处理的目录
+//忽略处理的目录
 let ignoreFolder = [];
 //workers目录
 let workersFolder = "";
@@ -149,12 +149,11 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 						//判断是否为页面文件所在的目录（这个判断仍然还不够十分完美~）
 						let isPageFileFolder = fs.existsSync(path.join(fileDir, fileName + ".wxml"));
 
-						// if ((fileName === "images" || fileName === "image")) {
-						// 	//处理图片目录，复制到static目录里
-						// 	fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
-						// 	ignoreFolder.push(fileDir);
-						// } else 
-						if (isWorkersFolder) {
+						if ((fileName === "images" || fileName === "image") && !isPageFileFolder) {
+							//处理图片目录，复制到static目录里
+							fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
+							ignoreFolder.push(fileDir);
+						} else if (isWorkersFolder) {
 							//处理workers目录，复制到static目录里
 							fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
 							workersFolder = fileDir;
@@ -182,6 +181,10 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 						global.hasWxParse = global.hasWxParse || (fileName.indexOf("wxParse.") > -1);
 						// console.log("文件 ", fileDir, fileName);
 
+						// || /^miniprogram_npm/.test(key)
+						//判断是否为素材目录或workers目录里面的文件
+						let isInIgnoreFolder = pathUtil.isInFolder(ignoreFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
+						//非素材目录里的文件
 						//这里处理一下，防止目录名与文件名不一致
 						let extname = path.extname(fileName).toLowerCase();
 						let fileNameNoExt = pathUtil.getFileNameNoExt(fileName);
@@ -264,11 +267,12 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 										});
 									})(fileDir, newFileDir);
 								}
+
 								break;
 							default:
 								// console.log(extname, path.dirname(fileDir));
 								// console.log(fileDir, path.basename(path.dirname(fileDir)));
-								if (/.(jpg|jpeg|gif|svg|png)$/.test(extname)) {
+								if (/.(jpg|jpeg|gif|svg|png)$/.test(extname) && !isInIgnoreFolder) {
 									//当前文件上层目录
 									let pFolder = path.dirname(fileDir);
 
@@ -278,60 +282,42 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 										global.assetsFolderObject.add(key);
 										fs.copySync(fileDir, newFileDir);
 									} else {
-										// || /^miniprogram_npm/.test(key)
-										//判断是否为素材目录或workers目录里面的文件
-										let isInIgnoreFolder = pathUtil.isInFolder(ignoreFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
-										//非素材目录里的文件
-
-										// if(!isInIgnoreFolder)
-										// {
-											let relPath = path.relative(global.miniprogramRoot, fileDir);
-											relPath = utils.normalizePath(relPath);
-											if (!global.assetInfo[relPath]) global.assetInfo[relPath] = {};
-											global.assetInfo[relPath]["oldPath"] = fileDir;
-	
-											//粗暴获取上层目录的名称~~~
-											let pFolderName = path.basename(pFolder);
-											let isHasWxmlFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxml"));
-											let isHasJsFile = fs.existsSync(path.join(pFolder, pFolderName + ".js"));
-											let isHasWxssFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxss"));
-											// if (isHasWxmlFile || isHasJsFile || isHasWxssFile) {
-											// 	//直接复制到static目录里
-												// let targetFile = path.join(targetFolder, "static"  ,  fileName);
-												let targetFile = path.join(targetFolder, "static"  ,  relPath);
-											// 	if (fs.existsSync(targetFile)) {
-											// 		console.log("遇到同名文件：" + fileName + " 将直接覆盖！");
-											// 		global.log.push("\r\n" + "遇到同名文件：" + fileName + " 将直接覆盖！" + "\r\n");
-											// 	}
-												global.assetInfo[relPath]["newPath"] = targetFile;
-												fs.copySync(fileDir, targetFile);
-											// } else {
-												// console.log(pFolder)
-												// console.log(pFolder)
-												// console.log(pFolder)
-												// let dirname = path.basename(pFolder);
-												// if (pFolder !== miniprogramRoot && utils.isAssetsFolderName(dirname)) {
-												// let targetFile = path.join(targetFolder, "static" + "/" + pFolderName);
-												// if (fs.existsSync(targetFile)) {
-												// 	let logStr = "遇到同名目录：" + fileName + " 将直接覆盖，可能会有文件被覆盖！";
-												// 	console.log(logStr);
-												// 	global.log.push(logStr);
-												// }
-	
-												// let newPath = path.join(targetFolder, "static" + "/" + fileName);
-												// global.assetInfo[relPath]["newPath"] = newPath;
-	
-												// fs.copySync(pFolder, targetFile);
-												// ignoreFolder.push(pFolder);
-												// }
-											// }
-										// }
+										//粗暴获取上层目录的名称~~~
+										let pFolderName = path.basename(pFolder);
+										let isHasWxmlFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxml"));
+										let isHasJsFile = fs.existsSync(path.join(pFolder, pFolderName + ".js"));
+										let isHasWxssFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxss"));
+										if (isHasWxmlFile || isHasJsFile || isHasWxssFile) {
+											//直接复制到static目录里
+											let targetFile = path.join(targetFolder, "static" + "/" + fileName);
+											if (fs.existsSync(targetFile)) {
+												console.log("遇到同名文件：" + fileName + " 将直接覆盖！");
+												global.log.push("\r\n" + "遇到同名文件：" + fileName + " 将直接覆盖！" + "\r\n");
+											}
+											fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
+										} else {
+											console.log(pFolder)
+											console.log(pFolder)
+											console.log(pFolder)
+											let dirname = path.dirname(pFolder);
+											if (pFolder !== miniprogramRoot && utils.isAssetsFolderName(dirname)) {
+												let targetFile = path.join(targetFolder, "static" + "/" + pFolderName);
+												if (fs.existsSync(targetFile)) {
+													let logStr = "遇到同名目录：" + fileName + " 将直接覆盖，可能会有文件被覆盖！";
+													console.log(logStr);
+													global.log.push(logStr);
+												}
+												fs.copySync(pFolder, path.join(targetFolder, "static" + "/" + pFolderName));
+												ignoreFolder.push(pFolder);
+											}
+										}
 									}
 								} else {
 									fs.copySync(fileDir, newFileDir);
 								}
 								break;
 						}
+
 					}
 					checkEnd();
 				}
@@ -373,7 +359,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 					//组装vue文件名
 					let targetFilePath = path.join(tFolder, fileName + ".vue");
-					// console.log("-------------", targetFilePath);
+					console.log("-------------", targetFilePath);
 
 					// * 单个情况：
 					// * 单个wxml的情况-->转换为vue
@@ -1009,8 +995,6 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 
 	global.wxsFileList = {}; //存储所有已经处理过的wxs文件
 
-	global.assetInfo = {}; //存储所有的资源路径
-
 	try {
 		if (fs.existsSync(global.outputFolder)) {
 			pathUtil.emptyDirSyncEx(global.targetFolder);
@@ -1034,13 +1018,6 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 		filesHandle(fileData, miniprogramRoot).then(() => {
 			//
 			projectHandle(global.pagesData);
-
-
-			console.log(global.assetInfo)
-			console.log(global.assetInfo)
-			console.log(global.assetInfo)
-
-
 
 			//将<template name="abc"/>标签全部存为component组件
 			let componentFolder = path.join(targetFolder, "components");

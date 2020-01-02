@@ -81,6 +81,10 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.46(20200102)   
+* [优化] 移动所有资源文件到static目录，优化路径引用关系，并解决之前可能会覆盖掉同名资源文件的bug   
+* [修复] 生成了多个嵌套template的bug   
+
 ### v1.0.45(20191230)   
 * [修复] 解析代码```var util = require("../helper.js"), utils = getApp().helper;```报错的bug   
 
@@ -94,17 +98,6 @@ $ wtu -i miniprogramProject -w
 * [修复] wxss文件不存时，生成的vue文件多余undefined的bug    
 * [修复] project.config.json里没有字段miniprogramRoot时报错的bug    
 * [修复] wx:key为一个表达式时转换错误(测试代码：```<view wx:for="{{5-num}}" wx:key="{{num + index}}"></view>```)    
-
-### v1.0.42(20191224)   
-* [新增] 支持解析TypeScript小程序项目    
-* [新增] 支持解析使用npm模块的小程序项目    
-* [新增] 支持解析Behavior文件为mixins文件    
-* [优化] 判断ast类型的逻辑    
-* [优化] 更新uParse修复版的版本为v1.2.0    
-* [修复] 解析template时多余引号的bug    
-* [修复] require路径没有扩展名，编译时找不到文件的bug(默认加上.js)    
-* [修复] 单个字符作为this的别名时，page和component页面未做相应替换的bug    
-* [修复] 当properties下面的属性是字符串时导致转换失败(如```properties: {'pullRefresh':{type: Boolean}```)    
 
 
 ## [历史更新记录](ReleaseNote.md)   

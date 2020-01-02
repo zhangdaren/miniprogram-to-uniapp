@@ -52,6 +52,14 @@ function isURL(str_url) {
     }
 };
 
+/**
+ * 判断当前名字是否为资源目录
+ * @param {*} name 
+ */
+function isAssetsFolderName(name) {
+    const reg = /\b(images|img|image|static|asset|assets)\b/i;
+    return reg.test(name);
+}
 
 /**
  * 驼峰式转下横线
@@ -429,6 +437,7 @@ module.exports = {
     log,
     isNumber,
     isObject,
+    isAssetsFolderName,
     normalizePath,
     isURL,
     toLowerLine,

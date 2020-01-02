@@ -131,21 +131,13 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 					 * iconPath和selectedIconPath字段是使用/images下面的文件
 					 * 而 /pages/images下面的文件是用于页面里的
 					 * 其余情况后面发现再加入
+					 * xxxxxxxxxxxxxxxxxxxxxx 上面㕚掉！！！
 					 */
 					const iconPath = item.iconPath;
-					if (iconPath) {
-						if (!global.isVueAppCliMode && iconPath.indexOf("static/") == -1) {
-							item.iconPath = "./static/" + iconPath;
-						}
-						item.iconPath = pathUtil.relativePath(item.iconPath, global.miniprogramRoot, global.miniprogramRoot);
-					}
+					item.iconPath = pathUtil.getAssetsNewPath(iconPath);
+					
 					const selectedIconPath = item.selectedIconPath;
-					if (selectedIconPath) {
-						if (!global.isVueAppCliMode && selectedIconPath.indexOf("static/") == -1) {
-							item.selectedIconPath = "./static/" + selectedIconPath;
-						}
-						item.selectedIconPath = pathUtil.relativePath(item.selectedIconPath, global.miniprogramRoot, global.miniprogramRoot);
-					}
+					item.selectedIconPath = pathUtil.getAssetsNewPath(selectedIconPath);
 				}
 			}
 

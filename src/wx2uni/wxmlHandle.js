@@ -64,7 +64,6 @@ function checkEmptyTag(ast) {
 async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	let reg = /<template([\s\S]*?)<\/template>/g;
 
-
 	//查找有多少个template
 	let tmpArr = fileData.match(reg) || [];
 	let templateNum = tmpArr.length;
@@ -73,7 +72,7 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	let templateAst = await templateParser.parse(fileData);
 
 	//判断根标签上是否包含wx:for或v-for
-	let isMultiTag = checkMultiTag(templateAst);
+	let isMultiTag = checkMultiTag(templateAst) || templateNum > 0;
 
 	//进行上述目标的转换
 	let convertedTemplate = await templateConverter(templateAst, false, file_wxml, onlyWxmlFile, templateParser, templateNum);

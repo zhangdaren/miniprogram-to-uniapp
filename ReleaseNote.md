@@ -2,6 +2,17 @@
 ======================================
 
 
+## v1.0.42(20191224)   
+* [新增] 支持解析TypeScript小程序项目    
+* [新增] 支持解析使用npm模块的小程序项目    
+* [新增] 支持解析Behavior文件为mixins文件    
+* [优化] 判断ast类型的逻辑    
+* [优化] 更新uParse修复版的版本为v1.2.0    
+* [修复] 解析template时多余引号的bug    
+* [修复] require路径没有扩展名，编译时找不到文件的bug(默认加上.js)    
+* [修复] 单个字符作为this的别名时，page和component页面未做相应替换的bug    
+* [修复] 当properties下面的属性是字符串时导致转换失败(如```properties: {'pullRefresh':{type: Boolean}```)    
+
 ## v1.0.40(20191220)   
 * [优化] wx:key和wx:for-index共存时，优先使用wx:for-index作为key    
 * [修复] 支持hidden属性转换为v-if    

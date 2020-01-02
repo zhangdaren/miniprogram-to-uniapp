@@ -31,7 +31,7 @@ const lifeCycleFunction = {
  * @param {*} path 
  */
 function globalDataHandle(path, fileKey) {
-    if (t.isMemberExpression(path) && path.hasOwnProperty("replaceWith")) {
+    if (t.isMemberExpression(path)) {
         const object = path.object ? path.object : path.get("object");
         const property = path.property ? path.property : path.get("property");
 

@@ -108,7 +108,7 @@ const componentVistor = {
 				},
 				VariableDeclarator(path2) {
 					if (t.isMemberExpression(path2.node.init)) {
-						babelUtil.globalDataHandle(path2.node.init, fileKey);
+						babelUtil.globalDataHandle(path2.get("init"), fileKey);
 					} else if (t.isCallExpression(path2.node.init)) {
 						//处理外部声明的require，如var md5 = require("md5.js");
 						const initPath = path2.node.init;

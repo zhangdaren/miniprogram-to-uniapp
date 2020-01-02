@@ -303,7 +303,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 							continue;
 						}
 					} else {
-						console.log("template is=", templateName);
+						// console.log("template is=", templateName);
 						//有is属性的<template/>是用来渲染的元素
 						if (dataAttr) {
 							let replacePropsMap = utils.parseTemplateAttrParams(dataAttr);
@@ -363,42 +363,25 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 
 				//image标签，处理src路径
 				let src = node.attribs.src;
-
-				//忽略网络素材地址，不然会转换出错
-				if (src && !utils.isURL(src)) {
-					if (reg.test(src) && !reg_tag.test(src)) {
-						//这里取巧一下，如果路径不是以/开头，那么就在前面加上./
-						if (src && !/^\//.test(src)) {
-							src = "./" + src;
-						}
-						if (global.isVueAppCliMode) {
-							//
-							attrs.src = src;
-						} else {
-							//static路径
-							let staticPath = path.join(global.miniprogramRoot, "static");
-
-							// <image src="/page/cloud/resources/kind/database.png"
-
-							//当前处理文件所在目录
-							let wxmlFolder = path.dirname(file_wxml);
-							let pFolderName = pathUtil.getParentFolderName(src);
-							// console.log("pFolderName ", pFolderName)
-							let fileName = path.basename(src);
-							// console.log("fileName ", fileName)
-
-							filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
-							newImagePath = path.relative(wxmlFolder, filePath);
-
-							node.attribs.src = newImagePath.split("\\").join("/");;
-						}
+				if (reg.test(src) && !reg_tag.test(src)) {
+					//这里取巧一下，如果路径不是以/开头，那么就在前面加上./
+					// if (src && !/^\//.test(src)) {
+					// 	src = "./" + src;
+					// }
+					if (global.isVueAppCliMode) {
+						//
+						attrs.src = src;
 					} else {
-						if (reg.test(src) && !global.isVueAppCliMode) {
-							let logStr = "image漏网之鱼:    src--> \"" + node.attribs.src + "\"     file--> " + path.relative(global.miniprogramRoot,
-								file_wxml);
-							console.log(logStr);
-							global.logArr.fish.push(logStr);
-						}
+						// //当前处理文件所在目录
+						let wxmlFolder = path.dirname(file_wxml);
+						node.attribs.src = pathUtil.replaceAssetPath(src, global.miniprogramRoot, wxmlFolder);
+					}
+				} else {
+					if (reg.test(src) && !global.isVueAppCliMode) {
+						let logStr = "image漏网之鱼:    src--> \"" + node.attribs.src + "\"     file--> " + path.relative(global.miniprogramRoot,
+							file_wxml);
+						console.log(logStr);
+						global.logArr.fish.push(logStr);
 					}
 				}
 			}

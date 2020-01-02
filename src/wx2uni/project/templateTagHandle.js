@@ -7,16 +7,16 @@ const paramsHandle = require('../paramsHandle');
 //初始化一个解析器
 const templateParser = new TemplateParser();
 
- /**
-  * 替换wxml里面需要替换的参数
-  * @param {*} ast 
-  * @param {*} replacePropsMap 
-  * @param {*} fileKey 
-  */
+/**
+ * 替换wxml里面需要替换的参数
+ * @param {*} ast 
+ * @param {*} replacePropsMap 
+ * @param {*} fileKey 
+ */
 function repalceWxmlParams(ast, replacePropsMap = {}, fileKey) {
-	let reg_tag = /{{.*?}}/;
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];
+		if (!node) continue;
 		for (const k in node.attribs) {
 			//试运行：修复template里data、id或default变量
 			let oldValue = node.attribs[k];
@@ -85,8 +85,9 @@ function replaceTagByTemplate(tagInfo, templateList, templateName, attr = "") {
 		if (templateFileKey === fileKey) {
 			//替换掉原属于页面里面的template
 			let oldTemplateContent = templateParser.astToString(oldAst);
-			pagesData[fileKey].data.minWxml = minWxml.replace(oldTemplateContent, "");
-			pagesData[fileKey].data.wxml = wxml.replace(oldTemplateContent, "");
+
+			if (minWxml) pagesData[fileKey].data.minWxml = minWxml.replace(oldTemplateContent, "");
+			if (wxml) pagesData[fileKey].data.wxml = wxml.replace(oldTemplateContent, "");
 		}
 	} else {
 		templateWxml = "<!-- 下行template对应的wxml不存在，无法替换，代码已注释 -->\r\n" + "<!-- " + templateTagContent + "-->\r\n";
@@ -135,8 +136,8 @@ function templateTagHandle() {
 
 			let minWxml = pagesData[fileKey].data.minWxml;
 			let wxml = pagesData[fileKey].data.wxml;
-			pagesData[fileKey].data.minWxml = minWxml.replace(templateTagContent, templateWxml);
-			pagesData[fileKey].data.wxml = wxml.replace(templateTagContent, templateWxml);
+			if (minWxml) pagesData[fileKey].data.minWxml = minWxml.replace(templateTagContent, templateWxml);
+			if (wxml)  pagesData[fileKey].data.wxml = wxml.replace(templateTagContent, templateWxml);
 		} else {
 			console.log("页面不存在 ", fileKey, pagesData[fileKey])
 		}
