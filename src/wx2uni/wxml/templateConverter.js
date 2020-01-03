@@ -707,13 +707,15 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 					}
 				}
 
-				global.includeInfo[absSrc] = {
+				let obj = {
 					attrs: attrsStr,
 					curFileKey: fileKey,
 					includeTag: tempStr,
 					includeWxmlAbsPath: absSrc,
 					includeFileKey: includeFileKey,
 				};
+
+				global.includeInfo.push(obj);
 			}
 		} else if (node.type === 'text') {
 			//替换变量

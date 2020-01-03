@@ -386,7 +386,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 					var onlyWxmlFile = false;
 
 					//如果是app，满足js和wxss也行，且wxParse将不会进行合并转换
-					if (((file_wxml && file_js) || (isAppFile && (file_js && file_wxss))) && fileName != "wxParse") {
+					if (((file_wxml && file_js) || (file_wxml && file_wxss) || (isAppFile && (file_js && file_wxss))) && fileName != "wxParse") {
 						//当有wxml，那必然会有js文件，可能会有wxss文件，单独的.wxml，转为.vue
 						extName = ".vue";
 						hasAllFile = true;
@@ -416,7 +416,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 					let usingComponents = {};
 
 					//取key，理论随便哪个文件都能取到。
-					let fileKey = pathUtil.getFileKey(file_js);
+					let fileKey = pathUtil.getFileKey(file_js || file_wxml);
 
 					if (fileKey) {
 						//存入全局对象
@@ -980,15 +980,15 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	//
 
 	//存储页面里的include信息，数据格式如下所示
-	global.includeInfo = {
-		// key: {                     //此includeFileKey等同于“include的wxml文件的绝对路径”
+	global.includeInfo = [
+		//{
 		// 	  attrs:""                //include标签的参数字符串
 		//    curFileKey:"",          //wxml文件所对应的fileKey
 		//    includeTag:"",          //完整include标签
 		//    includeFileKey:"",      //include的wxml文件所对应的fileKey
 		// 	  includeWxmlAbsPath:"",  //include的wxml文件的绝对路径
 		// }
-	};
+	];
 
 	//存储页面里的template信息，数据格式如下所示
 	global.templateInfo = {
