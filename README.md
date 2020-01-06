@@ -81,6 +81,11 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.48(20200106)   
+* [优化] 文案调整
+* [修复] hidden="xx"转换v-if="!(xx)"   
+* [修复] json解析失败   
+
 ### v1.0.47(20200103)   
 * [修复] 多个include标签引用同一个wxml时，页面里有遗漏未被替换的bug   
 

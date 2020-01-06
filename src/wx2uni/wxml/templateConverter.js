@@ -29,7 +29,8 @@ const attrConverterConfigUni = {
 	'hidden': {
 		key: 'v-if',
 		value: (str) => {
-			return str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
+			//hidden转成v-if应该要取反，这里简单处理一下
+			return "!(" + str.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'") + ")"
 		}
 	},
 	'wx-if': {
@@ -307,7 +308,7 @@ const templateConverter = async function (ast, isChildren, file_wxml, onlyWxmlFi
 						//有is属性的<template/>是用来渲染的元素
 						if (dataAttr) {
 							let replacePropsMap = utils.parseTemplateAttrParams(dataAttr);
-							let logStr = "template里的data属性转换前 ==> \"" + dataAttr + "\"     转换后 ==> " + JSON.stringify(replacePropsMap);
+							let logStr = "template里的data属性 ==> \"" + dataAttr + "\"     需要替换的属性 ==> " + JSON.stringify(replacePropsMap);
 							console.log(logStr);
 
 							let tagList = global.templateInfo["tagList"];

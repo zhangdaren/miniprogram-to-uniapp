@@ -41,24 +41,27 @@ function wxProjectParse(folder, sourceFolder) {
 	};
 
 	if (fs.existsSync(file_projectConfigJson)) {
-		let data = fs.readJsonSync(file_projectConfigJson);
+		let data = {};
+		try {
+			data = fs.readJsonSync(file_projectConfigJson);
+		} catch (error) {
+			console.log(`Error： 解析project.config.json报错：` + error);
+		}
+
 		if (data.cloudfunctionRoot) {
 			//有云函数的
 			projectConfig.cloudfunctionRoot = path.resolve(sourceFolder, data.cloudfunctionRoot);
-			//如果是有云函数的项目，那么工作目录将设置为miniprogramRoot
-			// miniprogramRoot = projectConfig.miniprogramRoot;
 		}
 
 		if (data.miniprogramRoot) {
 			projectConfig.miniprogramRoot = path.resolve(sourceFolder, data.miniprogramRoot);
 		} else {
-			//无云函数
 			projectConfig.miniprogramRoot = folder;
 		}
 
-		projectConfig.appid = data.appid;
-		projectConfig.compileType = data.compileType;
-		projectConfig.name = decodeURIComponent(data.projectname);
+		projectConfig.appid = data.appid || "";
+		projectConfig.compileType = data.compileType || "";
+		projectConfig.name = decodeURIComponent(data.projectname || "");
 	} else {
 		projectConfig.miniprogramRoot = sourceFolder;
 		console.log(`Error： 找不到project.config.json文件`);
@@ -70,14 +73,21 @@ function wxProjectParse(folder, sourceFolder) {
 	//读取package.json
 	let file_package = path.join(folder, "package.json");
 	if (fs.existsSync(file_package)) {
-		let packageJson = fs.readJsonSync(file_package);
+		let packageJson = null;
+		try {
+			packageJson = fs.readJsonSync(file_package);
+		} catch (error) {
+			console.log(`Error： 解析package.json报错：` + error);
+		}
 		//
-		projectConfig.name = packageJson.name;
-		projectConfig.version = packageJson.version;
-		projectConfig.description = packageJson.description;
-		//author用不到，先留着
-		projectConfig.author = packageJson.author;
-		projectConfig.dependencies = packageJson.dependencies;  //安装的npm包
+		if (packageJson) {
+			projectConfig.name = packageJson.name;
+			projectConfig.version = packageJson.version;
+			projectConfig.description = packageJson.description;
+			//author用不到，先留着
+			projectConfig.author = packageJson.author;
+			projectConfig.dependencies = packageJson.dependencies;  //安装的npm包
+		}
 	} else {
 		console.log(`Error： 找不到package.json文件(不影响转换)`);
 		// global.log.push("\r\nError： 找不到package.json文件\r\n");
@@ -285,46 +295,46 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 
 										// if(!isInIgnoreFolder)
 										// {
-											let relPath = path.relative(global.miniprogramRoot, fileDir);
-											relPath = utils.normalizePath(relPath);
-											if (!global.assetInfo[relPath]) global.assetInfo[relPath] = {};
-											global.assetInfo[relPath]["oldPath"] = fileDir;
-	
-											//粗暴获取上层目录的名称~~~
-											let pFolderName = path.basename(pFolder);
-											let isHasWxmlFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxml"));
-											let isHasJsFile = fs.existsSync(path.join(pFolder, pFolderName + ".js"));
-											let isHasWxssFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxss"));
-											// if (isHasWxmlFile || isHasJsFile || isHasWxssFile) {
-											// 	//直接复制到static目录里
-												// let targetFile = path.join(targetFolder, "static"  ,  fileName);
-												let targetFile = path.join(targetFolder, "static"  ,  relPath);
-											// 	if (fs.existsSync(targetFile)) {
-											// 		console.log("遇到同名文件：" + fileName + " 将直接覆盖！");
-											// 		global.log.push("\r\n" + "遇到同名文件：" + fileName + " 将直接覆盖！" + "\r\n");
-											// 	}
-												global.assetInfo[relPath]["newPath"] = targetFile;
-												fs.copySync(fileDir, targetFile);
-											// } else {
-												// console.log(pFolder)
-												// console.log(pFolder)
-												// console.log(pFolder)
-												// let dirname = path.basename(pFolder);
-												// if (pFolder !== miniprogramRoot && utils.isAssetsFolderName(dirname)) {
-												// let targetFile = path.join(targetFolder, "static" + "/" + pFolderName);
-												// if (fs.existsSync(targetFile)) {
-												// 	let logStr = "遇到同名目录：" + fileName + " 将直接覆盖，可能会有文件被覆盖！";
-												// 	console.log(logStr);
-												// 	global.log.push(logStr);
-												// }
-	
-												// let newPath = path.join(targetFolder, "static" + "/" + fileName);
-												// global.assetInfo[relPath]["newPath"] = newPath;
-	
-												// fs.copySync(pFolder, targetFile);
-												// ignoreFolder.push(pFolder);
-												// }
-											// }
+										let relPath = path.relative(global.miniprogramRoot, fileDir);
+										relPath = utils.normalizePath(relPath);
+										if (!global.assetInfo[relPath]) global.assetInfo[relPath] = {};
+										global.assetInfo[relPath]["oldPath"] = fileDir;
+
+										//粗暴获取上层目录的名称~~~
+										let pFolderName = path.basename(pFolder);
+										let isHasWxmlFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxml"));
+										let isHasJsFile = fs.existsSync(path.join(pFolder, pFolderName + ".js"));
+										let isHasWxssFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxss"));
+										// if (isHasWxmlFile || isHasJsFile || isHasWxssFile) {
+										// 	//直接复制到static目录里
+										// let targetFile = path.join(targetFolder, "static"  ,  fileName);
+										let targetFile = path.join(targetFolder, "static", relPath);
+										// 	if (fs.existsSync(targetFile)) {
+										// 		console.log("遇到同名文件：" + fileName + " 将直接覆盖！");
+										// 		global.log.push("\r\n" + "遇到同名文件：" + fileName + " 将直接覆盖！" + "\r\n");
+										// 	}
+										global.assetInfo[relPath]["newPath"] = targetFile;
+										fs.copySync(fileDir, targetFile);
+										// } else {
+										// console.log(pFolder)
+										// console.log(pFolder)
+										// console.log(pFolder)
+										// let dirname = path.basename(pFolder);
+										// if (pFolder !== miniprogramRoot && utils.isAssetsFolderName(dirname)) {
+										// let targetFile = path.join(targetFolder, "static" + "/" + pFolderName);
+										// if (fs.existsSync(targetFile)) {
+										// 	let logStr = "遇到同名目录：" + fileName + " 将直接覆盖，可能会有文件被覆盖！";
+										// 	console.log(logStr);
+										// 	global.log.push(logStr);
+										// }
+
+										// let newPath = path.join(targetFolder, "static" + "/" + fileName);
+										// global.assetInfo[relPath]["newPath"] = newPath;
+
+										// fs.copySync(pFolder, targetFile);
+										// ignoreFolder.push(pFolder);
+										// }
+										// }
 										// }
 									}
 								} else {
