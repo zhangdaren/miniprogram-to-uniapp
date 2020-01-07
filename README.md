@@ -81,32 +81,13 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.49(20200107)   
+* [优化] data作为组件属性时(如```<abc :data="area"></abc>```)，不再进行替换。id和data都能作为组件的属性，但uni-app编译时提示：“id|data 作为属性保留名,不允许在自定义组件 abc 中定义为 props”，经测试id或:id在组件时都无法接收到值，但data是可以接收到值的，因此将data从判断逻辑里去除。   
+
 ### v1.0.48(20200106)   
 * [优化] 文案调整
 * [修复] hidden="xx"转换v-if="!(xx)"   
 * [修复] json解析失败   
-
-### v1.0.47(20200103)   
-* [修复] 多个include标签引用同一个wxml时，页面里有遗漏未被替换的bug   
-
-### v1.0.46(20200102)   
-* [优化] 移动所有资源文件到static目录，优化路径引用关系，并解决之前可能会覆盖掉同名资源文件的bug   
-* [修复] 生成了多个嵌套template的bug   
-
-### v1.0.45(20191230)   
-* [修复] 解析代码```var util = require("../helper.js"), utils = getApp().helper;```报错的bug   
-
-### v1.0.44(20191230)   
-* [重大更新!] 重写解析template标签的代码，解析template后并替换相关变量    
-* [优化] 增加部分单元测试，减少bug发生    
-* [优化] getApp()的转换    
-* [优化] include转换后的容器标签由template改为block    
-* [修复] 解析多元表达式时引号解析错误的bug    
-* [修复] 因取页面this别名的代码漏删导致转换报错的bug    
-* [修复] wxss文件不存时，生成的vue文件多余undefined的bug    
-* [修复] project.config.json里没有字段miniprogramRoot时报错的bug    
-* [修复] wx:key为一个表达式时转换错误(测试代码：```<view wx:for="{{5-num}}" wx:key="{{num + index}}"></view>```)    
-
 
 ## [历史更新记录](ReleaseNote.md)   
     

@@ -1045,13 +1045,6 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			//
 			projectHandle(global.pagesData);
 
-
-			console.log(global.assetInfo)
-			console.log(global.assetInfo)
-			console.log(global.assetInfo)
-
-
-
 			//将<template name="abc"/>标签全部存为component组件
 			let componentFolder = path.join(targetFolder, "components");
 			if (!fs.existsSync(componentFolder)) {
@@ -1119,7 +1112,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 				str += '\r\n\r\n日志说明：\r\n';
 				str += '1. image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
 				str += '修复提示：编译时，如有报错就将对应位置修复即可\r\n';
-				str += '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如data、id都能做属性名，data下面的变量和函数名还能重名，但这些在uni-app里是不支持的，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
+				str += '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如id都能做属性名(v-bind:id作为属性是不能传入数据的)，data下面的变量和函数名还能重名，但这些在uni-app里是不支持的，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
 				str = "\r\n转换完成: " + str;
 
 				global.log.push(str);

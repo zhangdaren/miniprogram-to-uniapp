@@ -230,11 +230,7 @@ var isUniAppTag = makeMap(
 )
 
 /**
- * 是否为javascript保留关键字，不能用作变量或函数名
- * // 方法和绑定 的值 名都不能为这些
- * 加上_开头的方法
- * 加上id data作为的属性名
- * 
+ * 是否为javascript保留关键字，不能用作变量或函数名 * 
  */
 var isJavascriptKeyWord = makeMap(
     "abstract,arguments,boolean,break,byte," +
@@ -310,13 +306,13 @@ function isReservedAttrName(name) {
     if (!name) return name;
     const reg = /:/;
     var newName = name.replace(reg, "");
-    return (reg.test(name) && (isReservedAttr(newName)) || newName === "data");
+    return (reg.test(name) && (isReservedAttr(newName)));
 }
 
 
 /**
  * 获取属性别名   
- * 目前已知data、v-bind:data和v-bind:id不能作为属性名
+ * 目前v-bind:id不能作为属性名（data例外，可以传进去，id确实不能传入20200107）
  * @param {*} key     key name 
  * @param {*} value   value name ,判断是否为绑定了数据
  */
@@ -324,11 +320,11 @@ function getAttrAlias(key, value) {
     var result = key;
     if (value) {
         let reg_tag = /{{.*?}}/;
-        if ((reg_tag.test(value) && isReservedAttr(key)) || key === "data") {
+        if ((reg_tag.test(value) && isReservedAttr(key))) {
             result += "Attr";
         }
     } else {
-        if (isReservedAttr(key) || key === "data") {
+        if (isReservedAttr(key)) {
             result += "Attr";
         }
     }
@@ -336,11 +332,11 @@ function getAttrAlias(key, value) {
 }
 /**
  * 获取props别名   
- * 目前已知data、v-bind:data和v-bind:id不能作为参数名
+ * 目前已知v-bind:id不能作为参数名（data例外，可以传进去，id确实不能传入20200107）
  */
 function getPropsAlias(name) {
     var result = name;
-    if (isJavascriptKeyWord(name) || isReservedAttr(name) || name === "data") {
+    if (isJavascriptKeyWord(name) || isReservedAttr(name)) {
         result += "Attr";
     }
     return result;
@@ -354,11 +350,6 @@ function getPropsAlias(name) {
 function getFunctionAlias(name) {
     if (!name) return name;
     var rusult = name;
-    // if (isJavascriptKeyWord(name)) {
-    //     rusult = name + "Fun";
-    // } else if (isVueMethod(name)) {
-    //     rusult = name.replace(/^_|^\$/g, "") + "Fun";
-    // }
 
     if (isVueMethod(name)) {
         rusult = name.replace(/^_|^\$/g, "") + "Fun";
@@ -453,6 +444,7 @@ module.exports = {
     getAttrAlias,
     isReservedAttrName,
     getPropsAlias,
+
     getTemplateParams,
     hasReserverdPorps,
 
