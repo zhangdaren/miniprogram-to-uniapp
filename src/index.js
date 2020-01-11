@@ -288,54 +288,13 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
 										global.assetsFolderObject.add(key);
 										fs.copySync(fileDir, newFileDir);
 									} else {
-										// || /^miniprogram_npm/.test(key)
-										//判断是否为素材目录或workers目录里面的文件
-										let isInIgnoreFolder = pathUtil.isInFolder(ignoreFolder, fileDir) || (workersFolder && fileDir.indexOf(workersFolder) > -1);
-										//非素材目录里的文件
-
-										// if(!isInIgnoreFolder)
-										// {
 										let relPath = path.relative(global.miniprogramRoot, fileDir);
 										relPath = utils.normalizePath(relPath);
 										if (!global.assetInfo[relPath]) global.assetInfo[relPath] = {};
 										global.assetInfo[relPath]["oldPath"] = fileDir;
-
-										//粗暴获取上层目录的名称~~~
-										let pFolderName = path.basename(pFolder);
-										let isHasWxmlFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxml"));
-										let isHasJsFile = fs.existsSync(path.join(pFolder, pFolderName + ".js"));
-										let isHasWxssFile = fs.existsSync(path.join(pFolder, pFolderName + ".wxss"));
-										// if (isHasWxmlFile || isHasJsFile || isHasWxssFile) {
-										// 	//直接复制到static目录里
-										// let targetFile = path.join(targetFolder, "static"  ,  fileName);
 										let targetFile = path.join(targetFolder, "static", relPath);
-										// 	if (fs.existsSync(targetFile)) {
-										// 		console.log("遇到同名文件：" + fileName + " 将直接覆盖！");
-										// 		global.log.push("\r\n" + "遇到同名文件：" + fileName + " 将直接覆盖！" + "\r\n");
-										// 	}
 										global.assetInfo[relPath]["newPath"] = targetFile;
 										fs.copySync(fileDir, targetFile);
-										// } else {
-										// console.log(pFolder)
-										// console.log(pFolder)
-										// console.log(pFolder)
-										// let dirname = path.basename(pFolder);
-										// if (pFolder !== miniprogramRoot && utils.isAssetsFolderName(dirname)) {
-										// let targetFile = path.join(targetFolder, "static" + "/" + pFolderName);
-										// if (fs.existsSync(targetFile)) {
-										// 	let logStr = "遇到同名目录：" + fileName + " 将直接覆盖，可能会有文件被覆盖！";
-										// 	console.log(logStr);
-										// 	global.log.push(logStr);
-										// }
-
-										// let newPath = path.join(targetFolder, "static" + "/" + fileName);
-										// global.assetInfo[relPath]["newPath"] = newPath;
-
-										// fs.copySync(pFolder, targetFile);
-										// ignoreFolder.push(pFolder);
-										// }
-										// }
-										// }
 									}
 								} else {
 									fs.copySync(fileDir, newFileDir);
@@ -1111,8 +1070,8 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 				str += tmpStr;
 				str += '\r\n\r\n日志说明：\r\n';
 				str += '1. image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
-				str += '修复提示：编译时，如有报错就将对应位置修复即可\r\n';
-				str += '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如id都能做属性名(v-bind:id作为属性是不能传入数据的)，data下面的变量和函数名还能重名，但这些在uni-app里是不支持的，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
+				str += '修复提示：编译时，如有报错就将对应位置修复即可(虽然目前uni-app有类似的支持，似乎并不完善)\r\n';
+				str += '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如id能做属性名，data下面的变量和函数名还能重名，但这些在uni-app里是不支持的，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
 				str = "\r\n转换完成: " + str;
 
 				global.log.push(str);

@@ -75,7 +75,7 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	let isMultiTag = checkMultiTag(templateAst) || templateNum > 0;
 
 	//进行上述目标的转换
-	let convertedTemplate = await templateConverter(templateAst, false, file_wxml, onlyWxmlFile, templateParser, templateNum);
+	let convertedTemplate = await templateConverter(templateAst,  file_wxml, onlyWxmlFile, templateParser);
 
 	//判断ast是否没有tag，是的话就全删除
 	convertedTemplate = checkEmptyTag(convertedTemplate);
@@ -85,35 +85,6 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 
 	//去掉首尾空，有可能文件内容都删除完了。
 	templateConvertedString = templateConvertedString.trim();
-
-	//1226
-	// const globalTemplateComponents = global.globalTemplateComponents;
-	// for (const name in globalTemplateComponents) {
-	// 	const componentData = globalTemplateComponents[name];
-	// 	//这里判断一下，可能有两个页面同时引用了某个组件
-	// 	if (componentData.ast && !componentData.data) {
-	// 		//这里需要缓存，不然可能会串掉！
-	// 		(async function (file_wxml, onlyWxmlFile) {
-	// 			// console.log("file_wxml-------", file_wxml, "------------" + name)
-	// 			let tempComponent = await templateConverter(componentData.ast, false, file_wxml, onlyWxmlFile, templateParser);
-	// 			let tempComponentString = templateParser.astToString(tempComponent);
-	// 			let isMultiTag2 = checkMultiTag(componentData.ast);
-	// 			if (isMultiTag2) {
-	// 				tempComponentString = `<template>\r\n<view>\r\n${tempComponentString}\r\n</view>\r\n</template>\r\n\r\n`;
-	// 			} else {
-	// 				tempComponentString = `<template>\r\n${tempComponentString}\r\n</template>\r\n\r\n`;
-	// 			}
-	// 			tempComponentString += '<script>\r\n' +
-	// 				'    export default {\r\n' +
-	// 				'    		name: "' + componentData.alias + '",\r\n' +
-	// 				'    		props: ["item"]\r\n' +
-	// 				'    	}\r\n' +
-	// 				'</script>\r\n';
-	// 			componentData.data = tempComponentString;
-
-	// 		})(file_wxml, onlyWxmlFile);
-	// 	}
-	// }
 
 	//不加template标签的wxml，用于导入include
 	const templateConvertedStringMin = templateConvertedString;

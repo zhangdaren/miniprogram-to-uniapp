@@ -89,7 +89,7 @@ function replaceTagByTemplate(tagInfo, templateList, templateName, attr = "") {
 			if (minWxml) pagesData[fileKey].data.minWxml = minWxml.replace(oldTemplateContent, "");
 			if (wxml) pagesData[fileKey].data.wxml = wxml.replace(oldTemplateContent, "");
 		}
-	} else {
+	} else if(!/wxParse/.test(name)){
 		templateWxml = "<!-- 下行template对应的wxml不存在，无法替换，代码已注释 -->\r\n" + "<!-- " + templateTagContent + "-->\r\n";
 		const logStr = "Error: template对应的wxml不存在，无法替换，代码已注释 --> " + templateTagContent + "   file --> " + fileKey;
 		utils.log(logStr, "base");
@@ -137,7 +137,7 @@ function templateTagHandle() {
 			let minWxml = pagesData[fileKey].data.minWxml;
 			let wxml = pagesData[fileKey].data.wxml;
 			if (minWxml) pagesData[fileKey].data.minWxml = minWxml.replace(templateTagContent, templateWxml);
-			if (wxml)  pagesData[fileKey].data.wxml = wxml.replace(templateTagContent, templateWxml);
+			if (wxml) pagesData[fileKey].data.wxml = wxml.replace(templateTagContent, templateWxml);
 		} else {
 			console.log("页面不存在 ", fileKey, pagesData[fileKey])
 		}
