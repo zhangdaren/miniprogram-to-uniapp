@@ -791,6 +791,7 @@ function handleJSImage(ast, file_js) {
  * @param {*} file_js           当前处理的文件路径
  */
 async function jsHandle(fileData, isApp, usingComponents, file_js) {
+
 	//初始化一个解析器
 	const javascriptParser = new JavascriptParser();
 

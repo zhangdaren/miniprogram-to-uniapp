@@ -274,6 +274,7 @@ function getSetDataFunAST() {
         });
         callback && callback();
     }
+}
 	`;
     const ast = parse(code, {
         sourceType: 'module'
@@ -283,6 +284,7 @@ function getSetDataFunAST() {
     traverse(ast, {
         ObjectProperty(path) {
             result = path.node;
+            path.stop();
         }
     });
     setDataFunAST = result;

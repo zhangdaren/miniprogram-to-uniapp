@@ -81,6 +81,11 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.51(20200114)   
+* [修复] 转换报错   
+
+
+
 ### v1.0.50(20200111)   
 * [优化] 不再转换hidden   
 * [优化] setData支持数组下标，但不支持连续下标(如支持```this.setData({'list[0].item[1].src': "hello"})```，但不支持```this.setData({'list[0][1].src': "hello"})```)   

@@ -130,7 +130,7 @@ function checkExp(str) {
 
 
 /**
- * 疑难代码处理(暂时处理一下)
+ * 疑难代码处理(暂时处理一下)sss
  * htmlparse2在解析<view>{{a<1?2:0}}<text>{{chigua}}</text></view>时，会将小于号解析为标签的开头，导致解析出问题
  */
 function difficultCodeHandle(node) {
@@ -684,7 +684,9 @@ function imageTagHandle(node, file_wxml) {
  * @param {*} ast 抽象语法树
  */
 const templateConverter = async function (ast, file_wxml, onlyWxmlFile, templateParser) {
-	const fileKey = pathUtil.getFileKey(file_wxml);
+
+
+const fileKey = pathUtil.getFileKey(file_wxml);
 	const isComponent = global.pagesData[fileKey] && global.pagesData[fileKey]["data"] && global.pagesData[fileKey]["data"]["component"] || false;
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];

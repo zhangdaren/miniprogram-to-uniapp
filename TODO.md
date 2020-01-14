@@ -17,6 +17,10 @@
 * 组件里：behaviors: ['wx://form-field']
 
 
+2020
+import作为事件名
+
+
 
 getApp().page({
     data: (_data = {
