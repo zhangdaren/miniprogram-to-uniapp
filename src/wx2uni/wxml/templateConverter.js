@@ -317,8 +317,8 @@ function includeTagHandle(node, file_wxml) {
 		//
 		let tempStr = templateParser.astToString([node]);
 		let attrsStr = "";
-		for (const key in attrs) {
-			const value = attrs[key];
+		for (const key in node.attribs) {
+			const value =  node.attribs[key];
 			if (key == "src") {
 				attrsStr += " data-" + key + "=\"" + value + "\"";
 			} else {
@@ -660,7 +660,7 @@ function imageTagHandle(node, file_wxml) {
 		let src = node.attribs.src;
 		if (reg.test(src) && !reg_tag.test(src)) {
 			if (global.isVueAppCliMode) {
-				attrs.src = src;
+				node.attribs.src = src;
 			} else {
 				// //当前处理文件所在目录
 				node.attribs.src = pathUtil.replaceAssetPath(src, global.miniprogramRoot, wxmlFolder);
