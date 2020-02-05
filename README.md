@@ -81,13 +81,19 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.54(20200205)   
+* [优化] 将setData在main.js进行全局混入mixins，不再在每个page.vue文件里插入setData()代码   
+* [优化] 将manifest.json里的mp-weixin里添加permission字段，解决微信小程序提示‘getLocation需要在app.json中声明permission字段’(感谢网友donke提示)   
+* [优化] 处理混淆过的js代码时，getApp()变量的别名在与函数参数同名时，识别不准确的问题   
+* [优化] app.js里data变量的引用关系   
+* [还原] 还原setData代码(新代码在一些时候还有问题，暂还原)   
+
 ### v1.0.53(20200119)   
 * [修复] 转换报错   
 
 ### v1.0.50(20200111)   
 * [优化] 不再转换hidden   
 * [优化] setData支持数组下标，但不支持连续下标(如支持```this.setData({'list[0].item[1].src': "hello"})```，但不支持```this.setData({'list[0][1].src': "hello"})```)   
-
 
 ### v1.0.49(20200107)   
 * [优化] data作为组件属性时(如```<abc :data="area"></abc>```)，不再进行替换。id和data都能作为组件的属性，但uni-app编译时提示：“id|data 作为属性保留名,不允许在自定义组件 abc 中定义为 props”，经测试id或:id在组件时都无法接收到值，但data是可以接收到值的，因此将data从判断逻辑里去除。   

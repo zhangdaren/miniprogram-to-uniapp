@@ -357,9 +357,6 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 			METHODS: babelUtil.arrayToObject([])
 		});
 	} else {
-		//插入setData()
-		const node = babelUtil.getSetDataFunAST();
-		vistors.methods.handle(node);
 
 		//非app.js文件
 		if (astType === "Behavior") {
@@ -853,6 +850,8 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 			case "VantComponent":
 				astInfoObject = componentConverter(javascriptAst, file_js, false);
 				break;
+			case "Webpack":
+				break;
 			default:
 				// console.log("其他类型：", astType);
 				astType = "";
@@ -922,8 +921,23 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 			codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
 		}
 	} else {
-		convertedJavascript = singleJSConverter(javascriptAst, file_js);
-		codeText = `${generate(convertedJavascript).code}`;
+		// if (astType === "Webpack") {
+		// 	//如果代码是webpack编译过的
+		// 	let reg = /[a-z]\.default=void 0;(.*?)\};[a-z]\.default=([a-z])/;
+
+		// 	let exportValueName = "";
+		// 	fileData.repalce(reg, function (match, $1, $2) {
+		// 		console.log(match);
+		// 		let reg2 = new RegExp('[a-z]\.default=void 0;(.*?)' + $2 + '=\{(data:function\(\)\{return.*?)\};[a-z]\.default=([a-z])');
+
+		// 		codeText = $1;
+		// 		exportValueName = $2;
+		// 	});
+		// 	codeText = "";
+		// } else {
+			convertedJavascript = singleJSConverter(javascriptAst, file_js);
+			codeText = `${generate(convertedJavascript).code}`;
+		// }
 	}
 
 	//如果解析报错，那么还是返回原文件内容

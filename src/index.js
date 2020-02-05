@@ -89,7 +89,7 @@ function wxProjectParse(folder, sourceFolder) {
 			projectConfig.dependencies = packageJson.dependencies;  //安装的npm包
 		}
 	} else {
-		console.log(`Error： 找不到package.json文件(不影响转换)`);
+		console.log(`Error： 找不到package.json文件(不影响转换，无视这条)`);
 		// global.log.push("\r\nError： 找不到package.json文件\r\n");
 	}
 	return projectConfig;

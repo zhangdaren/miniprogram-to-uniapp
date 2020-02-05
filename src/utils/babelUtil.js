@@ -23,6 +23,43 @@ const lifeCycleFunction = {
     onError: true,
 }
 
+/**
+ * 判断当前变量是否存在于当前及父级函数的参数里  
+ * function(app){
+ *    app.data = 5;
+ * }
+ * //即为存在
+ * @param {*} path 
+ * @param {*} fileKey 
+ */
+function findCurrentScopeByKey(path, fileKey) {
+    let isExist = false;
+    path.findParent(function (funExp) {
+        if (funExp.isFunctionExpression()) {
+            if (funExp) {
+                let params = funExp.get("params");
+                params.forEach(element => {
+                    if (t.isIdentifier(element) && global.pagesData[fileKey]["getAppNamelist"][element.node.name]) {
+                        isExist = true;
+                    }
+                });
+            }
+        }
+        return isExist;
+    }
+    );
+    return isExist;
+}
+
+/**
+ * 判断path是否为MemberExpression，且property为data
+ * 判断表达式app.globalData.data.xxx = "123"; 
+ * @param {*} path 
+ */
+function hasDataExp(path) {
+    let property = path.get("property");
+    return path && t.isMemberExpression(path) && t.isIdentifier(property.node, { name: "data" });
+}
 
 /**
  * 替换globalData
@@ -38,18 +75,46 @@ function globalDataHandle(path, fileKey) {
         const objectNode = object.node ? object.node : object;
         const propertyNode = property.node ? property.node : property;
 
+        const parentPath = path.parentPath;
+
+        if (fileKey == "pages/index/index") {
+            console.log();
+        }
+
         if (t.isIdentifier(objectNode, { name: "app" }) || t.isIdentifier(objectNode, { name: "App" })) {
+            let me = null;
             if (t.isIdentifier(propertyNode, { name: "globalData" })) {
-                //app.globalData.xxx = "123";  -->  getApp().globalData.xxx = "123";
-                let me = t.MemberExpression(t.callExpression(t.identifier('getApp'), []), propertyNode);
-                path.replaceWith(me);
-                path.skip();
-            } else {
-                //app.xxx --> getApp().globalData.xxx
+                console.log(property);
+                if (hasDataExp(parentPath)) {
+                    //app.globalData.data.xxx = "123";  -->   getApp().globalData.xxx = "123";
+                    me = t.MemberExpression(t.callExpression(t.identifier('getApp'), []), propertyNode);
+                    parentPath.replaceWith(me);
+                    parentPath.skip();
+                } else {
+                    //app.globalData.xxx = "123";  -->  getApp().globalData.xxx = "123";
+                    me = t.MemberExpression(t.callExpression(t.identifier('getApp'), []), propertyNode);
+                    path.replaceWith(me);
+                    path.skip();
+                }
+            } else if (!findCurrentScopeByKey(path, fileKey)) {
                 let getApp = t.callExpression(t.identifier('getApp'), []);
-                let me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
-                path.replaceWith(me);
-                path.skip();
+                if (hasDataExp(parentPath)) {
+                    //app.xxx --> getApp().globalData.xxx
+                    me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
+                    parentPath.replaceWith(me);
+                    parentPath.skip();
+                } else if (propertyNode.name === "data") {
+                    //app.data.xx --> getApp().globalData.xx
+                    let getApp = t.callExpression(t.identifier('getApp'), []);
+                    let me = t.MemberExpression(getApp, t.identifier('globalData'));
+                    path.replaceWith(me);
+                    path.skip();
+                } else {
+                    //app.xxx --> getApp().globalData.xxx
+                    me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
+                    path.replaceWith(me);
+                    path.skip();
+                }
             }
         } else if (fileKey && global.pagesData[fileKey] && global.pagesData[fileKey]["getAppNamelist"][objectNode.name]) {
             //var vv = getApp();
@@ -121,6 +186,7 @@ const astTypeList = {
     Component: true,
     VantComponent: true,
     Behavior: true,
+    Webpack: true,
 }
 /**
  * 获取ast类型
@@ -130,6 +196,7 @@ const astTypeList = {
  * 3.Component
  * 4.VantComponent 
  * 5.Behavior  -->  mixins
+ * 7.Webpack      //webpack编译后的代码
  * @param {*} ast 
  */
 function getAstType(ast, _file_js) {
@@ -140,11 +207,25 @@ function getAstType(ast, _file_js) {
             const parent = path.parentPath.parent;
             if (t.isFile(parent)) {
                 const exp = path.get("expression");
-                if (t.isCallExpression(exp) && t.isIdentifier(exp.node.callee)) {
-                    let name = exp.node.callee.name;
-                    if (astTypeList[name]) {
-                        type = name;
-                        path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                if (t.isCallExpression(exp)) {
+                    if (t.isIdentifier(exp.node.callee)) {
+                        let name = exp.node.callee.name;
+                        if (astTypeList[name]) {
+                            type = name;
+                            path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                        }
+                    } else if (t.isMemberExpression(exp.node.callee)) {
+                        let callee = exp.node.callee;
+                        let object = callee.object;
+                        //判断是否含有：global["webpackJsonp"] = global["webpackJsonp"]
+                        //仅对object.left进行值判断，right只进行类型判断，应该足够了。
+                        if (t.isAssignmentExpression(object) && t.isMemberExpression(object.left) && t.isLogicalExpression(object.right)) {
+                            let me = object.left;
+                            if (t.isIdentifier(me.object, { name: "global" }) && t.isStringLiteral(me.property, { value: "webpackJsonp" })) {
+                                type = "Webpack";
+                                path.stop();
+                            }
+                        }
                     }
                 } else if (t.isAssignmentExpression(exp)) {
                     const right = exp.node.right;
@@ -239,11 +320,57 @@ function getSetDataFunAST() {
     if (setDataFunAST) return clone(setDataFunAST);
     const code = `
 	var setData = {
+	setData:function(obj, callback){  
+		let that = this;  
+		let keys = [];  
+		let val,data;  
+		Object.keys(obj).forEach(function(key){  
+				keys = key.split('.');  
+				val = obj[key];  
+				data = that.$data;  
+				keys.forEach(function(key2,index){  
+					if(index+1 == keys.length){  
+						that.$set(data,key2,val);  
+					}else{  
+						if(!data[key2]){  
+							that.$set(data,key2,{});  
+						}  
+					}  
+					data = data[key2];  
+				})  
+			});  
+            callback && callback();
+        } 
+	}
+	`;
+    const ast = parse(code, {
+        sourceType: 'module'
+    });
+
+    let result = null;
+    traverse(ast, {
+        ObjectProperty(path) {
+            result = path.node;
+            path.stop();
+        }
+    });
+    setDataFunAST = result;
+    return result;
+}
+
+
+/**
+ * 获取setData()的AST
+ */
+function getSetDataFunAST2() {
+    if (setDataFunAST) return clone(setDataFunAST);
+    const code = `
+	var setData = {
     setData: function(obj, callback) {
         let that = this;
         let keys = [];
         let val, data;
-        let reg = /\[\d+\]/;
+        let reg = /\\[\\d+\\]/;
         Object.keys(obj).forEach(function(key) {
             keys = key.split('.');
             val = obj[key];
@@ -251,7 +378,7 @@ function getSetDataFunAST() {
             keys.forEach(function(key2, index) {
                 if (index + 1 == keys.length) {
                     if (reg.test(key2)) {
-                        let re = /(.*?)\[(\d+)\]/.exec(key2);
+                        let re = /(.*?)\\[(\\d+)\\]/.exec(key2);
                         let name = re[1];
                         let kk = re[2];
                         data = data[name];
@@ -261,7 +388,7 @@ function getSetDataFunAST() {
                     }
                 } else {
                     if (reg.test(key2)) {
-                        let re = /(.*?)\[(\d+)\]/.exec(key2);
+                        let re = /(.*?)\\[(\\d+)\\]/.exec(key2);
                         let name = re[1];
                         let kk = re[2];
                         data = data[name][kk];

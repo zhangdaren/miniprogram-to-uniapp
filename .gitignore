@@ -1,5 +1,4 @@
 .history
-.vscode
 node_modules
 *.zip
 demo
