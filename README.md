@@ -70,7 +70,7 @@ $ wtu -i miniprogramProject -w
 * 支持*.js', *.wxml和*.wxss文件进行相应转换，并做了大量的优化   
 * 支持识别App、Page、Component、VantComponent、Behavior和纯Javascript文件的转换   
 * ~~App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚，已回滚)~~   
-* 导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件   
+* ~~导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件~~   
 * 使用[uParse修复版](https://ext.dcloud.net.cn/plugin?id=364)替换wxParse   
 * 搜索未在data声明，而直接在setData()里使用的变量，并修复   
 * 合并使用require导入的wxs文件   
