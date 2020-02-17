@@ -81,7 +81,7 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	convertedTemplate = checkEmptyTag(convertedTemplate);
 
 	//把语法树转成文本
-	let templateConvertedString = templateParser.astToString(convertedTemplate);
+	let templateConvertedString = templateParser.astToString(convertedTemplate) || fileData;
 
 	//去掉首尾空，有可能文件内容都删除完了。
 	templateConvertedString = templateConvertedString.trim();

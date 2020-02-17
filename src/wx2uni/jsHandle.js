@@ -180,7 +180,9 @@ function defineValueHandle(ast, vistors, file_js) {
 			if (t.isMemberExpression(callee)) {
 				let object = callee.object;
 				let property = callee.property;
-				if (t.isIdentifier(property, { name: "setData" })) {
+				if (t.isIdentifier(property, {
+						name: "setData"
+					})) {
 					let arguments = path.node.arguments;
 					for (const key in arguments) {
 						const element = arguments[key];
@@ -241,7 +243,9 @@ function appGlobalDataFunHandle(ast) {
 		MemberExpression(path) {
 			let object = path.get('object');
 			let property = path.get('property');
-			if (babelUtil.isThisExpression(object, global.pagesData["app"]["thisNameList"]) && t.isIdentifier(property.node, { name: "globalData" })) {
+			if (babelUtil.isThisExpression(object, global.pagesData["app"]["thisNameList"]) && t.isIdentifier(property.node, {
+					name: "globalData"
+				})) {
 				path.replaceWith(object);
 				path.skip();
 			}
@@ -376,11 +380,14 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 
 		const methods = vistors.methods.getData();
 		for (const item of methods) {
-			const keyName = item.key.name;
-			if (dataNameList[keyName] || utils.isReservedName(keyName)) {
-				item.key.name = utils.getFunctionAlias(item.key.name);
-				replaceFunNameList.push(keyName);
-				//留存全局变量，以便替换template
+			//判断一下，可能有些methods为{...abc}形式的
+			if (t.isObjectMethod(item) || t.isObjectProperty(item)) {
+				const keyName = item.key.name;
+				if (dataNameList[keyName] || utils.isReservedName(keyName)) {
+					item.key.name = utils.getFunctionAlias(item.key.name);
+					replaceFunNameList.push(keyName);
+					//留存全局变量，以便替换template
+				}
 			}
 		}
 
@@ -430,7 +437,9 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 		VariableDeclarator(path) {
 			const init = path.get("init");
 			if (t.isCallExpression(init) && init.node && t.isCallExpression(init.node)) {
-				if (t.isIdentifier(init.node.callee, { name: "getApp" })) {
+				if (t.isIdentifier(init.node.callee, {
+						name: "getApp"
+					})) {
 					/**
 					 * var t = getApp();
 					 * 替换为:
@@ -461,7 +470,9 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 					var methodsArr = vistors.methods.getData();
 					for (let key in methodsArr) {
 						let obj = methodsArr[key];
-						if (!t.isIdentifier(obj.key, { name: "setData" })) {
+						if (!t.isIdentifier(obj.key, {
+								name: "setData"
+							})) {
 							path.insertAfter(obj);
 						}
 					}
@@ -491,7 +502,7 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 						t.identifier(componentName),
 						t.identifier(componentName),
 						false,
-						true  //属性名与变量名相同是否可以合并为一个
+						true //属性名与变量名相同是否可以合并为一个
 					));
 				}
 			} else if (name === 'computed' || name === 'watch') {
@@ -511,7 +522,11 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 			if (t.isMemberExpression(callee)) {
 				let object = callee.get('object');
 				let property = callee.get('property');
-				if (t.isIdentifier(object, { name: "wx" }) && t.isIdentifier(property, { name: "createWorker" })) {
+				if (t.isIdentifier(object, {
+						name: "wx"
+					}) && t.isIdentifier(property, {
+						name: "createWorker"
+					})) {
 					//将wx.createWorker('workers/fib/index.js')转为wx.createWorker('./static/workers/fib/index.js');
 					let arguments = path.node.arguments;
 					if (arguments && arguments.length > 0) {
@@ -523,8 +538,14 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 				let objNode = object.node ? object.node : object;
 				let propertyNode = property.node ? property.node : property;
 				if (
-					(t.isIdentifier(objNode, { name: "WxParse" }) || t.isIdentifier(objNode, { name: "wxParse" }))
-					&& t.isIdentifier(propertyNode, { name: "wxParse" })
+					(t.isIdentifier(objNode, {
+						name: "WxParse"
+					}) || t.isIdentifier(objNode, {
+						name: "wxParse"
+					})) &&
+					t.isIdentifier(propertyNode, {
+						name: "wxParse"
+					})
 				) {
 					/**
 					 * WxParse.wxParse(bindName , type, data, target,imagePadding)
@@ -539,9 +560,9 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 
 					//target为Page对象,一般为this(必填);这里大胆假设一下，只有this或this的别名，报错再说。
 					const wxParseArgs = {
-						bindName: "article_" + arguments[0].value,  //加个前缀以防冲突
+						bindName: "article_" + arguments[0].value, //加个前缀以防冲突
 						type: arguments[1].value,
-						data: generate(arguments[2]).code,  //这里可能会有多种类型，so，直接转字符串
+						data: generate(arguments[2]).code, //这里可能会有多种类型，so，直接转字符串
 						target: arguments[3]
 					}
 
@@ -556,7 +577,7 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 					const right = t.identifier(wxParseArgs.data);
 					const assExp = t.assignmentExpression("=", left, right);
 					const bState = t.blockStatement([t.expressionStatement(assExp)]);
-					const args = [t.ArrowFunctionExpression([], bState), t.numericLiteral(200)];  //延时200ms防止百度小程序解析不出来
+					const args = [t.ArrowFunctionExpression([], bState), t.numericLiteral(200)]; //延时200ms防止百度小程序解析不出来
 					const callExp = t.callExpression(t.identifier("setTimeout"), args);
 					const expState = t.expressionStatement(callExp);
 					path.replaceWith(expState);
@@ -610,12 +631,18 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 			let property = path.get('property');
 
 
-			if (t.isIdentifier(property.node, { name: "triggerEvent" })) {
+			if (t.isIdentifier(property.node, {
+					name: "triggerEvent"
+				})) {
 				//this.triggerEvent()转换为this.$emit()
 				let obj = t.memberExpression(object.node, t.identifier("$emit"));
 				path.replaceWith(obj);
 
-			} else if (t.isIdentifier(object.node, { name: "app" }) || t.isIdentifier(object.node, { name: "App" })) {
+			} else if (t.isIdentifier(object.node, {
+					name: "app"
+				}) || t.isIdentifier(object.node, {
+					name: "App"
+				})) {
 				//app.xxx ==> app.globalData.xxx
 				// let me = t.MemberExpression(t.MemberExpression(object.node, t.identifier('globalData')), property.node);
 				// path.replaceWith(me);
@@ -640,7 +667,9 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 						global.logArr.rename.push(logStr);
 					}
 				}
-			} else if (babelUtil.isThisExpression(object, global.pagesData[fileKey]["thisNameList"]) && t.isIdentifier(property.node, { name: "data" })) {
+			} else if (babelUtil.isThisExpression(object, global.pagesData[fileKey]["thisNameList"]) && t.isIdentifier(property.node, {
+					name: "data"
+				})) {
 				//将this.data.xxx转换为this.xxx
 				let parent = path.parent;
 				//如果父级是AssignmentExpression，则不需再进行转换
@@ -665,7 +694,9 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 			if (!isApp) {
 				//替换与data变量重名的函数引用
 				for (const item of replaceFunNameList) {
-					if (t.isIdentifier(property.node, { name: item })) {
+					if (t.isIdentifier(property.node, {
+							name: item
+						})) {
 						if (babelUtil.isThisExpression(object, global.pagesData[fileKey]["thisNameList"])) {
 							let parent = path.parent;
 							//如果父级是AssignmentExpression，则不需再进行转换
@@ -743,13 +774,13 @@ const componentTemplateBuilder = function (ast, vistors, astType, usingComponent
 /**
  * 处理js文件里面所有的符合条件的资源路径
  * @param {*} ast 
-  * @param {*} file_js 
+ * @param {*} file_js 
  */
 function handleJSImage(ast, file_js) {
 	traverse(ast, {
 		noScope: true,
 		StringLiteral(path) {
-			let reg = /\.(jpg|jpeg|gif|svg|png)$/;  //test时不能加/g
+			let reg = /\.(jpg|jpeg|gif|svg|png)$/; //test时不能加/g
 
 			//image标签，处理src路径
 			var src = path.node.value;
@@ -783,11 +814,10 @@ function handleJSImage(ast, file_js) {
 /**
  * js 处理入口方法
  * @param {*} fileData          要处理的文件内容 
- * @param {*} isApp             是否为入口app.js文件
  * @param {*} usingComponents   使用的自定义组件列表
  * @param {*} file_js           当前处理的文件路径
  */
-async function jsHandle(fileData, isApp, usingComponents, file_js) {
+async function jsHandle(fileData, usingComponents, file_js) {
 
 	//初始化一个解析器
 	const javascriptParser = new JavascriptParser();
@@ -896,15 +926,19 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 			let jsFolder = nodePath.dirname(file_js);
 			for (const key in usingComponents) {
 				let filePath = usingComponents[key];
+				if (utils.isVant(key)) {
+					//如果有vant的组件，这里不管，因为已经在pages.json里全部加载了
+					continue;
+				} else {
+					//相对路径处理
+					filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, jsFolder);
 
-				//相对路径处理
-				filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, jsFolder);
-
-				//中划线转驼峰
-				let componentName = utils.toCamel2(key);
-				//
-				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
-				declareStr += `${generate(node).code}\r\n`;
+					//中划线转驼峰
+					let componentName = utils.toCamel2(key);
+					//
+					let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(componentName))], t.stringLiteral(filePath));
+					declareStr += `${generate(node).code}\r\n`;
+				}
 			}
 		}
 
@@ -935,8 +969,8 @@ async function jsHandle(fileData, isApp, usingComponents, file_js) {
 		// 	});
 		// 	codeText = "";
 		// } else {
-			convertedJavascript = singleJSConverter(javascriptAst, file_js);
-			codeText = `${generate(convertedJavascript).code}`;
+		convertedJavascript = singleJSConverter(javascriptAst, file_js);
+		codeText = `${generate(convertedJavascript).code}`;
 		// }
 	}
 

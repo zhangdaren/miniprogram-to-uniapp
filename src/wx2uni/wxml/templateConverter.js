@@ -318,7 +318,7 @@ function includeTagHandle(node, file_wxml) {
 		let tempStr = templateParser.astToString([node]);
 		let attrsStr = "";
 		for (const key in node.attribs) {
-			const value =  node.attribs[key];
+			const value = node.attribs[key];
 			if (key == "src") {
 				attrsStr += " data-" + key + "=\"" + value + "\"";
 			} else {
@@ -684,9 +684,7 @@ function imageTagHandle(node, file_wxml) {
  * @param {*} ast 抽象语法树
  */
 const templateConverter = async function (ast, file_wxml, onlyWxmlFile, templateParser) {
-
-
-const fileKey = pathUtil.getFileKey(file_wxml);
+	const fileKey = pathUtil.getFileKey(file_wxml);
 	const isComponent = global.pagesData[fileKey] && global.pagesData[fileKey]["data"] && global.pagesData[fileKey]["data"]["component"] || false;
 	for (let i = 0; i < ast.length; i++) {
 		let node = ast[i];

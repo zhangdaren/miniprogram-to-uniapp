@@ -68,6 +68,11 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//app.json里面引用的全局组件
 			let globalUsingComponents = appJson.usingComponents || {};
 
+			//判断是否加载了vant
+			// global.hasVant = Object.keys(appJson.usingComponents).some(key => {
+			// 	return utils.isVant(key);
+			// }) || global.hasVant;
+
 			//将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
 			let pages = [];
 			for (const key in appJson.pages) {
@@ -106,6 +111,17 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			appJson["globalStyle"] = appJson["window"];
 			delete appJson["window"];
 
+			//判断是否引用了vant
+			if (global.hasVant) {
+				// let usingComponentsVant = {};
+				// for (const key in appJson["usingComponents"]) {
+				// 	if (utils.vantComponentList[key]) {
+				// 		usingComponentsVant[key] = utils.vantComponentList[key];
+				// 	}
+				// }
+				appJson["globalStyle"]["usingComponents"] = utils.vantComponentList;
+			}
+
 			//sitemap.json似乎在uniapp用不上，删除！
 			delete appJson["sitemapLocation"];
 
@@ -141,6 +157,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 				}
 			}
 
+
 			//写入pages.json
 			let file_pages = path.join(targetFolder, "pages.json");
 			fs.writeFile(file_pages, JSON.stringify(appJson, null, '\t'), () => {
@@ -153,7 +170,9 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			let file_manifest = path.join(__dirname, "/project-template/manifest.json");
 			let manifestJson = fs.readJsonSync(file_manifest);
 			//
-			let name = pinyin(configData.name, { style: "normal" }).join("");
+			let name = pinyin(configData.name, {
+				style: "normal"
+			}).join("");
 			manifestJson.name = name;
 			manifestJson.description = configData.description;
 			manifestJson.versionName = configData.version || "1.0.0";
@@ -173,16 +192,20 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//全局引入自定义组件
 			//import firstcompoent from '../firstcompoent/firstcompoent'
 			for (const key in globalUsingComponents) {
-				//key可能含有后缀名，也可能是用-连接的，统统转成驼峰
-				let newKey = utils.toCamel2(key);
-				newKey = newKey.split(".vue").join(""); //去掉后缀名
-				let filePath = globalUsingComponents[key];
-				let extname = path.extname(filePath);
-				if (extname) filePath = filePath.replace(extname, ".vue");
-				filePath = filePath.replace(/^\//, "./"); //相对路径处理
-				let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(newKey))], t.stringLiteral(filePath));
-				mainContent += `${generate(node).code}\r\n`;
-				mainContent += `Vue.component("${key}", ${newKey});\r\n\r\n`;
+				if (global.hasVant && utils.isVant(key)) {
+
+				} else {
+					//key可能含有后缀名，也可能是用-连接的，统统转成驼峰
+					let newKey = utils.toCamel2(key);
+					newKey = newKey.split(".vue").join(""); //去掉后缀名
+					let filePath = globalUsingComponents[key];
+					let extname = path.extname(filePath);
+					if (extname) filePath = filePath.replace(extname, ".vue");
+					filePath = filePath.replace(/^\//, "./"); //相对路径处理
+					let node = t.importDeclaration([t.importDefaultSpecifier(t.identifier(newKey))], t.stringLiteral(filePath));
+					mainContent += `${generate(node).code}\r\n`;
+					mainContent += `Vue.component("${key}", ${newKey});\r\n\r\n`;
+				}
 			}
 
 			//全局引入uParse

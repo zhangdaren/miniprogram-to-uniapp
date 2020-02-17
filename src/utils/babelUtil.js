@@ -39,7 +39,10 @@ function findCurrentScopeByKey(path, fileKey) {
             if (funExp) {
                 let params = funExp.get("params");
                 params.forEach(element => {
-                    if (t.isIdentifier(element) && global.pagesData[fileKey]["getAppNamelist"][element.node.name]) {
+                    if (t.isIdentifier(element) 
+                    && global.pagesData[fileKey] 
+                    && global.pagesData[fileKey]["getAppNamelist"] 
+                    && global.pagesData[fileKey]["getAppNamelist"][element.node.name]) {
                         isExist = true;
                     }
                 });
@@ -65,7 +68,8 @@ function hasDataExp(path) {
  * 替换globalData
  * 1. app.globalData.xxx = "123";  -->  getApp().globalData.xxx = "123";
  * 2. app.xxx --> getApp().globalData.xxx
- * @param {*} path 
+ * @param {*} path      ast节点 
+ * @param {*} fileKey   当前处理的文件路径 
  */
 function globalDataHandle(path, fileKey) {
     if (t.isMemberExpression(path)) {
@@ -77,14 +81,10 @@ function globalDataHandle(path, fileKey) {
 
         const parentPath = path.parentPath;
 
-        if (fileKey == "pages/index/index") {
-            console.log();
-        }
-
         if (t.isIdentifier(objectNode, { name: "app" }) || t.isIdentifier(objectNode, { name: "App" })) {
             let me = null;
             if (t.isIdentifier(propertyNode, { name: "globalData" })) {
-                console.log(property);
+                // console.log(property);
                 if (hasDataExp(parentPath)) {
                     //app.globalData.data.xxx = "123";  -->   getApp().globalData.xxx = "123";
                     me = t.MemberExpression(t.callExpression(t.identifier('getApp'), []), propertyNode);
@@ -116,7 +116,10 @@ function globalDataHandle(path, fileKey) {
                     path.skip();
                 }
             }
-        } else if (fileKey && global.pagesData[fileKey] && global.pagesData[fileKey]["getAppNamelist"][objectNode.name]) {
+        } else if (fileKey && global.pagesData[fileKey] 
+            && global.pagesData[fileKey] 
+            && global.pagesData[fileKey]["getAppNamelist"] 
+            && global.pagesData[fileKey]["getAppNamelist"][objectNode.name]) {
             //var vv = getApp();
             //vv.data.xx --> getApp().globalData.xx
             if (propertyNode.name === "data") {
@@ -188,6 +191,7 @@ const astTypeList = {
     Behavior: true,
     Webpack: true,
 }
+
 /**
  * 获取ast类型
  * 目前支持识别以下几种类型:

@@ -78,30 +78,33 @@ $ wtu -i miniprogramProject -w
 * 修复变量名与函数重名的情况   
 * 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)
 * 支持vue-cli模式，可以通过参数配置(-c)，默认为false，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发(建议爱折腾人士使用)  
+* 支持vant转换，可以通过参数配置(-z)，默认为false，如果需要转换使用vant-weapp组件的小程序项目，必须配置这个参数，否则转换后有问题。（另外，转换后的项目，目前仅支持v3和h5两个平台）
    
    
 ## 更新记录   
+### v1.0.57(20200220)   
+
+@ 根路径
+
+<image src="/static/serveqr.png" class='serveqr' alt=""></image>
+
+
+### v1.0.56(20200216)   
+* [新增] 支持转换使用vant的小程序项目(命令行后增加"-z"参数，当前因uni-app限制，仅支持v3和h5平台。现为预览版，时间紧迫，未做wxParse等适配)   
+* [更新] manifest.json配置
+* [修复] 当wxml里都是注释的时候，输出后没有template的bug   
+* [修复] 当methods里含有{...abc}导致转换报错的bug   
+* [修复] 转换wxs的条件默认为true的bug   
+
+### v1.0.55(20200211)   
+* [修复] 个别页面不存在导致转换报错的bug
+
 ### v1.0.54(20200205)   
 * [优化] 将setData在main.js进行全局混入mixins，不再在每个page.vue文件里插入setData()代码   
 * [优化] 将manifest.json里的mp-weixin里添加permission字段，解决微信小程序提示‘getLocation需要在app.json中声明permission字段’(感谢网友donke提示)   
 * [优化] 处理混淆过的js代码时，getApp()变量的别名在与函数参数同名时，识别不准确的问题   
 * [优化] app.js里data变量的引用关系   
 * [还原] 还原setData代码(新代码在一些时候还有问题，暂还原)   
-
-### v1.0.53(20200119)   
-* [修复] 转换报错   
-
-### v1.0.50(20200111)   
-* [优化] 不再转换hidden   
-* [优化] setData支持数组下标，但不支持连续下标(如支持```this.setData({'list[0].item[1].src': "hello"})```，但不支持```this.setData({'list[0][1].src': "hello"})```)   
-
-### v1.0.49(20200107)   
-* [优化] data作为组件属性时(如```<abc :data="area"></abc>```)，不再进行替换。id和data都能作为组件的属性，但uni-app编译时提示：“id|data 作为属性保留名,不允许在自定义组件 abc 中定义为 props”，经测试id或:id在组件时都无法接收到值，但data是可以接收到值的，因此将data从判断逻辑里去除。   
-
-### v1.0.48(20200106)   
-* [优化] 文案调整
-* [修复] hidden="xx"转换v-if="!(xx)"   
-* [修复] json解析失败   
 
 ## [历史更新记录](ReleaseNote.md)   
     

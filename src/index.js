@@ -81,12 +81,17 @@ function wxProjectParse(folder, sourceFolder) {
 		}
 		//
 		if (packageJson) {
-			projectConfig.name = packageJson.name;
-			projectConfig.version = packageJson.version;
-			projectConfig.description = packageJson.description;
+			projectConfig.name = packageJson.name || "";
+			projectConfig.version = packageJson.version || "";
+			projectConfig.description = packageJson.description || "";
 			//author用不到，先留着
-			projectConfig.author = packageJson.author;
-			projectConfig.dependencies = packageJson.dependencies;  //安装的npm包
+			projectConfig.author = packageJson.author || "";
+			projectConfig.dependencies = packageJson.dependencies || {}; //安装的npm包
+
+			//判断是否加载了vant
+			// global.hasVant = Object.keys(projectConfig.dependencies).some(key => {
+			// 	return utils.isVant(key);
+			// }) || global.hasVant;
 		}
 	} else {
 		console.log(`Error： 找不到package.json文件(不影响转换，无视这条)`);
@@ -406,6 +411,11 @@ async function filesHandle(fileData, miniprogramRoot) {
 								data.usingComponents = {};
 							}
 
+							//判断是否加载了vant
+							// global.hasVant = Object.keys(data.usingComponents).some(key => {
+							// 	return utils.isVant(key);
+							// }) || global.hasVant;
+
 							//处理根路径
 							for (const kk in data.usingComponents) {
 								let value = data.usingComponents[kk];
@@ -453,7 +463,10 @@ async function filesHandle(fileData, miniprogramRoot) {
 						if (file_wxml && fs.existsSync(file_wxml)) {
 							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
 							if (data_wxml) {
-								let { templateString, templateStringMin } = await wxmlHandle(data_wxml, file_wxml, false);
+								let {
+									templateString,
+									templateStringMin
+								} = await wxmlHandle(data_wxml, file_wxml, false);
 								fileContentWxml = templateString;
 								fileContentMinWxml = templateStringMin;
 								wxsInfoHandle(tFolder, file_wxml);
@@ -473,17 +486,41 @@ async function filesHandle(fileData, miniprogramRoot) {
 						if (file_js && fs.existsSync(file_js)) {
 							let data_js = fs.readFileSync(file_js, 'utf8');
 							if (data_js) {
-								let data = await jsHandle(data_js, isAppFile, usingComponents, file_js);
-								fileContentJs = data;
+								if (global.hasVant && fileKey != "app") {
+									let componentStr = "";
+									let wxVueOptions = [];
+									for (const name in usingComponents) {
+										let value = usingComponents[name];
+										let newName = utils.toCamel2(name);
+										componentStr += `import ${newName} from '${value}'\r\n`;
+										wxVueOptions.push(`'${name}': ${newName}`);
+									}
+									if (wxVueOptions.length) {
+										componentStr += `global['__wxVueOptions'] = {components:{${wxVueOptions.join(",")}}};`;
+									}
 
-								//根据与data变量重名的函数名，将wxml里引用的地方进行替换
-								fileContentWxml = replaceFunName(fileContentWxml, pathUtil.getFileKey(file_js));
-								fileContentMinWxml = replaceFunName(fileContentMinWxml, pathUtil.getFileKey(file_js));
+									fileContentJs = `
+									<script>
+										${componentStr}
+										global['__wxRoute'] = '${fileKey}';
+										${data_js}
+										export default global['__wxComponents']['${fileKey}'];
+									</script>
+									`.replace(/\t+/g, "");
+								} else {
+									let data = await jsHandle(data_js, usingComponents, file_js);
+									fileContentJs = data;
 
+									//根据与data变量重名的函数名，将wxml里引用的地方进行替换
+									fileContentWxml = replaceFunName(fileContentWxml, pathUtil.getFileKey(file_js));
+									fileContentMinWxml = replaceFunName(fileContentMinWxml, pathUtil.getFileKey(file_js));
+
+									if (fileKey) {
+										global.pagesData[fileKey]["data"]["wxml"] = fileContentWxml;
+										global.pagesData[fileKey]["data"]["minWxml"] = fileContentMinWxml;
+									}
+								}
 								if (fileKey) {
-									global.pagesData[fileKey]["data"]["wxml"] = fileContentWxml;
-									global.pagesData[fileKey]["data"]["minWxml"] = fileContentMinWxml;
-
 									global.pagesData[fileKey]["data"]["js"] = fileContentJs;
 								}
 							}
@@ -537,7 +574,10 @@ async function filesHandle(fileData, miniprogramRoot) {
 
 							let data_wxml = fs.readFileSync(file_wxml, 'utf8');
 							if (data_wxml) {
-								let { templateString, templateStringMin } = await wxmlHandle(data_wxml, file_wxml, onlyWxmlFile);
+								let {
+									templateString,
+									templateStringMin
+								} = await wxmlHandle(data_wxml, file_wxml, onlyWxmlFile);
 								fileContent = templateString;
 								if (fileContent) {
 									let props = [];
@@ -583,7 +623,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 								targetFilePath = path.join(tFolder, fileName + ".js");
 								//可能文件为空，但它也存在。。。所以
 								if (data_js) {
-									let data = await jsHandle(data_js, isAppFile, usingComponents, file_js, !isAppFile);
+									let data = await jsHandle(data_js, usingComponents, file_js, !isAppFile);
 									fileContent = data;
 
 									//写入文件
@@ -782,21 +822,22 @@ function writeLog(folder) {
 
 /**
  * 转换入口
- * @param {*} sourceFolder    输入目录
- * @param {*} targetFolder    输出目录，默认为"输入目录_uni"
- * @param {*} isVueAppCliMode 是否需要生成vue-cli项目，默认为false
- * @param {*} isTransformWXS  是否需要转换wxs文件，默认为false，目前uni-app已支持wxs文件，仅支持app和小程序
+ * @param {*} sourceFolder     输入目录
+ * @param {*} targetFolder     输出目录，默认为"输入目录_uni"
+ * @param {*} isVueAppCliMode  是否需要生成vue-cli项目，默认为false
+ * @param {*} isTransformWXS   是否需要转换wxs文件，默认为false，目前uni-app已支持wxs文件，仅支持app和小程序
+ * @param {*} isVantProject    是否为vant项目，默认为false 
  */
-async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransformWXS) {
+async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransformWXS, isVantProject) {
 	fileData = {};
 	routerData = {};
 
 	global.log = []; //记录转换日志，最终生成文件
 	//记录日志里同类的数据
 	global.logArr = {
-		fish: [],     //漏网之鱼
-		template: [],   //template
-		rename: [],  //重名
+		fish: [], //漏网之鱼
+		template: [], //template
+		rename: [], //重名
 	};
 
 	//起始时间
@@ -829,7 +870,8 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	//是否需要转换wxs文件，默认为true
 	global.isTransformWXS = isTransformWXS || false;
 
-	global.isTransformWXS = isTransformWXS || false;
+	//判断是否含使用vant
+	global.hasVant = isVantProject;
 
 	//判断是否为ts项目,ts项目里tsconfig.json必须存在
 	let tsconfigPath = path.join(sourceFolder, "tsconfig.json");
@@ -961,7 +1003,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 
 	//存储页面里的template信息，数据格式如下所示
 	global.templateInfo = {
-		tagList: [  //所有要替换的标签
+		tagList: [ //所有要替换的标签
 			//{
 			//    key: "",                 //此key等同于template的name或is属性
 			// 	  attrs:""                 //include标签的参数字符串
@@ -971,7 +1013,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			// 	  templateWxmlAbsPath:"",  //template的wxml文件的绝对路径
 			// }
 		],
-		templateList: {  //对应的tempalte内容
+		templateList: { //对应的tempalte内容
 			//key: ast, //此key等同于template的name或is属性
 		}
 	}
@@ -1013,7 +1055,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			for (const name in global.globalTemplateComponents) {
 				const componentData = global.globalTemplateComponents[name];
 				const fileContent = templateParser.astToString([componentData.ast]);
-				const alias = componentData.alias;  //有可能组件名与内置关键字冲突，这里使用别名
+				const alias = componentData.alias; //有可能组件名与内置关键字冲突，这里使用别名
 				if (!alias || !fileContent) continue;
 
 				let componentFile = path.join(componentFolder, alias + ".vue");
@@ -1031,6 +1073,15 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			if (global.hasWxParse) {
 				const source = path.join(__dirname, "wx2uni/project-template/components");
 				const target = path.join(targetFolder, "components");
+				fs.copySync(source, target);
+			}
+			//拷贝wxcomponents到根目录
+			if (global.hasVant) {
+				const source = path.join(__dirname, "wx2uni/project-template/wxcomponents");
+				const target = path.join(targetFolder, "wxcomponents");
+				if (!fs.existsSync(target)) {
+					fs.mkdirSync(target);
+				}
 				fs.copySync(source, target);
 			}
 
@@ -1083,4 +1134,3 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 }
 
 module.exports = transform;
-
