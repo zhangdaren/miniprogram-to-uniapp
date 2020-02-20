@@ -33,6 +33,7 @@ Options:
   -h, --help        output usage information [帮助信息]
   -c, --cli         the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -w, --wxs         transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
+  -z, --vant        transform vant-weapp project to uni-app, which default value is false [是否支持转换vant项目，默认false]
 
 ```
 
@@ -82,13 +83,6 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
-### v1.0.57(20200220)   
-
-@ 根路径
-
-<image src="/static/serveqr.png" class='serveqr' alt=""></image>
-
-
 ### v1.0.56(20200216)   
 * [新增] 支持转换使用vant的小程序项目(命令行后增加"-z"参数，当前因uni-app限制，仅支持v3和h5平台。现为预览版，时间紧迫，未做wxParse等适配)   
 * [更新] manifest.json配置
