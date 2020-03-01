@@ -192,7 +192,7 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 			//全局引入自定义组件
 			//import firstcompoent from '../firstcompoent/firstcompoent'
 			for (const key in globalUsingComponents) {
-				if (global.hasVant && utils.isVant(key)) {
+				if (global.hasVant && (utils.isVant(key) || utils.isVant(globalUsingComponents[key]))) {
 
 				} else {
 					//key可能含有后缀名，也可能是用-连接的，统统转成驼峰
@@ -206,12 +206,6 @@ async function configHandle(configData, routerData, miniprogramRoot, targetFolde
 					mainContent += `${generate(node).code}\r\n`;
 					mainContent += `Vue.component("${key}", ${newKey});\r\n\r\n`;
 				}
-			}
-
-			//全局引入uParse
-			if (global.hasWxParse) {
-				mainContent += 'import uParse from "./components/gaoyia-parse/parse.vue";\r\n';
-				mainContent += `Vue.component("u-parse", uParse);\r\n\r\n`;
 			}
 
 			//

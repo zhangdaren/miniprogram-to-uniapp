@@ -64,7 +64,7 @@ function wxProjectParse(folder, sourceFolder) {
 		projectConfig.name = decodeURIComponent(data.projectname || "");
 	} else {
 		projectConfig.miniprogramRoot = sourceFolder;
-		console.log(`Error： 找不到project.config.json文件`);
+		// console.log(`Warning： 找不到project.config.json文件(不影响转换，无视这条)`);
 		// global.log.push("\r\nError： 找不到project.config.json文件\r\n");
 		// throw (`error： 这个目录${sourceFolder}应该不是小程序的目录，找不到project.config.json文件`)
 		// return false;
@@ -94,7 +94,7 @@ function wxProjectParse(folder, sourceFolder) {
 			// }) || global.hasVant;
 		}
 	} else {
-		console.log(`Error： 找不到package.json文件(不影响转换，无视这条)`);
+		// console.log(`Warning： 找不到package.json文件(不影响转换，无视这条)`);
 		// global.log.push("\r\nError： 找不到package.json文件\r\n");
 	}
 	return projectConfig;
@@ -540,13 +540,7 @@ async function filesHandle(fileData, miniprogramRoot) {
 									console.log(`Convert ${path.relative(global.targetFolder, cssFilePath)} success!`);
 								});
 
-								//css文件改为导入方式
-								const otherImport = '@import url("./components/gaoyia-parse/parse.css");\r\n';
-								if (isAppFile && global.hasWxParse) {
-									fileContentCss = `<style>\r\n${otherImport}@import "./${fileName}.css";\r\n</style>`;
-								} else {
-									fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
-								}
+								fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
 
 								if (fileKey) global.pagesData[fileKey]["data"]["css"] = fileContentCss || "";
 							} else {
@@ -827,8 +821,9 @@ function writeLog(folder) {
  * @param {*} isVueAppCliMode  是否需要生成vue-cli项目，默认为false
  * @param {*} isTransformWXS   是否需要转换wxs文件，默认为false，目前uni-app已支持wxs文件，仅支持app和小程序
  * @param {*} isVantProject    是否为vant项目，默认为false 
+ * @param {*} isRenameWxToUni  是否转换wx为uni，默认为false 
  */
-async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransformWXS, isVantProject) {
+async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransformWXS, isVantProject, isRenameWxToUni) {
 	fileData = {};
 	routerData = {};
 
@@ -877,8 +872,8 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	let tsconfigPath = path.join(sourceFolder, "tsconfig.json");
 	global.isTSProject = fs.existsSync(tsconfigPath);
 
-	// uParse替换wxparse细节
-	// 1.全局载入u-parse, @import url("/components/gaoyia-parse/parse.css");
+	// jyf-parser替换wxparse细节
+	// 1.使用jyf-parser替换wxparse，hbxv2.5.5以上不用申明组件;
 	// 2.解析wxParse.wxParse('contentT', 'html', content, this, 0);
 	// 为：setTimeout(()=> {this.article = goodsDetail.content;});
 	// 3.去掉const wxParse = require("../../../wxParse/wxParse.js");
@@ -886,6 +881,9 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 	//项目是否使用wxParse（判断是否有wxParse目录和wxParse文件）
 	global.hasWxParse = false;
 
+	//是否将wx.xxx()转换为uni.xxx()
+	global.isRenameWxToUni = isRenameWxToUni;
+	
 	//记录<template name="abc"></template>内容，用于另存
 	global.globalTemplateComponents = {
 		//name: ast
@@ -1069,7 +1067,7 @@ async function transform(sourceFolder, targetFolder, isVueAppCliMode, isTransfor
 			//处理配置文件
 			configHandle(configData, routerData, miniprogramRoot, targetFolder);
 
-			//拷贝gaoyia-parse到components
+			//拷贝jyf-parser到components
 			if (global.hasWxParse) {
 				const source = path.join(__dirname, "wx2uni/project-template/components");
 				const target = path.join(targetFolder, "components");

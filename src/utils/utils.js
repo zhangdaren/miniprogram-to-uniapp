@@ -427,7 +427,7 @@ function parseTemplateAttrParams(attr) {
  * 判断关键字是否与vant有关
  */
 function isVant(name) {  
-    return /vant-weapp|vant|van-/.test(name);
+    return /vant-weapp|vant/.test(name);
 }
 
 /**

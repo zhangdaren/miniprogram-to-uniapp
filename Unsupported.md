@@ -92,7 +92,7 @@ _this.data.xxx  ==>  _this.xxx
 
 
 ## var appInstance = getApp(); 
-建议手动处理 
+建议手动处理    
 
    
 ## 语法错误: This experimental syntax requires enabling the parser plugin: 'dynamicImport'   
@@ -100,11 +100,11 @@ _this.data.xxx  ==>  _this.xxx
 暂时建议手动处理一下，毕竟还只遇到一例   
 
    
-## vant组件不支持转换    
+## vant组件不支持转换(暂时为试运行，仅运行h5和app)    
 经过研究，由于VantComponent({})与小程序结构差异较大，且组件内部强耦合，加上uni-app现在不支持 ```:class="bem('xxx')"```这种语法，虽然可以勉强做出一版来，但是考虑到vant后续更新，需要花费的力气不少，建议手动替换组件。   
 
 
-## 属性没有定义，导致报错   
+## 属性没有定义，导致报错      
 [Vue warn]:Property or method "toJSON" is not defined on the instance but referenced during render. Make sure that this property is reactive, either in the data option, or for class-based components, by initializing the property. See: https://vuejs.org/v2/guide/reactivity.html#Declaring-Reactive-Properties.   
 常见的是在data里没有声明，而直接使用(一般是在setData()调用的)，在小程序里没问题，在vue里可就不行了。   
 
@@ -116,11 +116,11 @@ _this.data.xxx  ==>  _this.xxx
 因为data作了为属性名，导致失效，目前建议手动修改属性名(连同template所引用的属性名)      
    
 
-## SyntaxError: Unexpected keyword 'class' (13:12)
+## SyntaxError: Unexpected keyword 'class' (13:12)   
 wxs里使用class关键字来声明变量，手动改名   
 
 
-~~## unexpected token default 不能使用default(已支持)~~
+~~## unexpected token default 不能使用default(已支持)~~   
 如```<text>{{default}}</text>```，编译报错，建议手动改名   
 
 
@@ -131,7 +131,7 @@ wxs里使用class关键字来声明变量，手动改名
 * ~~pageLifetimes(组件所在页面的生命周期函数),原样复制~~   
 
 
-## 通过selectComponent(selector)选择的页面，在使用setData时，需注意   
+## 通过selectComponent(selector)选择的页面，在使用setData时，需注意    
 
 解决：仍需手动调整处理。   
 
@@ -174,17 +174,17 @@ this.uploader = this.selectComponent("#uploader");
 
 ---
 
-倒是可以一刀切：
+倒是可以一刀切：   
 ```
-ctx.selectComponent(selector);  
+ctx.selectComponent(selector);     
 替换为
-ctx.selectComponent(selector).$vm;
+ctx.selectComponent(selector).$vm;   
 ```
 暂未并入工具，现在手动修改。   
 （原因是ctx.selectComponent(selector)为null时，会报错Cannot read property '$vm' of null）   
 
 
-## props default 数组／对象的默认值应当由一个工厂函数返回(工具已修复)
+## props default 数组／对象的默认值应当由一个工厂函数返回(工具已修复)   
 Invalid default value for prop "slides": Props with type Object/Array must use a factory function to return the default value.   
 ```javascript
 proE: {
@@ -208,18 +208,18 @@ proE: {
 }
 ```
 
-### 引号或括号不匹配
+### 引号或括号不匹配   
 如
 ```
 <view style="line-height: 48rpx\""></view>
 <view style="width:{{percent}}% }};"></view>
 ```
-原始代码就有问题，需自己手动调整。
+原始代码就有问题，需自己手动调整。   
 
 ### UnhandledPromiseRejectionWarning: TypeError: Cannot read property 'buildError' of undefined
-原因：
-可能是因为代码里，let和var对同名变量先后进行了声明导致。
-如：
+原因：   
+可能是因为代码里，let和var对同名变量先后进行了声明导致。   
+如：   
 ```
 let a = 1;
 var a = 4;
@@ -229,17 +229,17 @@ var a = 4;
 v-slot 不支持动态插槽名，只发现一例
 
 
-## <template is="wxParse" data="{{ wxParseData:item.html }}"></template>
+## <template is="wxParse" data="{{ wxParseData:item.html }}"></template>   
 
 
-## 返回顶部不生效
-可参考：[scroll-view](https://uniapp.dcloud.io/component/scroll-view)里的写法
+## 返回顶部不生效   
+可参考：[scroll-view](https://uniapp.dcloud.io/component/scroll-view)里的写法   
 
 同样也可以简单粗暴的修改代码为：```this.scrollTop = Math.random();```
 原理见：[scroll-view组件返回顶部不生效！（附第三方解决方案）](https://ask.dcloud.net.cn/article/36612)
 
 
-## 组件里properties里的变量在代码里使用this.setData()去修改导致报错
+## 组件里properties里的变量在代码里使用this.setData()去修改导致报错   
 data里没有currentIndex,，对比出来，误在data里增加了currentIndex，导致报错   
 
 ``` javascript
@@ -284,7 +284,7 @@ export default {
 [Vue warn]: Avoid adding reactive properties to a Vue instance or its root $data at runtime - declare it upfront in the data option. (变量没有在data里面声明)   
 
 原因是小程序里properties和data指向的是同一个对象，而vue里面就不一样了，分得很开，子组件没有权限对props里面的变量进行修改的。   
-解决方案：自行修改代码，将props里面的变量在data里面进行重名并缓存一份，需要修改template和js代码。   
+解决方案：自行修改代码，将props里面的变量在data里面进行重名并缓存一份，需要修改template和js代码。     
 
 >https://www.jianshu.com/p/422a05e2f0f4
 >其实在小程序里，properties和data指向的是同一个js对象，换一种说法，我们可以理解为：小程序会把properties对象和data对象合并成一个对象，

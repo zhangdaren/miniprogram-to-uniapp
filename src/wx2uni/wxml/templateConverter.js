@@ -72,13 +72,13 @@ const attrConverterConfigUni = {
 		key: '@getuserinfo'
 	},
 	'catchtap': {
-		key: '@tap.native.stop',
+		key: '@tap.stop',
 		value: (str) => {
 			return repairAttr(str)
 		}
 	},
 	'catch:tap': {
-		key: '@tap.native.stop',
+		key: '@tap.stop',
 		value: (str) => {
 			return repairAttr(str)
 		}
@@ -360,7 +360,7 @@ function beforeTemplateConverter(node, file_wxml, isComponent) {
 				delete node.attribs[k];
 
 				//存入日志，方便查看
-				utils.log(logStr, "base");
+				// utils.log(logStr, "base");
 				global.logArr.rename.push(logStr);
 			}
 		}
@@ -395,13 +395,27 @@ function templateTagHandle(node, file_wxml, onlyWxmlFile) {
 					//处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
 					//仅提取变量，"或"操作符和三元运算符暂不考虑。
 					varName = varName.replace(/[\s\(\[]/g, ""); //替换掉空格和括号
-					newNode = {
-						type: "tag",
-						name: "u-parse",
-						attribs: {
-							":content": varName
-						}
-					};
+
+					if(global.hasVant)
+					{
+						newNode = {
+							type: "tag",
+							name: "view",
+							attribs: {
+								"v-html": varName
+							}
+						};
+					}else{
+						newNode = {
+							type: "tag",
+							name: "jyf-parser",
+							attribs: {
+								":html": varName
+							}
+						};
+					}
+					
+					
 					isContinue = true;
 				}
 			} else {
@@ -410,7 +424,7 @@ function templateTagHandle(node, file_wxml, onlyWxmlFile) {
 				if (dataAttr) {
 					let replacePropsMap = utils.parseTemplateAttrParams(dataAttr);
 					let logStr = "template里的data属性 ==> \"" + dataAttr + "\"     需要替换的属性 ==> " + JSON.stringify(replacePropsMap);
-					console.log(logStr);
+					// console.log(logStr);
 
 					let tagList = global.templateInfo["tagList"];
 					let info = {

@@ -7,6 +7,7 @@
 PS:   
 很多人问：wx.xxx()为什么不替换为uni.xxx()呢？   
 答: 暂时不需要，不是替换不了，而是uni-app早已对wx相关函数进行兼容，所以可以直接使用，而不需要再调整了。   
+再PS：最新版本已经可以添加-r参数，达到替换wx.xxx()为uni.xxx()的目的。
    
         
 ## 安装   
@@ -34,6 +35,7 @@ Options:
   -c, --cli         the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -w, --wxs         transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
   -z, --vant        transform vant-weapp project to uni-app, which default value is false [是否支持转换vant项目，默认false]
+  -r, --rename      rename wx.xxx() to uni.xxx(), which default value is false [是否转换wx.xxx()为uni.xxx()，默认false]
 
 ```
 
@@ -73,17 +75,28 @@ $ wtu -i miniprogramProject -w
 * 支持识别App、Page、Component、VantComponent、Behavior和纯Javascript文件的转换   
 * ~~App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚，已回滚)~~   
 * ~~导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件~~   
-* 使用[uParse修复版](https://ext.dcloud.net.cn/plugin?id=364)替换wxParse   
+* 使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse   
 * 搜索未在data声明，而直接在setData()里使用的变量，并修复   
 * 合并使用require导入的wxs文件   
 * 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径   
 * 修复变量名与函数重名的情况   
 * 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)
 * 支持vue-cli模式，可以通过参数配置(-c)，默认为false，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发(建议爱折腾人士使用)  
-* 支持vant转换，可以通过参数配置(-z)，默认为false，如果需要转换使用vant-weapp组件的小程序项目，必须配置这个参数，否则转换后有问题。（另外，转换后的项目，目前仅支持v3和h5两个平台）
+* 支持vant转换，可以通过参数配置(-z)，默认为false，如果需要转换使用vant-weapp组件的小程序项目，必须配置这个参数，否则转换后有问题。（另外，转换后的项目，目前仅支持v3和h5两个平台）  
+* 支持wx.xxx()转换为uni.xxx()，可以通过参数配置(-r)，默认为false（因uni已经对wx相关函数做了兼容，但仍有很多朋友有此需求，特作为可配置项，按需自取）  
    
    
 ## 更新记录   
+### v1.0.58(20200229)   
+* [优化] 增加参数(-r，默认为false)，以替换wx.xxx()为uni.xxx()   
+* [优化] 资源路径替换时，替换后的路径相对于根路径，以减少路径引用复杂度(因官方对于tabbar里iconPath路径并未替换，路径替换功能暂不准备弃用)   
+* [优化] 如js文件为webpack打包后的文件(你懂得~)，转换后增加script标签包裹，避免因此而编译报错      
+* [优化] 将原来用于替换wxParse的组件gaoyia-parse，改为使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)   
+* [优化] "catchtap" 由 "@tap.native.stop" 改为 "@tap.stop"(因前者仅支持微信小程序，测试范围app、h5、微信小程序)   
+* [优化] 解析vant项目时，将富文本组件使用v3的v-html替代(残余wxPrase需手动调整)   
+* [修复] van开头的组件没有被加入的bug   
+* [修复] 替换wxParse时，数据变量未在data里声明的bug   
+
 ### v1.0.56(20200216)   
 * [新增] 支持转换使用vant的小程序项目(命令行后增加"-z"参数，当前因uni-app限制，仅支持v3和h5平台。现为预览版，时间紧迫，未做wxParse等适配)   
 * [更新] manifest.json配置
@@ -112,7 +125,7 @@ $ wtu -i miniprogramProject -w
 * 感谢网友[没有好名字了]给予帮助。   
 * 感谢官方大佬DCloud_heavensoft的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。   
 * this.setData()代码出处：https://ask.dcloud.net.cn/article/35020，在些表示感谢~  
-* 工具使用[uParse修复版](https://ext.dcloud.net.cn/plugin?id=364)替换wxParse，表示感谢~
+* 工具使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse，表示感谢~
 * 感谢为本项目提供建议以及帮助的热心网友们~~   
     
       
@@ -124,6 +137,7 @@ $ wtu -i miniprogramProject -w
 5. [Babel官网](https://babeljs.io/docs/en/babel-types)   有问题直接阅读官方文档哈   
 6. [微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)  补充了我一些未考虑到的规则。   
 7. 更新babel版本，命令：npx babel-upgrade --write
+8. 发布npm版本：npm publish --acces=public
    
    
 ## 最后

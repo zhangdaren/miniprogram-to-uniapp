@@ -241,10 +241,8 @@ function replaceAssetPath(filePath, root, fileDir) {
 	} else {
 		absPath = path.join(fileDir, filePath);
 	}
-	
-	let targetFileDir = fileDir.replace(global.miniprogramRoot, global.targetFolder);
 	let relPath = utils.normalizePath(path.relative(root, absPath));
-	relPath = getAssetsNewPath(relPath, targetFileDir);
+	relPath = getAssetsNewPath(relPath, global.targetFolder);
 	return utils.normalizePath(relPath);
 }
 
@@ -286,6 +284,7 @@ function getAssetsNewPath(filePath, parentFolder = "") {
 	}else{
 		result = path.relative(global.targetFolder, result);
 	}
+	result = "/" + result;
 	result = utils.normalizePath(result);
 	return result;
 }
