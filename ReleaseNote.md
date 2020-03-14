@@ -1,6 +1,23 @@
 # Miniprogram to uni-app - Release Notes   
 ======================================
 
+## v1.0.56(20200216)   
+* [新增] 支持转换使用vant的小程序项目(命令行后增加"-z"参数，当前因uni-app限制，仅支持v3和h5平台。现为预览版，时间紧迫，未做wxParse等适配)   
+* [更新] manifest.json配置
+* [修复] 当wxml里都是注释的时候，输出后没有template的bug   
+* [修复] 当methods里含有{...abc}导致转换报错的bug   
+* [修复] 转换wxs的条件默认为true的bug   
+
+## v1.0.55(20200211)   
+* [修复] 个别页面不存在导致转换报错的bug
+
+## v1.0.54(20200205)   
+* [优化] 将setData在main.js进行全局混入mixins，不再在每个page.vue文件里插入setData()代码   
+* [优化] 将manifest.json里的mp-weixin里添加permission字段，解决微信小程序提示‘getLocation需要在app.json中声明permission字段’(感谢网友donke提示)   
+* [优化] 处理混淆过的js代码时，getApp()变量的别名在与函数参数同名时，识别不准确的问题   
+* [优化] app.js里data变量的引用关系   
+* [还原] 还原setData代码(新代码在一些时候还有问题，暂还原)   
+  
 ## v1.0.53(20200119)   
 * [修复] 转换报错   
 

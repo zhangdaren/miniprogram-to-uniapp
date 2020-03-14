@@ -12,7 +12,7 @@ const babelUtil = require("../../utils/babelUtil");
 let vistors = {};
 
 //外部定义的变量
-let declareStr = "";
+let declareNodeList = [];
 //当前处理的js文件路径
 let file_js = "";
 //当前文件所在目录
@@ -44,7 +44,8 @@ const componentVistor = {
         calleeName != "vantcomponent"
       ) {
         //定义的外部函数
-        declareStr += `${generate(path.node).code}\r\n`;
+        if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+        declareNodeList.push(path);
         path.skip();
       }
       // } else if (t.isAssignmentExpression(path.node.expression)) {
@@ -56,17 +57,25 @@ const componentVistor = {
             // console.log("Behavior文件")
           } else {
             //path.node 为AssignmentExpression类型，所以这里区分一下
-            declareStr += `${generate(path.node).code}\r\n`;
+            //定义的外部函数
+            if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+            declareNodeList.push(path);
           }
         } else {
           //path.node 为AssignmentExpression类型，所以这里区分一下
-          declareStr += `${generate(path.node).code}\r\n`;
+          //定义的外部函数
+          if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+          declareNodeList.push(path);
         }
       }
     }
   },
   ImportDeclaration(path) {
-    let local = path.get("specifiers.0.local");
+    let specifiers = path.get("specifiers");
+    let local = "";
+    if (specifiers.length) {
+      local = path.get("specifiers.0.local");
+    }
     if (local && t.isIdentifier(local) && /wxparse/i.test(local.node.name)) {
       //判断是import wxParse from '../../../wxParse/wxParse.js';
     } else {
@@ -84,9 +93,9 @@ const componentVistor = {
       );
       path.node.source.value = filePath;
 
-      var str = `${generate(path.node).code}\r\n`;
-      //
-      declareStr += str;
+      //定义的外部函数
+      if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+      declareNodeList.push(path);
       path.skip();
     }
   },
@@ -182,13 +191,10 @@ const componentVistor = {
           babelUtil.globalDataHandle(path, fileKey);
         }
       });
-      // const parent = path.parentPath.parent;
-      // if (t.isFile(parent)) {
-      //定义的外部变量
-      // vistors.variable.handle(path.node);
-      declareStr += `${generate(path.node).code}\r\n`;
+      //定义的外部函数
+      if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+      declareNodeList.push(path);
       path.skip();
-      // }
     }
   },
   FunctionDeclaration(path) {
@@ -197,7 +203,8 @@ const componentVistor = {
       babelUtil.getAppFunHandle(path);
 
       //定义的外部函数
-      declareStr += `${generate(path.node).code}\r\n`;
+      if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+      declareNodeList.push(path);
       path.skip();
     }
   },
@@ -474,7 +481,7 @@ function lifeCycleHandle(path) {
  */
 const componentConverter = function(ast, _file_js, isVueFile) {
   //清空上次的缓存
-  declareStr = "";
+  declareNodeList = [];
   //
   file_js = _file_js;
   fileDir = nodePath.dirname(file_js);
@@ -497,7 +504,7 @@ const componentConverter = function(ast, _file_js, isVueFile) {
   return {
     convertedJavascript: ast,
     vistors: vistors,
-    declareStr //定义的变量和导入的模块声明
+    declareNodeList //定义的变量和导入的模块声明
   };
 };
 

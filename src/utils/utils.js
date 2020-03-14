@@ -1,7 +1,7 @@
 const chalk = require('chalk');
 
 
-function log(msg, type = 'error') {
+function log (msg, type = 'error') {
     if (type === 'error') {
         return console.log(chalk.red(`[wx-to-uni-app]: ${msg}`));
     }
@@ -18,7 +18,7 @@ const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path);
  * 是否为数字
  * @param {*} n 
  */
-function isNumber(n) {
+function isNumber (n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
@@ -27,7 +27,7 @@ function isNumber(n) {
  * 是否为Object
  * @param {*} n 
  */
-function isObject(val) {
+function isObject (val) {
     return val != null && typeof val === 'object' && Array.isArray(val) === false;
 }
 
@@ -36,7 +36,7 @@ function isObject(val) {
  * 判断是否为url
  * @param {*} str_url 网址，支持http及各种协议
  */
-function isURL(str_url) {
+function isURL (str_url) {
     //TODO: 似乎//www.baidu.com/xx.png 不能通过校验？
     var reg = /^((https|http|ftp|rtsp|mms)?:\/\/)?(([0-9a-z_!~*'().&amp;=+$%-]+: )?[0-9a-z_!~*'().&amp;=+$%-]+@)?((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5]$)|([0-9a-z_!~*'()-]+\.)*([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\.[a-z]{2,6})(:[0-9]{1,4})?((\/?)|(\/[0-9a-zA-Z_!~*'().;?:@&amp;=+$,%#-]+)+\/?)$/;
     if (reg.test(str_url)) {
@@ -56,7 +56,7 @@ function isURL(str_url) {
  * 判断当前名字是否为资源目录
  * @param {*} name 
  */
-function isAssetsFolderName(name) {
+function isAssetsFolderName (name) {
     const reg = /\b(images|img|image|static|asset|assets)\b/i;
     return reg.test(name);
 }
@@ -66,7 +66,7 @@ function isAssetsFolderName(name) {
  * console.log(toLowerLine("TestToLowerLine"));  //test_to_lower_line
  * @param {*} str 
  */
-function toLowerLine(str) {
+function toLowerLine (str) {
     var temp = str.replace(/[A-Z]/g, function (match) {
         return "_" + match.toLowerCase();
     });
@@ -83,7 +83,7 @@ function toLowerLine(str) {
  * console.log(toCamel('test_to_camel')); //testToCamel
  * @param {*} str 
  */
-function toCamel(str) {
+function toCamel (str) {
     return str.replace(/([^_])(?:_+([^_]))/g, function ($0, $1, $2) {
         return $1 + $2.toUpperCase();
     });
@@ -92,7 +92,7 @@ function toCamel(str) {
 /**
  * 驼峰命名转为短横线命名
  */
-function getKebabCase(str) {
+function getKebabCase (str) {
     return str.replace(/[A-Z]/g, function (i) {
         return '-' + i.toLowerCase();
     })
@@ -104,7 +104,7 @@ function getKebabCase(str) {
  * console.log(toCamel('diy-imageSingle')); //diyImageSingle   
  * @param {*} str 
  */
-function toCamel2(str) {
+function toCamel2 (str) {
     let ret = getKebabCase(str).toLowerCase();
     ret = ret.replace(/[-]([\w+])/g, function (all, letter) {
         return letter.toUpperCase();
@@ -116,7 +116,7 @@ function toCamel2(str) {
  * 暂停
  * @param {*} numberMillis  毫秒
  */
-function sleep(numberMillis) {
+function sleep (numberMillis) {
     var now = new Date();
     var exitTime = now.getTime() + numberMillis;
     while (true) {
@@ -137,7 +137,7 @@ function sleep(numberMillis) {
  * {{abc.styleS['a.b.c']==3}}  //'a.b.c'这种暂时处理不到   
  * @param {*} str 
  */
-function getTemplateParams(str) {
+function getTemplateParams (str) {
     let reg_tag = /{{.*?}}/;
     var result = {};
     if (reg_tag.test(str)) {
@@ -158,7 +158,7 @@ function getTemplateParams(str) {
  * 与getTemplateParams配合使用
  * @param {*} str 
  */
-function splitStr(str) {
+function splitStr (str) {
     //可能在引号对里面有这些切割标记，这里当场干掉
     var newStr = str.replace(/\s|['"].*?['"]|,.*?:/g, "");
     //去掉引号
@@ -181,7 +181,7 @@ function splitStr(str) {
  * Make a map and return a function for checking if a key
  * is in that map.
  */
-function makeMap(
+function makeMap (
     str,
     expectsLowerCase
 ) {
@@ -254,7 +254,7 @@ var isJavascriptKeyWord = makeMap(
  * 判断指定参数是否含有特定关键字，比如id、data和default等
  * @param {*} params 
  */
-function hasReserverdPorps(params) {
+function hasReserverdPorps (params) {
     return /\b(data)\b/.test(params) || /\b(id)\b/.test(params) || /\b(default)\b/.test(params);
 }
 
@@ -262,7 +262,7 @@ function hasReserverdPorps(params) {
 
 //是否为vue内置关键字或方法
 // "_init"
-function isVueMethod(tag) {
+function isVueMethod (tag) {
     return /^_|^\$/.test(tag);
 }
 
@@ -270,14 +270,14 @@ function isVueMethod(tag) {
  * 判断tag是否为预置的名字
  * @param {*} tag 
  */
-function isReservedTag(tag) {
+function isReservedTag (tag) {
     return isHTMLTag(tag) || isSVG(tag) || isUniAppTag(tag) || isVueMethod(tag);
 };
 
 /**
  * 获取组件别名
  */
-function getComponentAlias(name) {
+function getComponentAlias (name) {
     return isReservedTag(name) ? (name + "-diy") : name;
 }
 
@@ -285,7 +285,7 @@ function getComponentAlias(name) {
  * 判断name是否为预置的名字    
  * @param {*} tag 
  */
-function isReservedName(name) {
+function isReservedName (name) {
     return isJavascriptKeyWord(name) || isVueMethod(name);
 };
 
@@ -302,7 +302,7 @@ var isReservedAttr = makeMap(
  * 判断标签属性name是否为预置的名字
  * @param {*} name 
  */
-function isReservedAttrName(name) {
+function isReservedAttrName (name) {
     if (!name) return name;
     const reg = /:/;
     var newName = name.replace(reg, "");
@@ -316,7 +316,7 @@ function isReservedAttrName(name) {
  * @param {*} key     key name 
  * @param {*} value   value name ,判断是否为绑定了数据
  */
-function getAttrAlias(key, value) {
+function getAttrAlias (key, value) {
     var result = key;
     if (value) {
         let reg_tag = /{{.*?}}/;
@@ -334,7 +334,7 @@ function getAttrAlias(key, value) {
  * 获取props别名   
  * 目前已知v-bind:id不能作为参数名（data例外，可以传进去，id确实不能传入20200107）
  */
-function getPropsAlias(name) {
+function getPropsAlias (name) {
     var result = name;
     if (isJavascriptKeyWord(name) || isReservedAttr(name)) {
         result += "Attr";
@@ -347,7 +347,7 @@ function getPropsAlias(name) {
  * 1.函数名为js系统关键字，返回name + "Fun" 形式
  * 2.以_开头的函数名，返回"re" + name形式
  */
-function getFunctionAlias(name) {
+function getFunctionAlias (name) {
     if (!name) return name;
     var rusult = name;
 
@@ -363,7 +363,7 @@ function getFunctionAlias(name) {
  * 解析 key:value形式的字符串，如"abc:"xx""解析为{abc:"xxx"}
  * @param {*} str 
  */
-function stringToObject(str) {
+function stringToObject (str) {
     let index = str.indexOf(":");
     let key = str.substring(0, index).trim();
     let value = str.substring(index + 1).trim();
@@ -393,7 +393,7 @@ function stringToObject(str) {
  * 如{"title:'open/get/Setting'"}，那就视为需要替换
  * @param {*} attr 
  */
-function parseTemplateAttrParams(attr) {
+function parseTemplateAttrParams (attr) {
     let str = attr.replace(/{{\s*(.*?)\s*}}/, '$1');
     //先去掉...[]和...{}
     str = str.replace(/\.\.\.{.*?}|\.\.\.\[.*?\],?/g, "");
@@ -426,8 +426,8 @@ function parseTemplateAttrParams(attr) {
 /**
  * 判断关键字是否与vant有关
  */
-function isVant(name) {  
-    return /vant-weapp|vant/.test(name);
+function isVant (name) {
+    return /vant-weapp|vant|van/.test(name);
 }
 
 /**
@@ -497,6 +497,19 @@ const vantComponentList = {
     "van-skeleton": "./wxcomponents/vant/skeleton/index"
 };
 
+/**
+ * 如果字符串里只有一个单引号时，删除它
+ */
+function removeSingleQuote (value) {
+    //如果只有一个单引号，就将它干掉
+    let re = value.match(/&#39;/g) || [];
+    if (re.length === 1) {
+        value = value.replace(/&#39;/, "");
+    }
+
+    return value;
+}
+
 module.exports = {
     log,
     isNumber,
@@ -521,9 +534,12 @@ module.exports = {
     getTemplateParams,
     hasReserverdPorps,
 
+    removeSingleQuote,
+
     ///
     stringToObject,
     parseTemplateAttrParams,
     isVant,
     vantComponentList,
+
 }

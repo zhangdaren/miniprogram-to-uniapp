@@ -52,7 +52,11 @@ const singleJSVistor = {
     }
   },
   ImportDeclaration(path) {
-    let local = path.get("specifiers.0.local");
+    let specifiers = path.get("specifiers");
+    let local = "";
+    if (specifiers.length) {
+      local = path.get("specifiers.0.local");
+    }
     if (local && t.isIdentifier(local) && /wxparse/i.test(local.node.name)) {
       //判断是import wxParse from '../../../wxParse/wxParse.js';
     } else {

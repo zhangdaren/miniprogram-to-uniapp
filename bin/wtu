@@ -17,7 +17,7 @@ program
     .option('-i, --input', 'the input path for weixin miniprogram project')
     .option('-c, --cli [type]', 'the type of output project is vue-cli, which default value is false', false)
     .option('-w, --wxs [type]', 'transform wxs file to js file, which default value is false', false)
-    .option('-z, --vant [type]', 'transform vant-weapp project to uni-app, which default value is false', false)
+    .option('-z, --vant [type]', 'transform vant-weapp project to uni-app, automatic check', false)
     .option('-r, --rename [type]', 'rename wx.xxx() to uni.xxx(), which default value is false', false)
     .parse(process.argv);
 
@@ -29,7 +29,7 @@ program.on('--help', function () {
     console.log();
     console.log('    $ wtu -i ./miniprogramProject');
     console.log();
-}); 
+});
 
 
 

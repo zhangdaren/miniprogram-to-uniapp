@@ -34,7 +34,7 @@ Options:
   -h, --help        output usage information [帮助信息]
   -c, --cli         the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -w, --wxs         transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
-  -z, --vant        transform vant-weapp project to uni-app, which default value is false [是否支持转换vant项目，默认false]
+  -z, --vant        transform vant-weapp project to uni-app, automatic check [是否支持转换vant项目，无需添加参数，自动识别是否为vant项目]
   -r, --rename      rename wx.xxx() to uni.xxx(), which default value is false [是否转换wx.xxx()为uni.xxx()，默认false]
 
 ```
@@ -45,7 +45,7 @@ Examples:
 $ wtu -i miniprogramProject
 ```
 
-vue-cli mode [转换项目为vue-cli项目]:
+vue-cli mode [转换项目为vue-cli项目(因vue-cli项目门槛较高，且该功能长时间未维护，不推荐使用)]:
 ```sh
 $ wtu -i miniprogramProject -c
 ```
@@ -64,7 +64,7 @@ $ wtu -i miniprogramProject -w
 <a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a>
 
 ## 已完成   
-* 支持无云开发的小程序项目转换为uni-app项目   
+* 支持无云开发的小程序项目转换为uni-app项目
 * 支持有云开发的小程序项目转换为uni-app项目(cloudfunctions目录将被忽略，uni-app结合小程序云开发见：[使用uni-app进行微信小程序云开发经验分享](https://ask.dcloud.net.cn/article/35933))   
 * 支持解析TypeScript小程序项目   
 * 支持解析使用npm模块的小程序项目   
@@ -79,14 +79,29 @@ $ wtu -i miniprogramProject -w
 * 搜索未在data声明，而直接在setData()里使用的变量，并修复   
 * 合并使用require导入的wxs文件   
 * 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径   
-* 修复变量名与函数重名的情况   
-* 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)
+* 修复变量名与函数重名的情况(目前uni编译时会将非static目录的文件复制一份到static目录，但并不完全，因此本功能仍保留)   
+* 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)   
 * 支持vue-cli模式，可以通过参数配置(-c)，默认为false，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发(建议爱折腾人士使用)  
-* 支持vant转换，可以通过参数配置(-z)，默认为false，如果需要转换使用vant-weapp组件的小程序项目，必须配置这个参数，否则转换后有问题。（另外，转换后的项目，目前仅支持v3和h5两个平台）  
+* 支持vant转换，可以通过参数配置(-z)，默认为false：自动识别（无须添加参数，工具已支持自动识别vant项目），~~如果需要转换使用vant-weapp组件的小程序项目，必须配置这个参数，否则转换后有问题。~~（另外，转换后的项目，目前仅支持v3和h5两个平台）  
 * 支持wx.xxx()转换为uni.xxx()，可以通过参数配置(-r)，默认为false（因uni已经对wx相关函数做了兼容，但仍有很多朋友有此需求，特作为可配置项，按需自取）  
    
    
 ## 更新记录   
+### v1.0.59(20200313)   
+* 【重要】 自动检测是否为vant项目，而无须添加-z参数，并在转换结束后增加检测vant项目的提示   
+* [优化] wx:key为表达式时的解析(如```<block wx:for="{{rechargelist}}" wx:for-item="items" wx:key="index<=6">```)   
+* [优化] 清除css里失效的iconfont字体文件引用
+* [修复] 关键字wx替换不完全的bug   
+* [修复] js代码未添加script标签的bug   
+* [修复] wxml仅有单标签slot时，解析出的bug   
+* [修复] ```t.globalData.approot``` 转换为 ```t.approot```   
+* [修复] 使用网络链接的图片路径被误添加相对路径的bug   
+* [修复] 文件mixins/transition.js被添加script标签的bug   
+* [修复] 模板里两个00而引起编译报错的bug(如```<text>{{countDownHour || 00}}</text>```)   
+* [修复] 项目中使用ES2015标准的import语句时导致解析失败的bug(如```import 'moment';```等)   
+* [修复] 解析函数```formSubmit: util.throttle(function (e) {...}, 1000)```未正确放置到methods的bug   
+* [修复] template里存在单个引号导致编译报错的bug(如```<view style="line-height: 48rpx\""></view>```)，同时处理了含\"的代码(如```<view style="background: url(\"{{ui.home_red_pack_bg}}\")"></view>```)   
+
 ### v1.0.58(20200229)   
 * [优化] 增加参数(-r，默认为false)，以替换wx.xxx()为uni.xxx()   
 * [优化] 资源路径替换时，替换后的路径相对于根路径，以减少路径引用复杂度(因官方对于tabbar里iconPath路径并未替换，路径替换功能暂不准备弃用)   
@@ -97,28 +112,10 @@ $ wtu -i miniprogramProject -w
 * [修复] van开头的组件没有被加入的bug   
 * [修复] 替换wxParse时，数据变量未在data里声明的bug   
 
-### v1.0.56(20200216)   
-* [新增] 支持转换使用vant的小程序项目(命令行后增加"-z"参数，当前因uni-app限制，仅支持v3和h5平台。现为预览版，时间紧迫，未做wxParse等适配)   
-* [更新] manifest.json配置
-* [修复] 当wxml里都是注释的时候，输出后没有template的bug   
-* [修复] 当methods里含有{...abc}导致转换报错的bug   
-* [修复] 转换wxs的条件默认为true的bug   
-
-### v1.0.55(20200211)   
-* [修复] 个别页面不存在导致转换报错的bug
-
-### v1.0.54(20200205)   
-* [优化] 将setData在main.js进行全局混入mixins，不再在每个page.vue文件里插入setData()代码   
-* [优化] 将manifest.json里的mp-weixin里添加permission字段，解决微信小程序提示‘getLocation需要在app.json中声明permission字段’(感谢网友donke提示)   
-* [优化] 处理混淆过的js代码时，getApp()变量的别名在与函数参数同名时，识别不准确的问题   
-* [优化] app.js里data变量的引用关系   
-* [还原] 还原setData代码(新代码在一些时候还有问题，暂还原)   
 
 ## [历史更新记录](ReleaseNote.md)   
-    
-## [安装使用时的疑难杂症](Q&A.md)  
 
-## [关于不支持转换的语法说明](Unsupported.md)  
+## [miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 ## 感谢   
 * 感谢转转大佬的文章：[[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)， 本项目基于此文章里面的代码开发，在此表示感谢~   

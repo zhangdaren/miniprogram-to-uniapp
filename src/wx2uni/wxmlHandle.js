@@ -1,8 +1,8 @@
 /*
-*
-* 处理wxml文件
-* 
-*/
+ *
+ * 处理wxml文件
+ *
+ */
 const path = require('path');
 
 const TemplateParser = require('./wxml/TemplateParser');
@@ -13,37 +13,45 @@ const pathUtil = require('../utils/pathUtil.js');
 //初始化一个解析器
 templateParser = new TemplateParser();
 
-
 /**
  * 判断是否为多根元素模式
  * 分为两种情况：
  * 1.wxml里有多个tag标签
  * 2.根元素含有wx:for或v-for属性
- * @param {*} ast 
+ * 3.单标签，但不是view标签
+ * @param {*} ast
  */
 function checkMultiTag(ast) {
 	//判断是否有多个标签存在于一个wxml文件里
 	let isMultiTag = false;
 	let count = 0;
 	ast.forEach(node => {
-		if (node.type == "tag" && node.name !== "wxs") {
+		if (node.type == 'tag' && node.name !== 'wxs') {
 			count++;
 			//如果根元素含有wx:for，需要在外面再包一层
-			if (node.attribs["wx:for"] || node.attribs["v-for"]) isMultiTag = true;
+			if (node.attribs['wx:for'] || node.attribs['v-for'])
+				isMultiTag = true;
 		}
 	});
 	if (count > 1) isMultiTag = true;
+
+	//如果仅有一个标签，但标签名不是view，那么也算多标签
+	if (!isMultiTag && ast.length === 1) {
+		let item = ast[0];
+		isMultiTag = item.name !== 'view';
+	}
+
 	return isMultiTag;
 }
 
 /**
  * 检查ast里是否全是注释，是就清空
- * @param {*} ast 
+ * @param {*} ast
  */
 function checkEmptyTag(ast) {
 	let count = 0;
 	ast.forEach(node => {
-		if (node.type == "tag") {
+		if (node.type == 'tag') {
 			count++;
 		}
 	});
@@ -53,8 +61,6 @@ function checkEmptyTag(ast) {
 	}
 	return ast;
 }
-
-
 
 /**
  * wxml文件处理
@@ -75,13 +81,19 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 	let isMultiTag = checkMultiTag(templateAst) || templateNum > 0;
 
 	//进行上述目标的转换
-	let convertedTemplate = await templateConverter(templateAst,  file_wxml, onlyWxmlFile, templateParser);
+	let convertedTemplate = await templateConverter(
+		templateAst,
+		file_wxml,
+		onlyWxmlFile,
+		templateParser
+	);
 
 	//判断ast是否没有tag，是的话就全删除
 	convertedTemplate = checkEmptyTag(convertedTemplate);
 
 	//把语法树转成文本
-	let templateConvertedString = templateParser.astToString(convertedTemplate) || fileData;
+	let templateConvertedString =
+		templateParser.astToString(convertedTemplate) || fileData;
 
 	//去掉首尾空，有可能文件内容都删除完了。
 	templateConvertedString = templateConvertedString.trim();
@@ -100,7 +112,10 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 			//当前处理文件所在目录
 			let wxmlFolder = path.dirname(file_wxml);
 			// key为文件路径 + 文件名(不含扩展名)组成
-			let key = path.join(wxmlFolder, pathUtil.getFileNameNoExt(file_wxml));
+			let key = path.join(
+				wxmlFolder,
+				pathUtil.getFileNameNoExt(file_wxml)
+			);
 			let pageWxsInfoArr = global.pageWxsInfo[key];
 			if (pageWxsInfoArr) {
 				// const wxsInfoString = templateParser.astToString(pageWxsInfoArr);
@@ -108,11 +123,11 @@ async function wxmlHandle(fileData, file_wxml, onlyWxmlFile) {
 				// templateConvertedString += wxsStr + "\r\n";
 
 				//转换为<script/>方式引用wxs
-				let wxsStr = "";
+				let wxsStr = '';
 				for (const obj of pageWxsInfoArr) {
 					wxsStr += `<script module="${obj.module}" lang="wxs" src="${obj.src}"></script>\r\n`;
 				}
-				templateConvertedString += wxsStr + "\r\n";
+				templateConvertedString += wxsStr + '\r\n';
 			}
 		}
 	}

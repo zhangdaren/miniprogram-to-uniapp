@@ -1,11 +1,10 @@
-const t = require('@babel/types');
-const clone = require('clone');
-const nodePath = require('path');
-const parse = require('@babel/parser').parse;
-const generate = require('@babel/generator').default;
-const traverse = require('@babel/traverse').default;
-const pathUtil = require('./pathUtil');
-
+const t = require("@babel/types");
+const clone = require("clone");
+const nodePath = require("path");
+const parse = require("@babel/parser").parse;
+const generate = require("@babel/generator").default;
+const traverse = require("@babel/traverse").default;
+const pathUtil = require("./pathUtil");
 
 /**
  * App生命周期函数
@@ -20,58 +19,63 @@ const lifeCycleFunction = {
     onReachBottom: true,
     onShareAppMessage: true,
     onLaunch: true,
-    onError: true,
-}
+    onError: true
+};
 
 /**
- * 判断当前变量是否存在于当前及父级函数的参数里  
+ * 判断当前变量是否存在于当前及父级函数的参数里
  * function(app){
  *    app.data = 5;
  * }
- * //即为存在
- * @param {*} path 
- * @param {*} fileKey 
+ * 即为存在
+ * @param {*} path
+ * @param {*} fileKey
  */
-function findCurrentScopeByKey(path, fileKey) {
+function findCurrentScopeByKey (path, fileKey) {
     let isExist = false;
     path.findParent(function (funExp) {
         if (funExp.isFunctionExpression()) {
             if (funExp) {
                 let params = funExp.get("params");
                 params.forEach(element => {
-                    if (t.isIdentifier(element) 
-                    && global.pagesData[fileKey] 
-                    && global.pagesData[fileKey]["getAppNamelist"] 
-                    && global.pagesData[fileKey]["getAppNamelist"][element.node.name]) {
+                    if (
+                        t.isIdentifier(element) &&
+                        global.pagesData[fileKey] &&
+                        global.pagesData[fileKey]["getAppNamelist"] &&
+                        global.pagesData[fileKey]["getAppNamelist"][element.node.name]
+                    ) {
                         isExist = true;
                     }
                 });
             }
         }
         return isExist;
-    }
-    );
+    });
     return isExist;
 }
 
 /**
  * 判断path是否为MemberExpression，且property为data
- * 判断表达式app.globalData.data.xxx = "123"; 
- * @param {*} path 
+ * 判断表达式app.globalData.data.xxx = "123";
+ * @param {*} path
  */
-function hasDataExp(path) {
+function hasDataExp (path) {
     let property = path.get("property");
-    return path && t.isMemberExpression(path) && t.isIdentifier(property.node, { name: "data" });
+    return (
+        path &&
+        t.isMemberExpression(path) &&
+        t.isIdentifier(property.node, { name: "data" })
+    );
 }
 
 /**
  * 替换globalData
  * 1. app.globalData.xxx = "123";  -->  getApp().globalData.xxx = "123";
  * 2. app.xxx --> getApp().globalData.xxx
- * @param {*} path      ast节点 
- * @param {*} fileKey   当前处理的文件路径 
+ * @param {*} path      ast节点
+ * @param {*} fileKey   当前处理的文件路径
  */
-function globalDataHandle(path, fileKey) {
+function globalDataHandle (path, fileKey) {
     if (t.isMemberExpression(path)) {
         const object = path.object ? path.object : path.get("object");
         const property = path.property ? path.property : path.get("property");
@@ -81,57 +85,85 @@ function globalDataHandle(path, fileKey) {
 
         const parentPath = path.parentPath;
 
-        if (t.isIdentifier(objectNode, { name: "app" }) || t.isIdentifier(objectNode, { name: "App" })) {
+        if (
+            t.isIdentifier(objectNode, { name: "app" }) ||
+            t.isIdentifier(objectNode, { name: "App" })
+        ) {
             let me = null;
             if (t.isIdentifier(propertyNode, { name: "globalData" })) {
                 // console.log(property);
                 if (hasDataExp(parentPath)) {
                     //app.globalData.data.xxx = "123";  -->   getApp().globalData.xxx = "123";
-                    me = t.MemberExpression(t.callExpression(t.identifier('getApp'), []), propertyNode);
+                    me = t.MemberExpression(
+                        t.callExpression(t.identifier("getApp"), []),
+                        propertyNode
+                    );
                     parentPath.replaceWith(me);
                     parentPath.skip();
                 } else {
                     //app.globalData.xxx = "123";  -->  getApp().globalData.xxx = "123";
-                    me = t.MemberExpression(t.callExpression(t.identifier('getApp'), []), propertyNode);
+                    me = t.MemberExpression(
+                        t.callExpression(t.identifier("getApp"), []),
+                        propertyNode
+                    );
                     path.replaceWith(me);
                     path.skip();
                 }
             } else if (!findCurrentScopeByKey(path, fileKey)) {
-                let getApp = t.callExpression(t.identifier('getApp'), []);
+                let getApp = t.callExpression(t.identifier("getApp"), []);
                 if (hasDataExp(parentPath)) {
                     //app.xxx --> getApp().globalData.xxx
-                    me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
+                    me = t.MemberExpression(
+                        t.MemberExpression(getApp, t.identifier("globalData")),
+                        propertyNode
+                    );
                     parentPath.replaceWith(me);
                     parentPath.skip();
                 } else if (propertyNode.name === "data") {
                     //app.data.xx --> getApp().globalData.xx
-                    let getApp = t.callExpression(t.identifier('getApp'), []);
-                    let me = t.MemberExpression(getApp, t.identifier('globalData'));
+                    let getApp = t.callExpression(t.identifier("getApp"), []);
+                    let me = t.MemberExpression(getApp, t.identifier("globalData"));
                     path.replaceWith(me);
                     path.skip();
                 } else {
                     //app.xxx --> getApp().globalData.xxx
-                    me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
+                    me = t.MemberExpression(
+                        t.MemberExpression(getApp, t.identifier("globalData")),
+                        propertyNode
+                    );
                     path.replaceWith(me);
                     path.skip();
                 }
             }
-        } else if (fileKey && global.pagesData[fileKey] 
-            && global.pagesData[fileKey] 
-            && global.pagesData[fileKey]["getAppNamelist"] 
-            && global.pagesData[fileKey]["getAppNamelist"][objectNode.name]) {
+        } else if (
+            fileKey &&
+            global.pagesData[fileKey] &&
+            global.pagesData[fileKey] &&
+            global.pagesData[fileKey]["getAppNamelist"] &&
+            global.pagesData[fileKey]["getAppNamelist"][objectNode.name]
+        ) {
             //var vv = getApp();
             //vv.data.xx --> getApp().globalData.xx
             if (propertyNode.name === "data") {
-                let getApp = t.callExpression(t.identifier('getApp'), []);
-                let me = t.MemberExpression(getApp, t.identifier('globalData'));
+                let getApp = t.callExpression(t.identifier("getApp"), []);
+                let me = t.MemberExpression(getApp, t.identifier("globalData"));
                 path.replaceWith(me);
                 path.skip();
+            } else if (t.isIdentifier(propertyNode, { name: "globalData" })) {
+                //t.globalData.approot;  --> t.approot;
+                path.replaceWith(objectNode);
+                path.skip();
             }
-        } else if (t.isIdentifier(objectNode.callee, { name: "getApp" }) && propertyNode.name !== "globalData") {
+        } else if (
+            t.isIdentifier(objectNode.callee, { name: "getApp" }) &&
+            propertyNode.name !== "globalData"
+        ) {
             //getApp().xxx --> getApp().globalData.xxx
-            let getApp = t.callExpression(t.identifier('getApp'), []);
-            let me = t.MemberExpression(t.MemberExpression(getApp, t.identifier('globalData')), propertyNode);
+            let getApp = t.callExpression(t.identifier("getApp"), []);
+            let me = t.MemberExpression(
+                t.MemberExpression(getApp, t.identifier("globalData")),
+                propertyNode
+            );
             path.replaceWith(me);
             path.skip();
         }
@@ -143,7 +175,7 @@ function globalDataHandle(path, fileKey) {
  * @param {*} path     path
  * @param {*} comment  注释内容
  */
-function addComment(path, comment) {
+function addComment (path, comment) {
     let pathLoc;
     let start;
     if (path.node) {
@@ -159,11 +191,12 @@ function addComment(path, comment) {
     const commentObject = {
         loc: {
             start: {
-                line: locStart.line - 1, column: locStart.column - 1
+                line: locStart.line - 1,
+                column: locStart.column - 1
             },
             end: {
                 line: locEnd.line - 1
-            },
+            }
         },
         start: start,
         type: "CommentLine",
@@ -179,7 +212,6 @@ function addComment(path, comment) {
     }
 }
 
-
 /**
  * 页面的类型，在这个里面才会被认定
  */
@@ -189,8 +221,8 @@ const astTypeList = {
     Component: true,
     VantComponent: true,
     Behavior: true,
-    Webpack: true,
-}
+    Webpack: true
+};
 
 /**
  * 获取ast类型
@@ -198,16 +230,16 @@ const astTypeList = {
  * 1.App
  * 2.Page
  * 3.Component
- * 4.VantComponent 
+ * 4.VantComponent
  * 5.Behavior  -->  mixins
  * 7.Webpack      //webpack编译后的代码
- * @param {*} ast 
+ * @param {*} ast
  */
-function getAstType(ast, _file_js) {
+function getAstType (ast, _file_js) {
     let type = "";
     traverse(ast, {
         noScope: true,
-        ExpressionStatement(path) {
+        ExpressionStatement (path) {
             const parent = path.parentPath.parent;
             if (t.isFile(parent)) {
                 const exp = path.get("expression");
@@ -216,16 +248,23 @@ function getAstType(ast, _file_js) {
                         let name = exp.node.callee.name;
                         if (astTypeList[name]) {
                             type = name;
-                            path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                            path.stop(); //完全停止遍历，目前还没有遇到什么奇葩情况~
                         }
                     } else if (t.isMemberExpression(exp.node.callee)) {
                         let callee = exp.node.callee;
                         let object = callee.object;
                         //判断是否含有：global["webpackJsonp"] = global["webpackJsonp"]
                         //仅对object.left进行值判断，right只进行类型判断，应该足够了。
-                        if (t.isAssignmentExpression(object) && t.isMemberExpression(object.left) && t.isLogicalExpression(object.right)) {
+                        if (
+                            t.isAssignmentExpression(object) &&
+                            t.isMemberExpression(object.left) &&
+                            t.isLogicalExpression(object.right)
+                        ) {
                             let me = object.left;
-                            if (t.isIdentifier(me.object, { name: "global" }) && t.isStringLiteral(me.property, { value: "webpackJsonp" })) {
+                            if (
+                                t.isIdentifier(me.object, { name: "global" }) &&
+                                t.isStringLiteral(me.property, { value: "webpackJsonp" })
+                            ) {
                                 type = "Webpack";
                                 path.stop();
                             }
@@ -237,22 +276,24 @@ function getAstType(ast, _file_js) {
                         let name = right.callee.name;
                         if (astTypeList[name]) {
                             type = name;
-                            path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                            path.stop(); //完全停止遍历，目前还没有遇到什么奇葩情况~
                         }
                     }
                 }
             }
-        }, ExportNamedDeclaration(path) {
+        },
+        ExportNamedDeclaration (path) {
             const declaration = path.node.declaration;
             if (t.isVariableDeclaration(declaration)) {
                 const variableDeclarator = declaration.declarations[0];
                 const init = variableDeclarator.init;
                 if (t.isCallExpression(init) && init.callee.name === "Behavior") {
                     type = "Behavior";
-                    path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                    path.stop(); //完全停止遍历，目前还没有遇到什么奇葩情况~
                 }
             }
-        }, ReturnStatement(path) {
+        },
+        ReturnStatement (path) {
             /**
              * 判断这种形式的代码：
              * export const transition = function (showDefaultValue) {
@@ -264,34 +305,33 @@ function getAstType(ast, _file_js) {
                 let name = argument.callee.name;
                 if (name === "Behavior") {
                     type = "Behavior2";
-                    path.stop();  //完全停止遍历，目前还没有遇到什么奇葩情况~
+                    path.stop(); //完全停止遍历，目前还没有遇到什么奇葩情况~
                 }
             }
         }
     });
-    // console.log("文件类型: " + type + '       路径: ' + _file_js);
+    console.log("文件类型: " + type + "       路径: " + _file_js);
     return type;
 }
 
 /**
  * 遍历path下面的所有的MemberExpression，然后处理getApp()语法
- * @param {*} path 
+ * @param {*} path
  */
-function getAppFunHandle(path) {
+function getAppFunHandle (path) {
     traverse(path.node, {
         noScope: true,
-        MemberExpression(path) {
+        MemberExpression (path) {
             globalDataHandle(path);
         }
     });
 }
 
-
 /**
  * 判断是否为vue文件，小程序项目里，有可能会有含vue语法的文件，如https://github.com/dmego/together/
- * @param {*} ast 
+ * @param {*} ast
  */
-function checkVueFile(ast) {
+function checkVueFile (ast) {
     let isVueFile = false;
     if (ast && ast.program && ast.program.body) {
         const body = ast.program.body;
@@ -305,22 +345,20 @@ function checkVueFile(ast) {
     return isVueFile;
 }
 
-
 /**
  * 将ast属性数组组合为ast对象
- * @param {*} pathAry 
+ * @param {*} pathAry
  */
-function arrayToObject(pathAry) {
+function arrayToObject (pathAry) {
     return t.objectExpression(pathAry);
 }
-
 
 var setDataFunAST = null;
 /**
  * 获取setData()的AST
  * 暂未想到其他好的方式来实现将setData插入到methods里。
  */
-function getSetDataFunAST() {
+function getSetDataFunAST () {
     if (setDataFunAST) return clone(setDataFunAST);
     const code = `
 	var setData = {
@@ -348,12 +386,12 @@ function getSetDataFunAST() {
 	}
 	`;
     const ast = parse(code, {
-        sourceType: 'module'
+        sourceType: "module"
     });
 
     let result = null;
     traverse(ast, {
-        ObjectProperty(path) {
+        ObjectProperty (path) {
             result = path.node;
             path.stop();
         }
@@ -362,11 +400,10 @@ function getSetDataFunAST() {
     return result;
 }
 
-
 /**
  * 获取setData()的AST
  */
-function getSetDataFunAST2() {
+function getSetDataFunAST2 () {
     if (setDataFunAST) return clone(setDataFunAST);
     const code = `
 	var setData = {
@@ -408,12 +445,12 @@ function getSetDataFunAST2() {
 }
 	`;
     const ast = parse(code, {
-        sourceType: 'module'
+        sourceType: "module"
     });
 
     let result = null;
     traverse(ast, {
-        ObjectProperty(path) {
+        ObjectProperty (path) {
             result = path.node;
             path.stop();
         }
@@ -422,35 +459,42 @@ function getSetDataFunAST2() {
     return result;
 }
 
-
 /**
  * 根据name创建一个空的objectProperty，retrun name:{}
- * @param {*} name 
+ * @param {*} name
  */
-function createObjectProperty(name) {
+function createObjectProperty (name) {
     return t.objectProperty(t.identifier(name), t.objectExpression([]));
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * 调整ast里指定变量或函数名引用的指向(已弃用)
- * @param {*} ast 
+ * @param {*} ast
  * @param {*} keyList  变量或函数名列表对象
  */
-function repairValueAndFunctionLink(ast, keyList) {
+function repairValueAndFunctionLink (ast, keyList) {
     traverse(ast, {
         noScope: true,
-        MemberExpression(path) {
+        MemberExpression (path) {
             //this.uploadAnalysis = false --> this.$options.globalData.uploadAnalysis = false;
             //this.clearStorage() --> this.$options.globalData.clearStorage();
             const object = path.node.object;
             const property = path.node.property;
             const propertyName = property.name;
             if (keyList.hasOwnProperty(propertyName)) {
-                if (t.isThisExpression(object) || t.isIdentifier(object, { name: "that" }) || t.isIdentifier(object, { name: "_this" }) || t.isIdentifier(object, { name: "self" }) || t.isIdentifier(object, { name: "_" })) {
-                    let subMe = t.MemberExpression(t.MemberExpression(object, t.identifier('$options')), t.identifier('globalData'));
+                if (
+                    t.isThisExpression(object) ||
+                    t.isIdentifier(object, { name: "that" }) ||
+                    t.isIdentifier(object, { name: "_this" }) ||
+                    t.isIdentifier(object, { name: "self" }) ||
+                    t.isIdentifier(object, { name: "_" })
+                ) {
+                    let subMe = t.MemberExpression(
+                        t.MemberExpression(object, t.identifier("$options")),
+                        t.identifier("globalData")
+                    );
                     let me = t.MemberExpression(subMe, property);
                     path.replaceWith(me);
                     path.skip();
@@ -464,9 +508,9 @@ function repairValueAndFunctionLink(ast, keyList) {
  * 修复app.js函数和变量的引用关系(已弃用)
  * 1.this.uploadAnalysis = false --> this.$options.globalData.uploadAnalysis = false;
  * 2.this.clearStorage() --> this.$options.globalData.clearStorage();
- * @param {*} vistors 
+ * @param {*} vistors
  */
-function repairAppFunctionLink(vistors) {
+function repairAppFunctionLink (vistors) {
     //当为app.js时，不为空；globalData下面的key列表，用于去各种函数里替换语法
     let globalDataKeyList = {};
     const liftCycleArr = vistors.lifeCycle.getData();
@@ -489,7 +533,8 @@ function repairAppFunctionLink(vistors) {
     //进行替换生命周期里的函数
     for (let item of liftCycleArr) {
         let name = item.key.name;
-        if (name !== "globalData") repairValueAndFunctionLink(item, globalDataKeyList);
+        if (name !== "globalData")
+            repairValueAndFunctionLink(item, globalDataKeyList);
     }
 
     //进行替换methods下面的函数, app.js已经不存在methods了
@@ -499,13 +544,12 @@ function repairAppFunctionLink(vistors) {
     // }
 }
 
-
 /**
  * 处理this.setData(已弃用)
- * @param {*} path 
+ * @param {*} path
  * @param {*} isThis 区分前缀是this，还是that
  */
-function handleSetData(path, isThis) {
+function handleSetData (path, isThis) {
     let parent = path.parent;
     let nodeArr = [];
     if (parent.arguments) {
@@ -518,10 +562,14 @@ function handleSetData(path, isThis) {
                     //
                     let node = null;
                     if (isThis) {
-                        node = t.expressionStatement(buildAssignmentWidthThis(left, item.value));
+                        node = t.expressionStatement(
+                            buildAssignmentWidthThis(left, item.value)
+                        );
                     } else {
-                        let object = path.get('object');
-                        node = t.expressionStatement(buildAssignmentWidthThat(left, item.value, object.node.name));
+                        let object = path.get("object");
+                        node = t.expressionStatement(
+                            buildAssignmentWidthThat(left, item.value, object.node.name)
+                        );
                     }
 
                     nodeArr.push(node);
@@ -531,7 +579,7 @@ function handleSetData(path, isThis) {
         if (nodeArr.length > 0) {
             //将this.setData({})进行替换
             //!!!!!!!!这里找父级使用递归查找，有可能path的上一级会是CallExpression!!!!!
-            parent = path.findParent((parent) => parent.isExpressionStatement())
+            parent = path.findParent(parent => parent.isExpressionStatement());
             if (parent) {
                 parent.replaceWithMultiple(nodeArr);
             } else {
@@ -541,13 +589,12 @@ function handleSetData(path, isThis) {
     }
 }
 
-
 /**
  * 处理require()里的路径
  * @param {*} path      CallExpression类型的path，未做校验
  * @param {*} fileDir   当前文件所在目录
  */
-function requirePathHandle(path, fileDir) {
+function requirePathHandle (path, fileDir) {
     let callee = path.node.callee;
     if (t.isIdentifier(callee, { name: "require" })) {
         //处理require()路径
@@ -561,27 +608,58 @@ function requirePathHandle(path, fileDir) {
                 if (!extname) filePath += ".js";
 
                 //修复路径
-                filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+                filePath = pathUtil.relativePath(
+                    filePath,
+                    global.miniprogramRoot,
+                    fileDir
+                );
                 path.node.arguments[0] = t.stringLiteral(filePath);
             }
         }
     }
 }
 
-
 /**
  * 判断path是否为this或this的别名，如_this、that、self、_等
  */
-function isThisExpression(path, thisNameList) {
+function isThisExpression (path, thisNameList) {
     let name = path.node.name;
-    return t.isThisExpression(path)
-        || t.isIdentifier(path.node, { name: "that" })
-        || t.isIdentifier(path.node, { name: "_this" })
-        || t.isIdentifier(path.node, { name: "self" })
-        || (thisNameList && name && thisNameList[name])
+    return (
+        t.isThisExpression(path) ||
+        t.isIdentifier(path.node, { name: "that" }) ||
+        t.isIdentifier(path.node, { name: "_this" }) ||
+        t.isIdentifier(path.node, { name: "self" }) ||
+        (thisNameList && name && thisNameList[name])
+    );
     // || name && name.length === 1 && /[a-zA-Z_]/.test(name);
 }
 
+/**
+ * 替换ast里wx关键字为uni
+ * @param {*} ast 
+ */
+function renameWXToUni (ast) {
+    traverse(ast, {
+        noScope: true,
+        MemberExpression (path) {
+            let object = path.get("object");
+            let pro = path.get("property");
+
+            if (
+                t.isIdentifier(object.node, {
+                    name: "wx"
+                })
+            ) {
+                object.node.name = "uni";
+                console.log("pro.node.name ", pro.node.name)
+                if (pro.node.name === "abcde") {
+                    console.log("---------", ast);
+                }
+
+            }
+        }
+    });
+}
 
 module.exports = {
     lifeCycleFunction,
@@ -596,4 +674,5 @@ module.exports = {
     createObjectProperty,
     requirePathHandle,
     isThisExpression,
-}
+    renameWXToUni
+};

@@ -10,7 +10,7 @@ const babelUtil = require("../../utils/babelUtil");
 let vistors = {};
 
 //外部定义的变量
-let declareStr = "";
+let declareNodeList = [];
 
 //data对象
 let dataValue = {};
@@ -52,7 +52,9 @@ const componentVistor = {
         calleeName != "vantcomponent"
       ) {
         //定义的外部函数
-        declareStr += `${generate(path.node).code}\r\n`;
+        if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+        declareNodeList.push(path);;
+
         path.skip();
       }
       // } else if (t.isAssignmentExpression(path.node.expression)) {
@@ -60,12 +62,18 @@ const componentVistor = {
       //有可能app.js里是这种结构，exports.default = App({});
       //path.node 为AssignmentExpression类型，所以这里区分一下
       if (t.isFile(parent)) {
-        declareStr += `${generate(path.node).code}\r\n`;
+        //定义的外部函数
+        if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+        declareNodeList.push(path);;
       }
     }
   },
   ImportDeclaration(path) {
-    let local = path.get("specifiers.0.local");
+    let specifiers = path.get("specifiers");
+    let local = "";
+    if (specifiers.length) {
+      local = path.get("specifiers.0.local");
+    }
     if (local && t.isIdentifier(local) && /wxparse/i.test(local.node.name)) {
       //判断是import wxParse from '../../../wxParse/wxParse.js';
     } else {
@@ -83,10 +91,10 @@ const componentVistor = {
       );
       path.node.source.value = filePath;
 
-      var str = `${generate(path.node).code}\r\n`;
-      //
-      declareStr += str;
-      console.log("str", str);
+      //定义的外部函数
+      if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+      declareNodeList.push(path);;
+
       path.skip();
     }
   },
@@ -172,13 +180,11 @@ const componentVistor = {
           babelUtil.globalDataHandle(path, fileKey);
         }
       });
-      // const parent = path.parentPath.parent;
-      // if (t.isFile(parent)) {
-      //定义的外部变量
-      // vistors.variable.handle(path.node);
-      declareStr += `${generate(path.node).code}\r\n`;
+      //定义的外部函数
+      if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+      declareNodeList.push(path);
+
       path.skip();
-      // }
     }
   },
   FunctionDeclaration(path) {
@@ -187,7 +193,9 @@ const componentVistor = {
       babelUtil.getAppFunHandle(path);
 
       //定义的外部函数
-      declareStr += `${generate(path.node).code}\r\n`;
+      if (global.isRenameWxToUni) babelUtil.renameWXToUni(path.node);
+      declareNodeList.push(path);
+
       path.skip();
     }
   },
@@ -274,7 +282,8 @@ const componentVistor = {
           if (
             t.isFunctionExpression(node) ||
             t.isArrowFunctionExpression(node) ||
-            t.isObjectExpression(node)
+            t.isObjectExpression(node) ||
+            t.isCallExpression(node)
           ) {
             //这里function
             if (babelUtil.lifeCycleFunction[name]) {
@@ -294,8 +303,6 @@ const componentVistor = {
               }
             }
             path.skip();
-          } else if (t.isCallExpression(node)) {
-            vistors.lifeCycle.handle(path.node);
           } else {
             //这里判断一下，有些非常规写法，还真没什么好方法来区分，如下代码写法：
             //下面不判断的话，list:e.result.data会被加入到data里，而报错
@@ -339,7 +346,7 @@ const componentVistor = {
  */
 const pageConverter = function(ast, _file_js, isVueFile) {
   //清空上次的缓存
-  declareStr = "";
+  declareNodeList = [];
   //data对象
   dataValue = {};
   //computed对象
@@ -368,7 +375,7 @@ const pageConverter = function(ast, _file_js, isVueFile) {
   return {
     convertedJavascript: ast,
     vistors: vistors,
-    declareStr //定义的变量和导入的模块声明
+    declareNodeList //定义的变量和导入的模块声明
   };
 };
 
