@@ -181,11 +181,6 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                             path.join(fileDir, fileName + '.wxml')
                         );
 
-                        // if ((fileName === "images" || fileName === "image")) {
-                        // 	//处理图片目录，复制到static目录里
-                        // 	fs.copySync(fileDir, path.join(targetFolder, "static" + "/" + fileName));
-                        // 	ignoreFolder.push(fileDir);
-                        // } else
                         if (isWorkersFolder) {
                             //处理workers目录，复制到static目录里
                             fs.copySync(
@@ -222,7 +217,7 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                     );
                 } else {
                     /*not use ignore files*/
-                    if (fileName[0] == '.') {
+                    if (fileName[0] == '.' || fileName === "project.config.json") {
                     } else {
                         //判断是否含有wxParse文件
                         global.hasWxParse =
@@ -376,25 +371,30 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                                         global.assetsFolderObject.add(key);
                                         fs.copySync(fileDir, newFileDir);
                                     } else {
-                                        let relPath = path.relative(
-                                            global.miniprogramRoot,
-                                            fileDir
-                                        );
-                                        relPath = utils.normalizePath(relPath);
-                                        if (!global.assetInfo[relPath])
-                                            global.assetInfo[relPath] = {};
-                                        global.assetInfo[relPath][
-                                            'oldPath'
-                                        ] = fileDir;
-                                        let targetFile = path.join(
-                                            targetFolder,
-                                            'static',
-                                            relPath
-                                        );
-                                        global.assetInfo[relPath][
-                                            'newPath'
-                                        ] = targetFile;
-                                        fs.copySync(fileDir, targetFile);
+
+                                        if (global.isTransformAssetsPath) {
+                                            let relPath = path.relative(
+                                                global.miniprogramRoot,
+                                                fileDir
+                                            );
+                                            relPath = utils.normalizePath(relPath);
+                                            if (!global.assetInfo[relPath])
+                                                global.assetInfo[relPath] = {};
+                                            global.assetInfo[relPath][
+                                                'oldPath'
+                                            ] = fileDir;
+                                            let targetFile = path.join(
+                                                targetFolder,
+                                                'static',
+                                                relPath
+                                            );
+                                            global.assetInfo[relPath][
+                                                'newPath'
+                                            ] = targetFile;
+                                            fs.copySync(fileDir, targetFile);
+                                        } else {
+                                            fs.copySync(fileDir, newFileDir);
+                                        }
                                     }
                                 } else {
                                     fs.copySync(fileDir, newFileDir);
@@ -1122,6 +1122,16 @@ async function transform (
 
     //是否将wx.xxx()转换为uni.xxx()
     global.isRenameWxToUni = isRenameWxToUni;
+
+    //是否提取到static及转换资源的路径(注意：现阶段仍然为true，2020-03-16)
+    global.isTransformAssetsPath = true;
+
+    //是否为编译过的项目
+    let runtimePath = path.join(sourceFolder, 'common/runtime.js');
+    let vendorPath = path.join(sourceFolder, 'common/vendor.js');
+    global.isCompiledProject = fs.existsSync(runtimePath) && fs.existsSync(vendorPath);
+
+    // console.log(" global.isCompiledProject = " + global.isCompiledProject)
 
     //记录<template name="abc"></template>内容，用于另存
     global.globalTemplateComponents = {

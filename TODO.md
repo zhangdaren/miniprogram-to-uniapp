@@ -22,6 +22,33 @@ import作为事件名
 
 
 
+使用omix框架的小程序
+
+
+增加导出目录存在后将覆盖的提示
+定义命令的回调函数 用法示例：.action(fn)
+
+program
+    .command('rm <dest> [otherDirs...]')
+    .alias('r')
+    .option('-r, --recursive', 'Remove recursively')
+    .option('-d --drink [drink]', 'Drink','Beer')
+    .action(function (d, otherD,cmd) {
+        console.log('remove ' + d ,(cmd.drink ),(cmd.recursive ))
+        if (otherD) {
+            otherD.forEach(function (oDir) {
+                console.log('rmdir %s', oDir);
+            });
+        }
+
+    })
+#output
+ ✗ gp-cli rm ./aa bb cc  -d -r
+remove ./aa Beer true
+rmdir bb
+rmdir cc
+
+
 getApp().page({
     data: (_data = {
 
@@ -98,6 +125,8 @@ wxaSortPickerItemTap(data) {
 
 <view class="i-divider i-class" :style="parse.getStyle(color,size,height)">
 
+
+文件大小---大于500k就当纯js处理？
 
 
 ///两种情况，一种是props里就

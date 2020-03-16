@@ -488,6 +488,23 @@ const componentTemplateBuilder = function (
     //babel-template直接转出来的ast只是完整ast的一部分
     traverse(ast, {
         noScope: true,
+        StringLiteral (path) {
+            if (global.isTransformAssetsPath) {
+                //尽可能的转换路径
+                let val = path.node.value;
+                const reg = /^((\/|\.+\/).*?\.png|jpg|jpeg)$/i;
+                if (reg.test(val)) {
+                    path.node.value = val.replace(reg, function (match, $1) {
+                        let newVal = pathUtil.replaceAssetPath(
+                            val,
+                            global.miniprogramRoot,
+                            fileDir
+                        );
+                        return newVal;
+                    })
+                }
+            }
+        },
         VariableDeclarator (path) {
             const init = path.get("init");
             if (
@@ -710,38 +727,6 @@ const componentTemplateBuilder = function (
                 //this.triggerEvent()转换为this.$emit()
                 let obj = t.memberExpression(object.node, t.identifier("$emit"));
                 path.replaceWith(obj);
-            } else if (t.isMemberExpression(object)) {
-                let subObject = object.get("object");
-                let subProperty = object.get("property");
-                if (
-                    !isApp &&
-                    babelUtil.isThisExpression(
-                        subObject,
-                        global.pagesData[fileKey]["thisNameList"]
-                    )
-                ) {
-                    if (utils.isReservedAttrName(property.node.name)) {
-                        //把不支持的属性保留名进行重名(试运行)
-                        let newAttrName = utils.getAttrAlias(property.node.name);
-                        const logStr =
-                            "[命名替换]:  " +
-                            property.node.name +
-                            "  -->  " +
-                            newAttrName +
-                            "    file: " +
-                            nodePath.relative(global.sourceFolder, file_js);
-                        let me = t.MemberExpression(
-                            subObject.node,
-                            t.identifier(newAttrName)
-                        );
-                        path.replaceWith(me);
-                        path.skip();
-
-                        //存入日志，方便查看，以防上面那么多层级搜索出问题
-                        // utils.log(logStr, "base");
-                        global.logArr.rename.push(logStr);
-                    }
-                }
             } else if (
                 babelUtil.isThisExpression(
                     object,
@@ -1041,41 +1026,29 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
         }
     } else {
         if (astType === "Webpack") {
-            // 	//如果代码是webpack编译过的
-            // 	let reg = /[a-z]\.default=void 0;(.*?)\};[a-z]\.default=([a-z])/;
 
-            // 	let exportValueName = "";
-            // 	fileData.repalce(reg, function (match, $1, $2) {
-            // 		console.log(match);
-            // 		let reg2 = new RegExp('[a-z]\.default=void 0;(.*?)' + $2 + '=\{(data:function\(\)\{return.*?)\};[a-z]\.default=([a-z])');
-
-            // 		codeText = $1;
-            // 		exportValueName = $2;
-            // 	});
-            // 	codeText = "";
-
-
+            console.log(codeText);
 
             // let reg = /\(?'([0-9a-z]{4})'\)?:?/gi;
-            let reg = /['"]\b([0-9a-f]{4})\b['"]|\b([0-9a-f]{4})\b:/gi;
+            // let reg = /['"]\b([0-9a-f]{4})\b['"]|\b([0-9a-f]{4})\b:/gi;
 
-            fileData = fileData.replace(reg, function (match, $1, $2) {
-                let result = match;
-                // if (isOther($1) || isOther($2)) {
-                //     //
-                // } else {
-                if ($1) {
-                    result = "'" + "diy_" + $1 + "'";
-                } else if ($2) {
-                    result = "diy_" + $2 + ":";
-                }
-                // }
+            // fileData = fileData.replace(reg, function (match, $1, $2) {
+            //     let result = match;
+            //     // if (isOther($1) || isOther($2)) {
+            //     //     //
+            //     // } else {
+            //     if ($1) {
+            //         result = "'" + "diy_" + $1 + "'";
+            //     } else if ($2) {
+            //         result = "diy_" + $2 + ":";
+            //     }
+            //     // }
 
-                return result;
-            });
+            //     return result;
+            // });
 
-            // 	//如果代码是webpack编译过的，直接添加script标签扔里面得了，解析起来蛋疼~~
-            codeText = `<script>\r\n${fileData}\r\n</script>\r\n`;
+            //如果代码是webpack编译过的，直接添加script标签扔里面得了，解析起来蛋疼~~
+            codeText = `<script>\r\n${codeText}\r\n</script>\r\n`;
         } else {
             let cloneAst = clone(javascriptAst);
             //替换wx为uni

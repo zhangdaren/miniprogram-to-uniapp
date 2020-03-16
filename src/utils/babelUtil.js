@@ -310,7 +310,7 @@ function getAstType (ast, _file_js) {
             }
         }
     });
-    console.log("文件类型: " + type + "       路径: " + _file_js);
+    // console.log("文件类型: " + type + "       路径: " + _file_js);
     return type;
 }
 

@@ -291,52 +291,11 @@ function isReservedName (name) {
 
 
 /**
- * 是否为属性关键字，目前已知data、v-bind:data和v-bind:id不能作为属性名
- */
-var isReservedAttr = makeMap(
-    "id"
-);
-
-
-/**
- * 判断标签属性name是否为预置的名字
- * @param {*} name 
- */
-function isReservedAttrName (name) {
-    if (!name) return name;
-    const reg = /:/;
-    var newName = name.replace(reg, "");
-    return (reg.test(name) && (isReservedAttr(newName)));
-}
-
-
-/**
- * 获取属性别名   
- * 目前v-bind:id不能作为属性名（data例外，可以传进去，id确实不能传入20200107）
- * @param {*} key     key name 
- * @param {*} value   value name ,判断是否为绑定了数据
- */
-function getAttrAlias (key, value) {
-    var result = key;
-    if (value) {
-        let reg_tag = /{{.*?}}/;
-        if ((reg_tag.test(value) && isReservedAttr(key))) {
-            result += "Attr";
-        }
-    } else {
-        if (isReservedAttr(key)) {
-            result += "Attr";
-        }
-    }
-    return result;
-}
-/**
  * 获取props别名   
- * 目前已知v-bind:id不能作为参数名（data例外，可以传进去，id确实不能传入20200107）
  */
 function getPropsAlias (name) {
     var result = name;
-    if (isJavascriptKeyWord(name) || isReservedAttr(name)) {
+    if (isJavascriptKeyWord(name)) {
         result += "Attr";
     }
     return result;
@@ -527,8 +486,7 @@ module.exports = {
     isJavascriptKeyWord,
     isReservedName,
 
-    getAttrAlias,
-    isReservedAttrName,
+
     getPropsAlias,
 
     getTemplateParams,

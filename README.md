@@ -7,6 +7,7 @@
 PS:   
 很多人问：wx.xxx()为什么不替换为uni.xxx()呢？   
 答: 暂时不需要，不是替换不了，而是uni-app早已对wx相关函数进行兼容，所以可以直接使用，而不需要再调整了。   
+   
 再PS：最新版本已经可以添加-r参数，达到替换wx.xxx()为uni.xxx()的目的。
    
         
@@ -75,10 +76,10 @@ $ wtu -i miniprogramProject -w
 * 支持识别App、Page、Component、VantComponent、Behavior和纯Javascript文件的转换   
 * ~~App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚，已回滚)~~   
 * ~~导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件~~   
-* 使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse   
+* 使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)   
 * 搜索未在data声明，而直接在setData()里使用的变量，并修复   
 * 合并使用require导入的wxs文件   
-* 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径   
+* 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径(**文件不存在时路径将不会转换，在变量或数组里的路径也不会转换，需自行处理** )   
 * 修复变量名与函数重名的情况(目前uni编译时会将非static目录的文件复制一份到static目录，但并不完全，因此本功能仍保留)   
 * 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)   
 * 支持vue-cli模式，可以通过参数配置(-c)，默认为false，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发(建议爱折腾人士使用)  
@@ -87,10 +88,15 @@ $ wtu -i miniprogramProject -w
    
    
 ## 更新记录   
+### v1.0.60(20200316)   
+* [优化] 进一步转换在变量或数组里面的资源路径，减少漏网之鱼   
+* [新增] ```capture-bind:tap```转换为```@tap.stop```(uniapp无对应的语法，只能合二为一)   
+* [修复] 重名标签属性id时，导致```e.currentTarget.id```拿不到的bug(不再转换:id为:idAttr)   
+
 ### v1.0.59(20200313)   
 * 【重要】 自动检测是否为vant项目，而无须添加-z参数，并在转换结束后增加检测vant项目的提示   
 * [优化] wx:key为表达式时的解析(如```<block wx:for="{{rechargelist}}" wx:for-item="items" wx:key="index<=6">```)   
-* [优化] 清除css里失效的iconfont字体文件引用
+* [优化] 清除css里失效的iconfont字体文件引用  
 * [修复] 关键字wx替换不完全的bug   
 * [修复] js代码未添加script标签的bug   
 * [修复] wxml仅有单标签slot时，解析出的bug   

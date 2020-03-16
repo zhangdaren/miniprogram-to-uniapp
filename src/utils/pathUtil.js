@@ -268,12 +268,19 @@ function getAssetsNewPath (filePath, parentFolder = '') {
             result = utils.normalizePath(obj.newPath);
         }
     }
+    //如果找不到文件：即文件路径不存在时
+    if (result === filePath) {
+        result = path.join(global.targetFolder, "static", result);
+    }
     if (parentFolder) {
         result = path.relative(parentFolder, result);
     } else {
         result = path.relative(global.targetFolder, result);
     }
-    result = '/' + result;
+
+    if (!/^[\.\/]/.test(result)) {
+        result = '/' + result;
+    }
     result = utils.normalizePath(result);
     return result;
 }

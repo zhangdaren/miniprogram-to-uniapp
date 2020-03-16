@@ -97,6 +97,7 @@ const attrConverterConfigUni = {
     }
 };
 
+
 /**
  * 替换bind为@，有两种情况：bindtap="" 和 bind:tap=""
  */
@@ -716,12 +717,12 @@ function imageTagHandle (node, file_wxml) {
 
 /**
  * wmxml转换
- *  style="color: {{step === index + 1 ? 'red': 'black'}}; font-size:{{abc}}">
- *  <view style="width : {{item.dayExpressmanEarnings / maxIncome * 460 + 250}}rpx;"></view>
+ * style="color: {{step === index + 1 ? 'red': 'black'}}; font-size:{{abc}}">
+ * <view style="width : {{item.dayExpressmanEarnings / maxIncome * 460 + 250}}rpx;"></view>
  *
  * @param {*} ast 抽象语法树
  */
-const templateConverter = async function (
+const templateConverterLite = async function (
     ast,
     file_wxml,
     onlyWxmlFile,
@@ -808,9 +809,11 @@ const templateConverter = async function (
                 node.data = paramsHandle(node.data, isComponent);
         }
 
+        //tr
+
         //因为是树状结构，所以需要进行递归
         if (node.children) {
-            await templateConverter(
+            await templateConverterLite(
                 node.children,
                 file_wxml,
                 onlyWxmlFile,
@@ -821,4 +824,4 @@ const templateConverter = async function (
     return ast;
 };
 
-module.exports = templateConverter;
+module.exports = templateConverterLite;

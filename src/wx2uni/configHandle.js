@@ -142,21 +142,31 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             if (tabBar && tabBar.list && tabBar.list.length) {
                 for (const key in tabBar.list) {
                     let item = tabBar.list[key];
-					/**
-					 * 目前已知的规则：
-					 * iconPath和selectedIconPath字段是使用/images下面的文件
-					 * 而 /pages/images下面的文件是用于页面里的
-					 * 其余情况后面发现再加入
-					 * xxxxxxxxxxxxxxxxxxxxxx 上面㕚掉！！！
-					 */
-                    const iconPath = item.iconPath;
-                    item.iconPath = pathUtil.getAssetsNewPath(iconPath);
 
-                    const selectedIconPath = item.selectedIconPath;
-                    item.selectedIconPath = pathUtil.getAssetsNewPath(selectedIconPath);
+                    let iconPath = item.iconPath;
+                    let selectedIconPath = item.selectedIconPath;
+                    if (global.isTransformAssetsPath) {
+                        item.iconPath = pathUtil.getAssetsNewPath(iconPath);
+                        item.selectedIconPath = pathUtil.getAssetsNewPath(selectedIconPath);
+                    } else {
+                        //没毛用，先放这里。uniapp发布的时候居然不复制根目录下面的文件了。。。
+                        if (iconPath.indexOf("static/") === -1 || selectedIconPath.indexOf("static/") === -1) {
+                            //如果这两个路径都没有在static目录下，那就复制文件到static目录，并转换路径
+                            let iconAbsPath = path.join(global.miniprogramRoot, iconPath);
+                            let selectedIconAbsPath = path.join(global.miniprogramRoot, selectedIconPath);
+                            //
+                            let targetIconAbsPath = path.join(global.targetFolder, "static", iconPath);
+                            let targetSelectedIconAbsPath = path.join(global.targetFolder, "static", selectedIconPath);
+                            //
+                            if (!fs.existsSync(targetIconAbsPath)) fs.copySync(iconAbsPath, targetIconAbsPath);
+                            if (!fs.existsSync(targetSelectedIconAbsPath)) fs.copySync(selectedIconAbsPath, targetSelectedIconAbsPath);
+                            //
+                            item.iconPath = path.relative(global.targetFolder, targetIconAbsPath);
+                            item.selectedIconPath = path.relative(global.targetFolder, targetIconAbsPath);
+                        }
+                    }
                 }
             }
-
 
             //写入pages.json
             let file_pages = path.join(targetFolder, "pages.json");
