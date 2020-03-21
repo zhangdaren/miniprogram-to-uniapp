@@ -235,12 +235,7 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                         // var key = path.join(tFolder, fileNameNoExt);
                         let key = pathUtil.getFileKey(fileDir);
 
-                        if (
-                            extname == '.js' ||
-                            extname == '.wxml' ||
-                            extname == '.wxss' ||
-                            extname == '.json'
-                        ) {
+                        if (/\.(js|wxml|wxss|qs|qml|qss|json)/.test(extname)) {
                             //如果obj为false，那么肯定是还没有初始化的underfined
                             if (!fileData[key]) {
                                 fileData[key] = {
@@ -268,9 +263,11 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                                 obj['js'] = fileDir;
                                 break;
                             case '.wxml':
+                            case '.qml':
                                 obj['wxml'] = fileDir;
                                 break;
                             case '.wxss':
+                            case '.qss':
                                 obj['wxss'] = fileDir;
                                 break;
                             case '.json':
@@ -358,7 +355,7 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                             default:
                                 // console.log(extname, path.dirname(fileDir));
                                 // console.log(fileDir, path.basename(path.dirname(fileDir)));
-                                if (/.(jpg|jpeg|gif|svg|png)$/.test(extname)) {
+                                if (/.(jpe?g|gif|svg|png|mp3)$/.test(extname)) {
                                     //当前文件上层目录
                                     let pFolder = path.dirname(fileDir);
 
@@ -440,9 +437,7 @@ async function filesHandle (fileData, miniprogramRoot) {
                         fs.mkdirSync(tFolder);
                     }
 
-                    //组装vue文件名
-                    let targetFilePath = path.join(tFolder, fileName + '.vue');
-                    // console.log("-------------", targetFilePath);
+
 
                     // * 单个情况：
                     // * 单个wxml的情况-->转换为vue
@@ -455,12 +450,13 @@ async function filesHandle (fileData, miniprogramRoot) {
                     var onlyWxmlFile = false;
 
                     //如果是app，满足js和wxss也行，且wxParse将不会进行合并转换
-                    if (
-                        ((file_wxml && file_js) ||
-                            (file_wxml && file_wxss) ||
-                            (isAppFile && (file_js && file_wxss))) &&
-                        fileName != 'wxParse'
-                    ) {
+
+                    let isAllFile = ((file_wxml && file_js) ||
+                        (file_wxml && file_wxss) ||
+                        ((isAppFile || /\bcommon[\\|\/]main\.js/.test(file_js)) && (file_js && file_wxss))) &&
+                        fileName != 'wxParse';
+
+                    if (isAllFile) {
                         //当有wxml，那必然会有js文件，可能会有wxss文件，单独的.wxml，转为.vue
                         extName = '.vue';
                         hasAllFile = true;
@@ -483,7 +479,8 @@ async function filesHandle (fileData, miniprogramRoot) {
                         }
                     }
                     //
-                    targetFilePath = path.join(tFolder, fileName + extName);
+                    //组装文件名
+                    let targetFilePath = path.join(tFolder, fileName + extName);
                     if (isAppFile)
                         targetFilePath = path.join(tFolder, 'App.vue');
 

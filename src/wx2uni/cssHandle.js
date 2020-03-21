@@ -24,12 +24,28 @@ async function cssHandle (fileContent, file_wxss) {
             //"../../wxParse/icon/css"
             //@import "./wxParse/suui/suui.css";
 
-            //清除css里失效的iconfont字体文件引用
-            const fontReg = /url\(iconfont.eot\?t=.*?\)\s*;\s*src:\s*url\(iconfont.eot\?t=.*?\)\s*format\(['"]embedded-opentype['"]\)\s*,\s*(url\(data:\s*application\/x-font-woff.*?\)\s*format\(['"]woff['"]\))\s*,\s*url\(iconfont.ttf\?t=.*?\)\s*format\(['"]truetype['"]\)\s*,\s*url\(iconfont.svg\?t=.*?\)\s*format\(['"]svg['"]\)/ig;
-
             //删除掉import app.wxss的代码
-            fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse[\/\.](.*?)["'];?/g, "")
-                .replace(fontReg, "$1");;
+            fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse[\/\.](.*?)["'];?/g, "");
+
+            const testReg = /url\(data:\s*application\/(x-)?font-woff(2)?;\s*charset=utf-8;\s*base64,/i;
+            //清除css里失效的iconfont字体文件引用
+            if (testReg.test(fileContent)) {
+                const eotReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).eot.*?['"]?\)[,;]/i;
+                const eotReg2 = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).eot.*?['"]?\)\s*format\(['"]embedded-opentype['"]\)[,;]/i;
+                const ttfReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).ttf.*?['"]?\)\s*format\(['"]truetype['"]\)[,;]/i;
+                const svgReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).svg.*?['"]?\)\s*format\(['"]svg['"]\)[,;]/i;
+                const woffReg = /(src:\s*?url\(data:\s*application\/font-woff2;.*?\)\s*format\(['"]woff2['"]\),[\w\W]*url\(data:\s*application\/font-woff;.*?\)\s*format\(['"]woff['"]\))[,;]/i;
+                const woffReg2 = /(url\(data:\s*application\/(x-)?font-woff;.*?\)\s*format\(['"]woff['"]\)),/i;
+
+                fileContent = fileContent
+                    .replace(eotReg, "/* $& */\n")
+                    .replace(eotReg2, "/* $& */\n")
+                    .replace(ttfReg, "/* $& */\n")
+                    .replace(svgReg, "/* $& */\n")
+                    .replace(woffReg, "$1;\n")
+                    .replace(woffReg2, "src: $1;")
+                    ;
+            }
 
             //wxss文件所在目录
             let fileDir = path.dirname(file_wxss);

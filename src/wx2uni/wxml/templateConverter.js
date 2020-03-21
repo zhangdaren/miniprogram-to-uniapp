@@ -390,15 +390,25 @@ function templateTagHandle (node, file_wxml, onlyWxmlFile) {
                 if (dataAttr) {
                     let varName = '';
                     if (reg_val.test(dataAttr)) {
-                        varName = 'article_' + dataAttr.match(reg_val)[1];
+                        let val = dataAttr.match(reg_val)[1];
+                        if (/\[|\]/.test(val)) {
+                            varName = dataAttr.match(reg_val)[1];
+                        } else {
+                            varName = 'article_' + dataAttr.match(reg_val)[1];
+
+                            //处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
+                            //仅提取变量，"或"操作符和三元运算符暂不考虑。
+                            varName = varName.replace(/[\s\(\[]/g, ''); //替换掉空格和括号
+                        }
                     } else {
                         varName = dataAttr
                             .replace(/wxParseData:/, '')
                             .replace(/{{(.*?)}}/, '$1');
+
+                        //处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
+                        //仅提取变量，"或"操作符和三元运算符暂不考虑。
+                        varName = varName.replace(/[\s\(\[]/g, ''); //替换掉空格和括号
                     }
-                    //处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
-                    //仅提取变量，"或"操作符和三元运算符暂不考虑。
-                    varName = varName.replace(/[\s\(\[]/g, ''); //替换掉空格和括号
 
                     if (global.hasVant) {
                         newNode = {
@@ -703,7 +713,7 @@ function imageTagHandle (node, file_wxml) {
         } else {
             if (reg.test(src) && !global.isVueAppCliMode) {
                 let logStr =
-                    'image漏网之鱼:    src--> "' +
+                    '[Warning] image漏网之鱼:    src--> "' +
                     node.attribs.src +
                     '"     file--> ' +
                     path.relative(global.miniprogramRoot, file_wxml);

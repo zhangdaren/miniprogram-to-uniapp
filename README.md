@@ -1,15 +1,7 @@
 # 微信小程序转换为uni-app项目   
    
 输入小程序项目路径，输出uni-app项目。
-   
-实现项目下面的js+wxml+wxss转换为vue文件，模板语法、生命周期函数等进行相应转换，其他文件原样复制，生成uni-app所需要的配置文件。  
-    
-PS:   
-很多人问：wx.xxx()为什么不替换为uni.xxx()呢？   
-答: 暂时不需要，不是替换不了，而是uni-app早已对wx相关函数进行兼容，所以可以直接使用，而不需要再调整了。   
-   
-再PS：最新版本已经可以添加-r参数，达到替换wx.xxx()为uni.xxx()的目的。
-   
+ 
         
 ## 安装   
    
@@ -60,6 +52,8 @@ $ wtu -i miniprogramProject -w
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
 
+使用时遇到问题，请参照： [miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
+
 对于使用有疑问或建议，欢迎加入QQ群：780359397 进行讨论。
 
 <a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a>
@@ -79,53 +73,29 @@ $ wtu -i miniprogramProject -w
 * 使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)   
 * 搜索未在data声明，而直接在setData()里使用的变量，并修复   
 * 合并使用require导入的wxs文件   
-* 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径(**文件不存在时路径将不会转换，在变量或数组里的路径也不会转换，需自行处理** )   
+* 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径   
 * 修复变量名与函数重名的情况(目前uni编译时会将非static目录的文件复制一份到static目录，但并不完全，因此本功能仍保留)   
 * 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)   
 * 支持vue-cli模式，可以通过参数配置(-c)，默认为false，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发(建议爱折腾人士使用)  
 * 支持vant转换，可以通过参数配置(-z)，默认为false：自动识别（无须添加参数，工具已支持自动识别vant项目），~~如果需要转换使用vant-weapp组件的小程序项目，必须配置这个参数，否则转换后有问题。~~（另外，转换后的项目，目前仅支持v3和h5两个平台）  
 * 支持wx.xxx()转换为uni.xxx()，可以通过参数配置(-r)，默认为false（因uni已经对wx相关函数做了兼容，但仍有很多朋友有此需求，特作为可配置项，按需自取）  
    
-   
 ## 更新记录   
-### v1.0.60(20200316)   
-* [优化] 进一步转换在变量或数组里面的资源路径，减少漏网之鱼   
-* [新增] ```capture-bind:tap```转换为```@tap.stop```(uniapp无对应的语法，只能合二为一)   
-* [修复] 重名标签属性id时，导致```e.currentTarget.id```拿不到的bug(不再转换:id为:idAttr)   
-
-### v1.0.59(20200313)   
-* 【重要】 自动检测是否为vant项目，而无须添加-z参数，并在转换结束后增加检测vant项目的提示   
-* [优化] wx:key为表达式时的解析(如```<block wx:for="{{rechargelist}}" wx:for-item="items" wx:key="index<=6">```)   
-* [优化] 清除css里失效的iconfont字体文件引用  
-* [修复] 关键字wx替换不完全的bug   
-* [修复] js代码未添加script标签的bug   
-* [修复] wxml仅有单标签slot时，解析出的bug   
-* [修复] ```t.globalData.approot``` 转换为 ```t.approot```   
-* [修复] 使用网络链接的图片路径被误添加相对路径的bug   
-* [修复] 文件mixins/transition.js被添加script标签的bug   
-* [修复] 模板里两个00而引起编译报错的bug(如```<text>{{countDownHour || 00}}</text>```)   
-* [修复] 项目中使用ES2015标准的import语句时导致解析失败的bug(如```import 'moment';```等)   
-* [修复] 解析函数```formSubmit: util.throttle(function (e) {...}, 1000)```未正确放置到methods的bug   
-* [修复] template里存在单个引号导致编译报错的bug(如```<view style="line-height: 48rpx\""></view>```)，同时处理了含\"的代码(如```<view style="background: url(\"{{ui.home_red_pack_bg}}\")"></view>```)   
-
-### v1.0.58(20200229)   
-* [优化] 增加参数(-r，默认为false)，以替换wx.xxx()为uni.xxx()   
-* [优化] 资源路径替换时，替换后的路径相对于根路径，以减少路径引用复杂度(因官方对于tabbar里iconPath路径并未替换，路径替换功能暂不准备弃用)   
-* [优化] 如js文件为webpack打包后的文件(你懂得~)，转换后增加script标签包裹，避免因此而编译报错      
-* [优化] 将原来用于替换wxParse的组件gaoyia-parse，改为使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)   
-* [优化] "catchtap" 由 "@tap.native.stop" 改为 "@tap.stop"(因前者仅支持微信小程序，测试范围app、h5、微信小程序)   
-* [优化] 解析vant项目时，将富文本组件使用v3的v-html替代(残余wxPrase需手动调整)   
-* [修复] van开头的组件没有被加入的bug   
-* [修复] 替换wxParse时，数据变量未在data里声明的bug   
-
+### v1.0.62(20200321)   
+* [更新] jyf-parser的版本为v2.8.1   
+* [优化] 注释css里已失效字体文件(含iconfont和GuildfordPro)    
+* [优化] 对template里引号的处理(例:```<view style="top:{{StatusBar}}px;{{bgImage?'background-image:url(' + bgImage+')':''}}"></view>```)   
+* [修复] 另一种00未转换的问题(如```<view wx:if="{{countDownHour == 00 && countDownMinute == 00 && countDownSecond == 00}}"></view>```)   
+* [修复] 音频不能播放的问题(音频资源(*.mp3)移动到static目录，并修复路径引用)   
+* [修复] 变量与methods重名时，对methods进行setData导致工具转换失败的bug(```this.setData({methods: methods})```)   
+* [修复] 试处理一则wxparse转换异常情况(```WxParse.wxParse('editors.editor' + item.id, 'html', item.fulltext, this)```)   
 
 ## [历史更新记录](ReleaseNote.md)   
-
-## [miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 ## 感谢   
 * 感谢转转大佬的文章：[[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)， 本项目基于此文章里面的代码开发，在此表示感谢~   
 * 感谢网友[没有好名字了]给予帮助。   
+* 感谢Dcloud官方大佬[安静]给予帮助。   
 * 感谢官方大佬DCloud_heavensoft的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。   
 * this.setData()代码出处：https://ask.dcloud.net.cn/article/35020，在些表示感谢~  
 * 工具使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse，表示感谢~

@@ -6,3 +6,5 @@ package-lock.json
 .vscode/
 *.zip
 .DS_Store
+plugins
+.idea

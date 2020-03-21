@@ -76,7 +76,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             //将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
             let pages = [];
             for (const key in appJson.pages) {
-                let pagePath = appJson.pages[key];
+                let pagePath = appJson.pages[key] || "";
                 pagePath = utils.normalizePath(pagePath);
                 let data = routerData[pagePath];
 
@@ -108,7 +108,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             appJson.pages = pages;
 
             //替换window节点为globalStyle
-            appJson["globalStyle"] = appJson["window"];
+            appJson["globalStyle"] = clone(appJson["window"] || {});
             delete appJson["window"];
 
             //判断是否引用了vant
@@ -119,16 +119,16 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
                 // 		usingComponentsVant[key] = utils.vantComponentList[key];
                 // 	}
                 // }
+
                 appJson["globalStyle"]["usingComponents"] = utils.vantComponentList;
             }
 
             //sitemap.json似乎在uniapp用不上，删除！
-            delete appJson["sitemapLocation"];
+            // delete appJson["sitemapLocation"];
 
             //处理分包加载subPackages
-            let subPackages = appJson["subPackages"];
+            let subPackages = appJson["subPackages"] || appJson["subpackages"];
             appJson["subPackages"] = subPackagesHandle(subPackages);
-
 
             //usingComponents节点，上面删除缓存，这里删除
             delete appJson["usingComponents"];

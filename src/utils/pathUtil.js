@@ -108,13 +108,13 @@ function emptyDirSyncEx (folder, ignore) {
             ignore = new RegExp(ignore);
         }
     } else {
-        ignore = /unpackage|node_modules/i;
+        ignore = /unpackage|node_modules|\.git/i;
     }
     fs.readdir(folder, function (err, files) {
         files.forEach(function (fileName) {
             var fileDir = path.join(folder, fileName);
             fs.stat(fileDir, function (err, stats) {
-                if (stats.isDirectory()) {
+                if (stats && stats.isDirectory()) {
                     if (!ignore.test(fileName)) {
                         delDir(fileDir);
                     }

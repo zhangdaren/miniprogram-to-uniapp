@@ -18,8 +18,9 @@ class TemplateParser {
      * @param {*} code 
      */
     beforeParse (code) {
-        return code.replace(/url\(\\?['"](.*?)\\?['"]\)/g, "url($1)")
-            .replace(/\s\|\|\s00\}\}/g, " || '00'}}")
+        return code.replace(/url\(\\?['"][^\+](.*?)\\?[^\+]['"]\)/g, "url($1)")
+            .replace(/\s*\|\|\s*00\}\}/g, " || '00'}}")
+            .replace(/\s*==\s*00\s*(\}\}|&&)/g, " == '00' $1")
             .replace(/\\['"]/g, "&#39;")  //引号转为单引号
             ;
     }

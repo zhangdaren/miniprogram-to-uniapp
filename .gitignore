@@ -3,3 +3,5 @@ node_modules
 *.zip
 demo
 *.DS_Store
+plugins
+.idea

@@ -21,7 +21,7 @@ const singleJSVistor = {
         if (global.isTransformAssetsPath) {
             //尽可能的转换路径
             let val = path.node.value;
-            const reg = /^((\/|\.+\/).*?\.png|jpg|jpeg)$/i;
+            const reg = /^((\/|\.+\/).*?\.(jpe?g|gif|svg|png|mp3))$/i;
             if (reg.test(val)) {
                 path.node.value = val.replace(reg, function (match, $1) {
                     let newVal = pathUtil.replaceAssetPath(

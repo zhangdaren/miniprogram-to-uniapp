@@ -9,6 +9,7 @@
 	},
 	"bundleDependencies": [],
 	"dependencies": {
+		"@babel/core": "^7.7.2",
 		"@babel/generator": "^7.7.2",
 		"@babel/parser": "^7.7.3",
 		"@babel/traverse": "^7.7.2",
@@ -27,7 +28,6 @@
 	"deprecated": false,
 	"description": "Try to transform Weixin miniprogram project to Uni-app project",
 	"devDependencies": {
-		"@babel/core": "^7.7.2",
 		"@babel/plugin-proposal-class-properties": "^7.0.0",
 		"@babel/plugin-proposal-decorators": "^7.0.0",
 		"@babel/plugin-proposal-do-expressions": "^7.0.0",
@@ -66,5 +66,5 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-	"version": "1.0.60"
+	"version": "1.0.62"
 }

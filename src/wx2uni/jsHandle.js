@@ -21,8 +21,17 @@ const componentConverter = require("./js/componentConverter");
 const singleJSConverter = require("./js/singleJSConverter");
 const behaviorConverter = require("./js/behaviorConverter");
 
+let compiledProjectHandle = null;
+try {
+    compiledProjectHandle = require('./plugins/compiledProjectHandle');
+} catch (error) {
+}
+
+
+
 /**
  * 子页面/组件的模板
+ * life_cycle_flag_375890534 -->  标识符要长，不然可能会重名
  */
 const componentTemplate = `
 export default {
@@ -33,6 +42,7 @@ export default {
   props:PROPS,
   watch:WATCH,
   computed: COMPUTED,
+  life_cycle_flag_375890534: LIFECYCLE,
   methods: METHODS,
 }
 `;
@@ -48,6 +58,7 @@ module.exports = {
   props:PROPS,
   watch:WATCH,
   computed: COMPUTED,
+  life_cycle_flag_375890534: LIFECYCLE,
   methods: METHODS,
 }
 `;
@@ -67,7 +78,8 @@ export default function(PARAMS) {
 		},
 		props:PROPS,
 		watch:WATCH,
-		computed: COMPUTED,
+        computed: COMPUTED,
+        life_cycle_flag_375890534: LIFECYCLE,
 		methods: METHODS
 	};
 }
@@ -78,6 +90,7 @@ export default function(PARAMS) {
  */
 const appTemplate = `
 export default {
+    life_cycle_flag_375890534: LIFECYCLE,
 	methods: METHODS,
 }
 `;
@@ -261,7 +274,7 @@ function appGlobalDataFunHandle (ast) {
             if (
                 babelUtil.isThisExpression(
                     object,
-                    global.pagesData["app"]["thisNameList"]
+                    global.pagesData["app"] && global.pagesData["app"]["thisNameList"]
                 ) &&
                 t.isIdentifier(property.node, {
                     name: "globalData"
@@ -310,7 +323,7 @@ function applifeCycleFunHandle (
             if (
                 babelUtil.isThisExpression(
                     object,
-                    global.pagesData["app"]["thisNameList"]
+                    global.pagesData["app"] && global.pagesData["app"]["thisNameList"]
                 ) &&
                 appGlobalDataValueNameList[property.node.name]
             ) {
@@ -353,6 +366,8 @@ const componentTemplateBuilder = function (
 
     //存储data的引用，用于后面添加wxparse的数据变量
     let astDataPath = null;
+
+    const lifeCycleFlag = babelUtil.arrayToObject([]);
 
     const fileKey = pathUtil.getFileKey(file_js);
 
@@ -414,6 +429,7 @@ const componentTemplateBuilder = function (
 
         //占个位
         ast = buildRequire({
+            LIFECYCLE: lifeCycleFlag,
             METHODS: babelUtil.arrayToObject([])
         });
     } else {
@@ -457,6 +473,7 @@ const componentTemplateBuilder = function (
             ast = buildRequire({
                 PROPS: babelUtil.arrayToObject(vistors.props.getData()),
                 DATA: babelUtil.arrayToObject(vistors.data.getData()),
+                LIFECYCLE: lifeCycleFlag,
                 METHODS: babelUtil.arrayToObject(methods),
                 COMPUTED: babelUtil.arrayToObject(vistors.computed.getData()),
                 WATCH: babelUtil.arrayToObject(vistors.watch.getData()),
@@ -466,6 +483,7 @@ const componentTemplateBuilder = function (
             ast = buildRequire({
                 PROPS: babelUtil.arrayToObject(vistors.props.getData()),
                 DATA: babelUtil.arrayToObject(vistors.data.getData()),
+                LIFECYCLE: lifeCycleFlag,
                 METHODS: babelUtil.arrayToObject(methods),
                 COMPUTED: babelUtil.arrayToObject(vistors.computed.getData()),
                 WATCH: babelUtil.arrayToObject(vistors.watch.getData())
@@ -492,7 +510,7 @@ const componentTemplateBuilder = function (
             if (global.isTransformAssetsPath) {
                 //尽可能的转换路径
                 let val = path.node.value;
-                const reg = /^((\/|\.+\/).*?\.png|jpg|jpeg)$/i;
+                const reg = /^((\/|\.+\/).*?\.(jpe?g|gif|svg|png|mp3))$/i;
                 if (reg.test(val)) {
                     path.node.value = val.replace(reg, function (match, $1) {
                         let newVal = pathUtil.replaceAssetPath(
@@ -596,13 +614,15 @@ const componentTemplateBuilder = function (
                     path.node.value.properties.length == 0
                 )
                     path.remove();
-            } else if (name === "methods") {
+            } else if (name === "life_cycle_flag_375890534") {
                 let lifeCycleArr = vistors.lifeCycle.getData();
                 for (let key in lifeCycleArr) {
                     path.insertBefore(lifeCycleArr[key]);
                 }
-                //这里不能停止，否则后面的this.data.xxx不会被转换 20190918
-                //path.skip();
+                //删除标记
+                path.remove();
+                // 这里不能停止，否则后面的this.data.xxx不会被转换 20190918
+                // path.skip();
             }
         },
         CallExpression (path) {
@@ -651,8 +671,23 @@ const componentTemplateBuilder = function (
                     const arguments = path.node.arguments;
 
                     //target为Page对象,一般为this(必填);这里大胆假设一下，只有this或this的别名，报错再说。
+                    let bindName = "";
+                    let bindNameNode = arguments[0];
+                    let isComputed = false;
+                    let pathStr = `${generate(path.node).code}`;
+                    if (t.isStringLiteral(bindNameNode)) {
+                        //加个前缀以防冲突
+                        bindName = "article_" + arguments[0].value;
+                    } else {
+                        bindName = generate(bindNameNode).code;
+                        isComputed = true;
+                        const logStr = `[Error]  工具能力有限！此行代码转换后可能会报错，需手动调试修复:  ${pathStr}     file:  ${nodePath.relative(global.miniprogramRoot, file_js)}`;
+                        //存入日志，方便查看，以防上面那么多层级搜索出问题
+                        utils.log(logStr);
+                        global.log.push(logStr);
+                    }
                     const wxParseArgs = {
-                        bindName: "article_" + arguments[0].value, //加个前缀以防冲突
+                        bindName: bindName,
                         type: arguments[1].value,
                         data: generate(arguments[2]).code, //这里可能会有多种类型，so，直接转字符串
                         target: arguments[3]
@@ -663,25 +698,36 @@ const componentTemplateBuilder = function (
                     );
 
                     //将原来的代码注释
-                    babelUtil.addComment(path, `${generate(path.node).code}`);
+                    babelUtil.addComment(path, pathStr);
 
                     //替换节点
-                    //装13之选 ，一堆代码只为还原一行代码: setTimeout(()=>{this.uParseArticle = contentData}, 200);
-                    const left = t.memberExpression(
-                        wxParseArgs.target,
-                        t.identifier(wxParseArgs.bindName),
-                        false
-                    );
-                    const right = t.identifier(wxParseArgs.data);
-                    const assExp = t.assignmentExpression("=", left, right);
-                    const bState = t.blockStatement([t.expressionStatement(assExp)]);
-                    const args = [
-                        t.ArrowFunctionExpression([], bState),
-                        t.numericLiteral(200)
-                    ]; //延时200ms防止百度小程序解析不出来
-                    const callExp = t.callExpression(t.identifier("setTimeout"), args);
-                    const expState = t.expressionStatement(callExp);
-                    path.replaceWith(expState);
+                    if (isComputed) {
+                        // this.setDate({
+                        //     ['editors.editor' + item.id]: item.content.fulltext
+                        // })
+
+                        const objExp = t.objectExpression([t.objectProperty(t.identifier(bindName), arguments[2], isComputed)]);
+                        const callExp = t.callExpression(t.memberExpression(arguments[3], t.identifier("setData")), [objExp]);
+                        const expState = t.expressionStatement(callExp);
+                        path.replaceWith(expState);
+                    } else {
+                        //装13之选 ，一堆代码只为还原一行代码: setTimeout(()=>{this.uParseArticle = contentData}, 200);
+                        const left = t.memberExpression(
+                            wxParseArgs.target,
+                            t.identifier(wxParseArgs.bindName),
+                            isComputed
+                        );
+                        const right = t.identifier(wxParseArgs.data);
+                        const assExp = t.assignmentExpression("=", left, right);
+                        const bState = t.blockStatement([t.expressionStatement(assExp)]);
+                        const args = [
+                            t.ArrowFunctionExpression([], bState),
+                            t.numericLiteral(200)
+                        ]; //延时200ms防止百度小程序解析不出来
+                        const callExp = t.callExpression(t.identifier("setTimeout"), args);
+                        const expState = t.expressionStatement(callExp);
+                        path.replaceWith(expState);
+                    }
 
                     /////////////////////////////////////////////////////////////////
                     //填充变量名到data里去，astDataPath理论上会有值，因为根据模板填充，data是居第一个，so，开搂~
@@ -689,9 +735,18 @@ const componentTemplateBuilder = function (
                         try {
                             let body = astDataPath.get("body.body.0");
                             let properties = body.node.argument.properties; //直接get居然没法同步修改到ast，这是何解？
+
+                            let argsBindName = wxParseArgs.bindName;
+                            let value = t.stringLiteral("");
+                            if (isComputed) {
+                                //如果这个变量是一个表达式的话，那么，就切割一下然后再整进去，并且用setData来赋值
+                                let re = argsBindName.match(/(\w+)\./);
+                                if (re.length > 1) argsBindName = re[1];
+                                value = t.objectExpression([]);
+                            }
                             const op = t.objectProperty(
-                                t.Identifier(wxParseArgs.bindName),
-                                t.stringLiteral("")
+                                t.Identifier(argsBindName),
+                                value
                             );
                             properties.push(op);
                         } catch (error) {
@@ -730,7 +785,7 @@ const componentTemplateBuilder = function (
             } else if (
                 babelUtil.isThisExpression(
                     object,
-                    global.pagesData[fileKey]["thisNameList"]
+                    global.pagesData[fileKey] && global.pagesData[fileKey]["thisNameList"]
                 ) &&
                 t.isIdentifier(property.node, {
                     name: "data"
@@ -761,7 +816,7 @@ const componentTemplateBuilder = function (
                         if (
                             babelUtil.isThisExpression(
                                 object,
-                                global.pagesData[fileKey]["thisNameList"]
+                                global.pagesData[fileKey] && global.pagesData[fileKey]["thisNameList"]
                             )
                         ) {
                             let parent = path.parent;
@@ -909,8 +964,6 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
         nodePath.relative(global.targetFolder, file_js)
     );
 
-
-
     let astInfoObject = null;
     if (!isVueFile) {
         switch (astType) {
@@ -1026,28 +1079,15 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
         }
     } else {
         if (astType === "Webpack") {
+            //compiled page handle  SSS
 
-            console.log(codeText);
+            console.log("111", file_js);
 
-            // let reg = /\(?'([0-9a-z]{4})'\)?:?/gi;
-            // let reg = /['"]\b([0-9a-f]{4})\b['"]|\b([0-9a-f]{4})\b:/gi;
 
-            // fileData = fileData.replace(reg, function (match, $1, $2) {
-            //     let result = match;
-            //     // if (isOther($1) || isOther($2)) {
-            //     //     //
-            //     // } else {
-            //     if ($1) {
-            //         result = "'" + "diy_" + $1 + "'";
-            //     } else if ($2) {
-            //         result = "diy_" + $2 + ":";
-            //     }
-            //     // }
-
-            //     return result;
-            // });
-
-            //如果代码是webpack编译过的，直接添加script标签扔里面得了，解析起来蛋疼~~
+            if (compiledProjectHandle) {
+                console.log("222", file_js);
+                codeText = await compiledProjectHandle.jsHandle(fileData, file_js);
+            }
             codeText = `<script>\r\n${codeText}\r\n</script>\r\n`;
         } else {
             let cloneAst = clone(javascriptAst);

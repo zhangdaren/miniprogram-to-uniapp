@@ -6,6 +6,12 @@ const pathUtil = require('../../utils/pathUtil.js');
 const objectStringToObject = require('object-string-to-object');
 const paramsHandle = require('../paramsHandle');
 
+let compiledProjectHandle = null;
+try {
+    compiledProjectHandle = require('../plugins/compiledProjectHandle');
+} catch (error) {
+}
+
 /**
  * 去掉属性的值的双括号，然后将值里面的双引号改为单引号
  * @param {*} attr
@@ -391,15 +397,25 @@ function templateTagHandle (node, file_wxml, onlyWxmlFile) {
                 if (dataAttr) {
                     let varName = '';
                     if (reg_val.test(dataAttr)) {
-                        varName = 'article_' + dataAttr.match(reg_val)[1];
+                        let val = dataAttr.match(reg_val)[1];
+                        if (/\[|\]/.test(val)) {
+                            varName = dataAttr.match(reg_val)[1];
+                        } else {
+                            varName = 'article_' + dataAttr.match(reg_val)[1];
+
+                            //处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
+                            //仅提取变量，"或"操作符和三元运算符暂不考虑。
+                            varName = varName.replace(/[\s\(\[]/g, ''); //替换掉空格和括号
+                        }
                     } else {
                         varName = dataAttr
                             .replace(/wxParseData:/, '')
                             .replace(/{{(.*?)}}/, '$1');
+
+                        //处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
+                        //仅提取变量，"或"操作符和三元运算符暂不考虑。
+                        varName = varName.replace(/[\s\(\[]/g, ''); //替换掉空格和括号
                     }
-                    //处理：<template is="wxParse" data="{{wxParseData: (goodsDetail.nodes || '无描述')}}" />
-                    //仅提取变量，"或"操作符和三元运算符暂不考虑。
-                    varName = varName.replace(/[\s\(\[]/g, ''); //替换掉空格和括号
 
                     if (global.hasVant) {
                         newNode = {
@@ -809,7 +825,8 @@ const templateConverterLite = async function (
                 node.data = paramsHandle(node.data, isComponent);
         }
 
-        //tr
+        //compiled page handle
+        if (compiledProjectHandle) compiledProjectHandle.wxmlHandle(node);
 
         //因为是树状结构，所以需要进行递归
         if (node.children) {

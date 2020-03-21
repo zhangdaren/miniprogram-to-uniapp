@@ -62,6 +62,15 @@ function isAssetsFolderName (name) {
 }
 
 /**
+ * 是否为十六进制
+ * @param {*} str 
+ */
+function isHex (str) {
+    return /[0-9a-f]{4}/i.test("" + str);
+}
+
+
+/**
  * 驼峰式转下横线
  * console.log(toLowerLine("TestToLowerLine"));  //test_to_lower_line
  * @param {*} str 
@@ -473,6 +482,7 @@ module.exports = {
     log,
     isNumber,
     isObject,
+    isHex,
     isAssetsFolderName,
     normalizePath,
     isURL,

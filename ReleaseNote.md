@@ -1,6 +1,39 @@
 # Miniprogram to uni-app - Release Notes   
 ======================================
 
+
+## v1.0.60(20200316)   
+* [优化] 进一步转换在变量或数组里面的资源路径，减少漏网之鱼   
+* [新增] ```capture-bind:tap```转换为```@tap```，```capture-catch:tap```转换为```@tap.stop```(uniapp无对应的语法，只能合二为一)   
+* [修复] 重名标签属性id时，导致```e.currentTarget.id```拿不到的bug(不再转换:id为:idAttr)   
+
+## v1.0.59(20200313)   
+* 【重要】 自动检测是否为vant项目，而无须添加-z参数，并在转换结束后增加检测vant项目的提示   
+* [优化] wx:key为表达式时的解析(如```<block wx:for="{{rechargelist}}" wx:for-item="items" wx:key="index<=6">```)   
+* [优化] 清除css里失效的iconfont字体文件引用  
+* [修复] 关键字wx替换不完全的bug   
+* [修复] js代码未添加script标签的bug   
+* [修复] wxml仅有单标签slot时，解析后编译报错的bug   
+* [修复] ```t.globalData.approot``` 转换为 ```t.approot```   
+* [修复] 使用网络链接的图片路径被误添加相对路径的bug   
+* [修复] 文件mixins/transition.js被添加script标签的bug   
+* [修复] 模板里两个00而引起编译报错的bug(如```<text>{{countDownHour || 00}}</text>```)   
+* [修复] 项目中使用ES2015标准的import语句时导致解析失败的bug(如```import 'moment';```等)   
+* [修复] 解析函数```formSubmit: util.throttle(function (e) {...}, 1000)```未正确放置到methods的bug   
+* [修复] template里存在单个引号导致编译报错的bug(如```<view style="line-height: 48rpx\""></view>```)，同时处理了含\"的代码(如```<view style="background: url(\"{{ui.home_red_pack_bg}}\")"></view>```)   
+
+## v1.0.58(20200229)   
+* [优化] 增加参数(-r，默认为false)，以替换wx.xxx()为uni.xxx()   
+* [优化] 资源路径替换时，替换后的路径相对于根路径，以减少路径引用复杂度(因官方对于tabbar里iconPath路径并未替换，路径替换功能暂不准备弃用)   
+* [优化] 如js文件为webpack打包后的文件(你懂得~)，转换后增加script标签包裹，避免因此而编译报错      
+* [优化] 将原来用于替换wxParse的组件gaoyia-parse，改为使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)   
+* [优化] "catchtap" 由 "@tap.native.stop" 改为 "@tap.stop"(因前者仅支持微信小程序，测试范围app、h5、微信小程序)   
+* [优化] 解析vant项目时，将富文本组件使用v3的v-html替代(残余wxPrase需手动调整)   
+* [修复] van开头的组件没有被加入的bug   
+* [修复] 替换wxParse时，数据变量未在data里声明的bug   
+
+
+
 ## v1.0.56(20200216)   
 * [新增] 支持转换使用vant的小程序项目(命令行后增加"-z"参数，当前因uni-app限制，仅支持v3和h5平台。现为预览版，时间紧迫，未做wxParse等适配)   
 * [更新] manifest.json配置

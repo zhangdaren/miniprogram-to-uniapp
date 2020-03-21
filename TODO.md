@@ -20,7 +20,18 @@
 2020
 import作为事件名
 
+include　套娃
 
+抽象节点
+componentGenerics
+
+QQ 小程序
+qs文件 qq标签
+
+qq:if
+qq.login
+
+vue to uni
 
 使用omix框架的小程序
 
@@ -60,7 +71,7 @@ getApp().page({
 * 分包/////////////////////////////////
 
 mmt
-wxaSortPicker  似乎小程序和uni两个版本的数据字段不一样，不是太好替换。
+   似乎小程序和uni两个版本的数据字段不一样，不是太好替换。
 
 替换思路：
 与wxParse一致
