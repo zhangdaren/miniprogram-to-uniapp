@@ -119,7 +119,7 @@ $ wtu -i miniprogramProject -w
 
 打赏一下的话就更好了~
 
-![微信支付](https://gitee.com/zhangdaren/miniprogram-to-uniapp/raw/master/src/img/WeChanQR.png)![支付宝支付](https://gitee.com/zhangdaren/miniprogram-to-uniapp/raw/master/src/img/AliPayQR.png)
+![微信支付](https://zhangdaren.github.io/articles/img/WeChanQR.png)![支付宝支付](https://zhangdaren.github.io/articles/img/AliPayQR.png)
 
 
 ## LICENSE
