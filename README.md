@@ -3,7 +3,7 @@
 输入小程序项目路径，输出uni-app项目。
  
         
-## 安装   
+## 安装(请在CMD或终端里直接输入即可安装，无须下载代码！！！)   
    
 ```js
 $ npm install miniprogram-to-uniapp -g
@@ -52,7 +52,7 @@ $ wtu -i miniprogramProject -w
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp使用指南](http://ask.dcloud.net.cn/article/36037)。
 
-使用时遇到问题，请参照： [miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
+使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 对于使用有疑问或建议，欢迎加入QQ群：780359397 进行讨论。
 
@@ -95,9 +95,10 @@ $ wtu -i miniprogramProject -w
 ## 感谢   
 * 感谢转转大佬的文章：[[AST实战]从零开始写一个wepy转VUE的工具](https://juejin.im/post/5c877cd35188257e3b14a1bc#heading-14)， 本项目基于此文章里面的代码开发，在此表示感谢~   
 * 感谢网友[没有好名字了]给予帮助。   
-* 感谢Dcloud官方大佬[安静]给予帮助。   
+* 感谢DCloud官方大佬[安静]给予帮助。   
+* 感谢网友[☆_☆]给予帮助。   
 * 感谢官方大佬DCloud_heavensoft的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。   
-* this.setData()代码出处：https://ask.dcloud.net.cn/article/35020，在些表示感谢~  
+* this.setData()代码出处：https://ask.dcloud.net.cn/article/35020，在些表示感谢~(新版由网友☆_☆提供)  
 * 工具使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse，表示感谢~
 * 感谢为本项目提供建议以及帮助的热心网友们~~   
     
@@ -118,7 +119,7 @@ $ wtu -i miniprogramProject -w
 
 打赏一下的话就更好了~
 
-![微信支付](src/img/WeChanQR.png)![支付宝支付](src/img/AliPayQR.png)
+![微信支付](https://gitee.com/zhangdaren/miniprogram-to-uniapp/raw/master/src/img/WeChanQR.png)![支付宝支付](https://gitee.com/zhangdaren/miniprogram-to-uniapp/raw/master/src/img/AliPayQR.png)
 
 
 ## LICENSE
