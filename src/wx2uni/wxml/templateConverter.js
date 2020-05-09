@@ -4,7 +4,7 @@ const clone = require('clone');
 const utils = require('../../utils/utils.js');
 const pathUtil = require('../../utils/pathUtil.js');
 const objectStringToObject = require('object-string-to-object');
-const paramsHandle = require('../paramsHandle');
+// const paramsHandle = require('../paramsHandle');
 
 /**
  * 去掉属性的值的双括号，然后将值里面的双引号改为单引号
@@ -94,6 +94,12 @@ const attrConverterConfigUni = {
         value: str => {
             return repairAttr(str);
         }
+    },
+    'data-ref': {
+        key: 'ref',
+        value: str => {
+            return repairAttr(str);
+        }
     }
 };
 
@@ -168,7 +174,7 @@ function difficultCodeHandle (node) {
  * 含有wx:for的标签处理
  * @param {*} node
  */
-function forTagHandle (node, attrs, k) {
+function forTagHandle (node, attrs) {
     //wx:for单独处理
     //wx:key="*item" -----不知道vue支持不
 	/**
@@ -242,13 +248,13 @@ function forTagHandle (node, attrs, k) {
 
     if (value) {
         //处理<view wx:for="{{ dates }}" wx:key="dates"></view>
-        if (value.replace(/{{ *(.*?) *}}/, '$1').trim() === wx_key)
+        if (value.replace(/{{\s*(.*?)\s*}}/, '$1').trim() === wx_key)
             wx_key = 'index';
 
         //替换{{}}
         if (wx_key) {
             wx_key = wx_key.trim();
-            wx_key = wx_key.replace(/{{ *(.*?) *}}/, '$1').replace(/\"/g, "'");
+            wx_key = wx_key.replace(/{{\s*(.*?)\s*}}/, '$1').replace(/\"/g, "'");
             //修复index，防止使用的item.id来替换index
             wx_key = wx_key.indexOf('.') === -1 ? wx_key : 'index';
 
@@ -256,6 +262,9 @@ function forTagHandle (node, attrs, k) {
             // <view wx:for="{{goods}}" wx:for-item="good" wx:key="{{good}}"></view>
             if (wx_forItem === wx_key) wx_key = 'index';
         }
+
+        //有种情况是直接将item设置为key，如：<view wx:for="{{school}}" wx:key="{{item}}"></view>
+        if (wx_key === 'item' || wx_key === 'id') wx_key = 'index';
 
         //------------处理wx:key------------
         //查找父级的key
@@ -273,9 +282,6 @@ function forTagHandle (node, attrs, k) {
             wx_key = wx_key ? wx_key : 'index';
         }
 
-        //有种情况是直接将item设置为key，如：<view wx:for="{{school}}" wx:key="{{item}}"></view>
-        if (wx_key === 'item') wx_key = 'index';
-
         //设置for-item默认值
         wx_forItem = wx_forItem ? wx_forItem : 'item';
 
@@ -285,11 +291,11 @@ function forTagHandle (node, attrs, k) {
                 //将双引号转换单引号
                 value = value.replace(/\"/g, "'");
                 value = value.replace(
-                    /{{ *(.*?) *}}/,
+                    /{{\s*(.*?)\s*}}/,
                     '(' + wx_forItem + ', ' + wx_key + ') in $1'
                 );
 
-                if (value == node.attribs[k]) {
+                if (value == node.attribs['wx:for'] || value == node.attribs['wx:for-items']) {
                     //奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
                     //这里处理无{{}}的情况
                     value = '(' + wx_forItem + ', ' + wx_key + ') in ' + value;
@@ -306,6 +312,9 @@ function forTagHandle (node, attrs, k) {
             }
 
             attrs['v-for'] = value;
+
+            if (node.attribs.hasOwnProperty('wx:for'))
+                delete node.attribs['wx:for'];
             if (node.attribs.hasOwnProperty('wx:for-index'))
                 delete node.attribs['wx:for-index'];
             if (node.attribs.hasOwnProperty('wx:for-item'))
@@ -360,6 +369,7 @@ function includeTagHandle (node, file_wxml) {
 }
 /**
  * 在处理之前先把变量处理一下
+ * 20200418->减少侵入，也因为修复不完全，不再进行重名！
  */
 function beforeTemplateConverter (node, file_wxml, isComponent) {
     for (const k in node.attribs) {
@@ -743,11 +753,12 @@ const templateConverter = async function (
             global.pagesData[fileKey]['data'] &&
             global.pagesData[fileKey]['data']['component']) ||
         false;
-    for (let i = 0; i < ast.length; i++) {
+    for (let i = ast.length - 1; i >= 0; i--) {
         let node = ast[i];
 
         //处理标签上面的属性
-        beforeTemplateConverter(node, file_wxml, isComponent);
+        //20200418->减少侵入，也因为修复不完全，不再进行重名！
+        // beforeTemplateConverter(node, file_wxml, isComponent);
 
         //检测到是html节点
         if (node.type === 'tag') {
@@ -780,6 +791,16 @@ const templateConverter = async function (
 
             //进行属性替换
             let attrs = {};
+
+            if (
+                node.attribs['wx:for'] ||
+                node.attribs['wx:for-items']
+            ) {
+                //wx:for处理
+                forTagHandle(node, attrs);
+            }
+
+            const oldNode = clone(node);
             for (let k in node.attribs) {
                 let target = attrConverterConfigUni[k];
                 if (target) {
@@ -796,30 +817,45 @@ const templateConverter = async function (
                     attrs[key] = target['value']
                         ? target['value'](node.attribs[k])
                         : node.attribs[k];
-                } else if (
-                    k == 'wx:key' ||
-                    k == 'wx:for' ||
-                    k == 'wx:for-items'
-                ) {
-                    //wx:for处理
-                    forTagHandle(node, attrs, k);
                 } else {
                     //其他属性处理
                     otherTagHandle(node, attrs, k);
                 }
             }
+
             node.attribs = attrs;
+
+            if (node.name === "slot" && node.attribs[":name"]) {
+                //处理动态slot
+                const platformStartNew = { type: "comment", data: " #ifdef H5 " };
+                const platformStartOld = { type: "comment", data: " #ifndef H5 " };
+                const breakWord = { type: "text", data: "\r\n" };
+                const platformEnd = { type: "comment", data: " #endif " };
+                const newNode = clone(node);
+                ast.splice(i, 1,
+                    breakWord,
+                    platformStartNew, breakWord,
+                    newNode, breakWord,
+                    platformEnd, breakWord,
+
+                    breakWord,
+                    platformStartOld, breakWord,
+                    oldNode, breakWord,
+                    platformEnd, breakWord, breakWord,
+                )
+            }
 
             //处理include标签
             includeTagHandle(node, file_wxml);
         } else if (node.type === 'text') {
             //替换变量
-            if (node.data.trim())
-                node.data = paramsHandle(node.data, isComponent);
+            //20200418->减少侵入，也因为修复不完全，不再进行重名！
+            // if (node.data.trim())
+            //     node.data = paramsHandle(node.data, isComponent);
         }
 
         //因为是树状结构，所以需要进行递归
-        if (node.children) {
+        if (node.children && node.children.length) {
             await templateConverter(
                 node.children,
                 file_wxml,

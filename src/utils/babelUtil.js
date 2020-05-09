@@ -68,6 +68,33 @@ function hasDataExp (path) {
     );
 }
 
+
+function globalDataHandle2 (path) {
+
+    let id = path.get("id");
+    let init = path.get("init");
+    if (t.isCallExpression(init)) {
+        let callee = init.get("callee");
+        if (t.isIdentifier(id) && t.isIdentifier(callee.node, { name: "getApp" })) {
+            /**
+             * 这里两种解决方案，反正，预处理时已经把.globalData.替换为.了，
+             * 一、将变量所在引用替换为getApp().globalData
+             * 二、将变替换一下即可，改动较小，但可能会遇到在vue加载前就加载了组件的情况。。。
+             */
+            //方案一：
+            // path.parentPath.scope.rename(id.node.name, "getApp().globalData");
+            // path.remove();
+
+            //方案二：
+            let memExp = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
+            let varDec = t.variableDeclarator(id.node, memExp);
+            path.replaceWith(varDec);
+            path.skip();
+        }
+    }
+
+}
+
 /**
  * 替换globalData
  * 1. app.globalData.xxx = "123";  -->  getApp().globalData.xxx = "123";
@@ -263,7 +290,8 @@ function getAstType (ast, _file_js) {
                             let me = object.left;
                             if (
                                 t.isIdentifier(me.object, { name: "global" }) &&
-                                t.isStringLiteral(me.property, { value: "webpackJsonp" })
+                                (t.isIdentifier(me.property, { name: "webpackJsonp" }) || t.isStringLiteral(me.property, { value: "webpackJsonp" })
+                                )
                             ) {
                                 type = "Webpack";
                                 path.stop();
@@ -310,7 +338,7 @@ function getAstType (ast, _file_js) {
             }
         }
     });
-    // console.log("文件类型: " + type + "       路径: " + _file_js);
+    console.log("文件类型: " + type + "       路径: " + _file_js);
     return type;
 }
 
@@ -362,27 +390,35 @@ function getSetDataFunAST () {
     if (setDataFunAST) return clone(setDataFunAST);
     const code = `
 	var setData = {
-	setData:function(obj, callback){  
-		let that = this;  
-		let keys = [];  
-		let val,data;  
-		Object.keys(obj).forEach(function(key){  
-				keys = key.split('.');  
-				val = obj[key];  
-				data = that.$data;  
-				keys.forEach(function(key2,index){  
-					if(index+1 == keys.length){  
-						that.$set(data,key2,val);  
-					}else{  
-						if(!data[key2]){  
-							that.$set(data,key2,{});  
-						}  
-					}  
-					data = data[key2];  
-				})  
-			});  
-            callback && callback();
-        } 
+        setData: function(obj, callback) {
+			let that = this;
+			const handleData = (tepData, tepKey) => {
+				tepKey = tepKey.split('.');
+				tepKey.forEach(item => {
+					tepData = tepData[item];
+				});
+				return tepData;
+			};
+			const isFn = function(value) {
+				return typeof value == 'function' || false;
+			};
+			Object.keys(obj).forEach(function(key) {
+				let val = obj[key];
+				key = key.replace(/\]/g, '').replace(/\[/g, '.');
+				let front, after;
+				let index_after = key.lastIndexOf('.');
+				if (index_after != -1) {
+					front = handleData(that, key.slice(0, index_after));
+					after = key.slice(index_after + 1);
+				} else {
+					front = that;
+					after = key;
+				}
+				that.$set(front, after, val);
+			});
+			this.$forceUpdate();
+			isFn(callback) && this.$nextTick(callback);
+		}
 	}
 	`;
     const ast = parse(code, {
@@ -635,30 +671,66 @@ function isThisExpression (path, thisNameList) {
 }
 
 /**
- * 替换ast里wx关键字为uni
+ * 替换ast里指定关键字(如wx或qq)为uni
  * @param {*} ast 
  */
-function renameWXToUni (ast) {
+function renameToUni (ast, name = "wx") {
     traverse(ast, {
-        noScope: true,
-        MemberExpression (path) {
-            let object = path.get("object");
-            let pro = path.get("property");
-
-            if (
-                t.isIdentifier(object.node, {
-                    name: "wx"
-                })
-            ) {
-                object.node.name = "uni";
-                console.log("pro.node.name ", pro.node.name)
-                if (pro.node.name === "abcde") {
-                    console.log("---------", ast);
-                }
-
+        Program (path) {
+            path.scope.rename(name, "uni");
+        },
+        VariableDeclarator (path) {
+            if (t.isStringLiteral(path.node.init, { value: "replace-tag-375890534@qq.com" })) {
+                path.remove();
+                path.stop();
             }
         }
     });
+}
+
+
+/**
+ * 清理ast
+ */
+const cleanVisitor = {
+    CallExpression (path) {
+        let callee = path.get("callee");
+        let args = path.get("arguments");
+
+        let object = callee.get("object");
+        let property = callee.get("property");
+
+        if (t.isMemberExpression(callee)) {
+            if (t.isIdentifier(object.node, { name: "Object" }) &&
+                t.isIdentifier(property.node, { name: "defineProperty" }) &&
+                args.length === 3 &&
+                t.isStringLiteral(args[1].node, { value: "__esModule" })
+            ) {
+                //remove "Object.defineProperty(e, "__esModule", {value: !0}),"
+                path.remove();
+            } else if (t.isIdentifier(object.node, { name: "require" }) &&
+                t.isIdentifier(property.node, { name: "r" }) &&
+                args.length === 1 &&
+                t.isIdentifier(args[0].node, { name: "exports" })) {
+                //remove "require.r(exports),"
+                path.remove();
+            }
+        }
+        path.skip();
+    },
+    AssignmentExpression (path) {
+        let left = path.get("left");
+        let right = path.get("right");
+        if (t.isMemberExpression(left) && t.isUnaryExpression(right)) {
+            let obj = left.get("object");
+            let property = left.get("property");
+            let arg = right.get("argument");
+            if (t.isIdentifier(obj.node, { name: "exports" }) && t.isIdentifier(property.node, { name: "default" }) && t.isNumericLiteral(arg.node, { value: 0 })) {
+                //remove exports.default = void 0
+                path.remove();
+            }
+        }
+    }
 }
 
 module.exports = {
@@ -674,5 +746,7 @@ module.exports = {
     createObjectProperty,
     requirePathHandle,
     isThisExpression,
-    renameWXToUni
+    renameToUni,
+    cleanVisitor,
+    globalDataHandle2
 };

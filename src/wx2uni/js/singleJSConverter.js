@@ -92,21 +92,9 @@ const singleJSVistor = {
             path.node.source.value = filePath;
         }
     },
-    MemberExpression (path) {
-        babelUtil.globalDataHandle(path, fileKey);
-    }
-    // VariableDeclaration(path) {
-    // 	traverse(path.node, {
-    // 		noScope: true,
-    // 		VariableDeclarator(path2) {
-    // 			if (t.CallExpression(path2.node.init)) {
-    // 				if(t.isIdentifier(path2.node.init.callee, {name:"getApp"})){
-    // 					path2.remove();
-    // 				}
-    // 			}
-    // 		}
-    // 	});
-    // },
+    VariableDeclarator (path) {
+        babelUtil.globalDataHandle2(path);
+    },
 };
 
 /**

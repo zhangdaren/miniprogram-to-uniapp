@@ -14,21 +14,50 @@ const isWin = /^win/.test(process.platform);
 const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path);
 
 
-/**
- * 是否为数字
- * @param {*} n 
- */
-function isNumber (n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
+// /**
+//  * 是否为数字
+//  * @param {*} n 
+//  */
+// function isNumber (n) {
+//     return !isNaN(parseFloat(n)) && isFinite(n);
+// }
+
+
+// /**
+//  * 是否为Object
+//  * @param {*} n 
+//  */
+// function isObject (val) {
+//     return val != null && typeof val === 'object' && Array.isArray(val) === false;
+// }
+
+
+function isString (arg) {
+    return arg && typeof (arg) == "string";
 }
 
+function isNumber (arg) {
+    return arg && typeof (arg) == "number" && !isNaN(arg);
+}
 
-/**
- * 是否为Object
- * @param {*} n 
- */
-function isObject (val) {
-    return val != null && typeof val === 'object' && Array.isArray(val) === false;
+function isBoolean (arg) {
+    return arg === !!arg;
+}
+
+function isArray (arg) {
+    return Object.prototype.toString.call(arg) == '[object Array]';
+}
+
+function isObject (arg) {
+    return Object.prototype.toString.call(arg) == '[object Object]';
+}
+
+function isFunction (arg) {
+    return Object.prototype.toString.call(arg) == '[object Function]';
+}
+
+function isEmpty (arg) {
+    return Object.keys(arg).length === 0;
 }
 
 
@@ -392,10 +421,10 @@ function parseTemplateAttrParams (attr) {
 }
 
 /**
- * 判断关键字是否与vant有关
+ * 判断关键字是否与vant有关  //van-是老版vant，可以支持。
  */
 function isVant (name) {
-    return /vant-weapp|vant|van/.test(name);
+    return /\bvant-weapp\b|\bvant\b/.test(name);
 }
 
 /**
@@ -478,10 +507,16 @@ function removeSingleQuote (value) {
     return value;
 }
 
+
 module.exports = {
     log,
+
+    isString,
     isNumber,
     isObject,
+    isFunction,
+    isEmpty,
+
     isHex,
     isAssetsFolderName,
     normalizePath,

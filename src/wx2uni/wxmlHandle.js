@@ -144,7 +144,7 @@ async function wxmlHandle (fileData, file_wxml, onlyWxmlFile) {
     }
     return {
         templateString: templateConvertedString,
-        templateStringMin: templateConvertedStringMin
+        templateStringMin: templateConvertedStringMin,
     };
 }
 

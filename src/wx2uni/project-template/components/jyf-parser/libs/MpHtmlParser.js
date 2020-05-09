@@ -3,7 +3,7 @@
   github：https://github.com/jin-yufeng/Parser
   docs：https://jin-yufeng.github.io/Parser
   author：JinYufeng
-  update：2020/03/17
+  update：2020/04/26
 */
 var cfg = require('./config.js'),
 	blankChar = cfg.blankChar,
@@ -12,38 +12,6 @@ var cfg = require('./config.js'),
 		screenWidth,
 		system
 	} = wx.getSystemInfoSync();
-// #ifdef MP-BAIDU || MP-ALIPAY || MP-TOUTIAO
-var entities = {
-	lt: '<',
-	gt: '>',
-	amp: '&',
-	quot: '"',
-	apos: "'",
-	nbsp: '\u00A0',
-	ensp: '\u2002',
-	emsp: '\u2003',
-	ndash: '–',
-	mdash: '—',
-	middot: '·',
-	lsquo: '‘',
-	rsquo: '’',
-	ldquo: '“',
-	rdquo: '”',
-	bull: '•',
-	hellip: '…',
-	permil: '‰',
-	copy: '©',
-	reg: '®',
-	trade: '™',
-	times: '×',
-	divide: '÷',
-	cent: '￠',
-	pound: '£',
-	yen: '¥',
-	euro: '€',
-	sect: '§'
-};
-// #endif
 var emoji; // emoji 补丁包 https://jin-yufeng.github.io/Parser/#/instructions?id=emoji
 class MpHtmlParser {
 	constructor(data, options = {}) {
@@ -53,15 +21,12 @@ class MpHtmlParser {
 		this.data = data;
 		this.domain = options.domain;
 		this.DOM = [];
-		this.i = 0;
+		this.i = this.start = this.audioNum = this.imgNum = this.videoNum = 0;
 		this.protocol = this.domain && this.domain.includes('://') ? this.domain.split('://')[0] : '';
-		this.start = 0;
 		this.state = this.Text;
 		this.STACK = [];
-		this.audioNum = 0;
-		this.imgNum = 0;
-		this.videoNum = 0;
 		this.useAnchor = options.useAnchor;
+		this.xml = options.xml;
 	}
 	parse() {
 		if (emoji) this.data = emoji.parseEmoji(this.data);
@@ -69,25 +34,6 @@ class MpHtmlParser {
 			this.state(c);
 		if (this.state == this.Text) this.setText();
 		while (this.STACK.length) this.popNode(this.STACK.pop());
-		// #ifdef MP-BAIDU || MP-TOUTIAO
-		// 将顶层标签的一些样式提取出来给 rich-text
-		(function f(ns) {
-			for (var i = ns.length, n; n = ns[--i];) {
-				if (n.type == 'text') continue;
-				if (!n.c) {
-					var style = n.attrs.style;
-					if (style) {
-						var j, k, res;
-						if ((j = style.indexOf('display')) != -1)
-							res = style.substring(j, (k = style.indexOf(';', j)) == -1 ? style.length : k);
-						if ((j = style.indexOf('float')) != -1)
-							res += ';' + style.substring(j, (k = style.indexOf(';', j)) == -1 ? style.length : k);
-						n.attrs.contain = res;
-					}
-				} else f(n.children);
-			}
-		})(this.DOM);
-		// #endif
 		if (this.DOM.length) {
 			this.DOM[0].PoweredBy = 'Parser';
 			if (this.title) this.DOM[0].title = this.title;
@@ -96,12 +42,14 @@ class MpHtmlParser {
 	}
 	// 设置属性
 	setAttr() {
-		var name = this.attrName.toLowerCase();
+		var name = this.getName(this.attrName);
 		if (cfg.trustAttrs[name]) {
-			if (!this.attrVal) {
-				if (cfg.boolAttrs[name]) this.attrs[name] = 'T';
-			} else if (name == 'src') this.attrs[name] = this.getUrl(this.attrVal);
-			else this.attrs[name] = this.attrVal;
+			var val = this.attrVal;
+			if (val) {
+				if (name == 'src') this.attrs[name] = this.getUrl(this.decode(val, 'amp'));
+				else if (name == 'href' || name == 'style') this.attrs[name] = this.decode(val, 'amp');
+				else this.attrs[name] = val;
+			} else if (cfg.boolAttrs[name]) this.attrs[name] = 'T';
 		}
 		this.attrVal = '';
 		while (blankChar[this.data[this.i]]) this.i++;
@@ -117,8 +65,8 @@ class MpHtmlParser {
 		if (!text) return;
 		text = (cfg.onText && cfg.onText(text, () => back = true)) || text;
 		if (back) {
-			this.data = this.data.substr(0, this.start) + n.text + this.data.substr(this.i);
-			let j = this.start + n.text.length;
+			this.data = this.data.substr(0, this.start) + text + this.data.substr(this.i);
+			let j = this.start + text.length;
 			for (this.i = this.start; this.i < j; this.i++) this.state(this.data[this.i]);
 			return;
 		}
@@ -130,54 +78,22 @@ class MpHtmlParser {
 			text = tmp.join('');
 			if (text == ' ') return;
 		}
-		// 处理实体
-		var siblings = this.siblings(),
-			i = -1,
-			j, en;
-		while (1) {
-			if ((i = text.indexOf('&', i + 1)) == -1) break;
-			if ((j = text.indexOf(';', i + 2)) == -1) break;
-			if (text[i + 1] == '#') {
-				en = parseInt((text[i + 2] == 'x' ? '0' : '') + text.substring(i + 2, j));
-				if (!isNaN(en)) text = text.substr(0, i) + String.fromCharCode(en) + text.substring(j + 1);
-			} else {
-				en = text.substring(i + 1, j);
-				// #ifdef MP-WEIXIN || MP-QQ || APP-PLUS
-				if (en == 'nbsp') text = text.substr(0, i) + '\xA0' + text.substr(j + 1); // 解决 &nbsp; 失效
-				else if (en != 'lt' && en != 'gt' && en != 'amp' && en != 'ensp' && en != 'emsp' && en != 'quot' && en != 'apos') {
-					i && siblings.push({
-						type: 'text',
-						text: text.substr(0, i)
-					})
-					siblings.push({
-						type: 'text',
-						text: `&${en};`,
-						en: 1
-					})
-					text = text.substr(j + 1);
-					i = -1;
-				}
-				// #endif
-				// #ifdef MP-BAIDU || MP-ALIPAY || MP-TOUTIAO
-				if (entities[en]) text = text.substr(0, i) + entities[en] + text.substr(j + 1);
-				// #endif
-			}
-		}
-		text && siblings.push({
+		this.siblings().push({
 			type: 'text',
-			text
-		})
+			text: this.decode(text)
+		});
 	}
 	// 设置元素节点
 	setNode() {
 		var node = {
-			name: this.tagName.toLowerCase(),
-			attrs: this.attrs
-		}
+				name: this.tagName.toLowerCase(),
+				attrs: this.attrs
+			},
+			close = cfg.selfClosingTags[node.name] || (this.xml && this.data[this.i] == '/');
 		this.attrs = {};
 		if (!cfg.ignoreTags[node.name]) {
 			this.matchAttr(node);
-			if (!cfg.selfClosingTags[node.name]) {
+			if (!close) {
 				node.children = [];
 				if (node.name == 'pre' && cfg.highlight) {
 					this.remove(node);
@@ -188,7 +104,7 @@ class MpHtmlParser {
 			} else if (!cfg.filter || cfg.filter(node, this) != false)
 				this.siblings().push(node);
 		} else {
-			if (!cfg.selfClosingTags[node.name]) this.remove(node);
+			if (!close) this.remove(node);
 			else if (node.name == 'source') {
 				var parent = this.STACK[this.STACK.length - 1],
 					attrs = node.attrs;
@@ -213,29 +129,37 @@ class MpHtmlParser {
 	}
 	// 移除标签
 	remove(node) {
-		var j = this.i;
-		while (this.i < this.data.length) {
-			if ((this.i = this.data.indexOf('</', this.i + 1)) == -1) this.i = this.data.length;
+		var name = node.name,
+			j = this.i;
+		while (1) {
+			if ((this.i = this.data.indexOf('</', this.i + 1)) == -1) {
+				if (name == 'pre' || name == 'svg') this.i = j;
+				else this.i = this.data.length;
+				return;
+			}
 			this.start = (this.i += 2);
 			while (!blankChar[this.data[this.i]] && !this.isClose()) this.i++;
-			if (this.section().toLowerCase() == node.name) {
+			if (this.getName(this.section()) == name) {
 				// 代码块高亮
-				if (node.name == 'pre') {
+				if (name == 'pre') {
 					this.data = this.data.substr(0, j + 1) + cfg.highlight(this.data.substring(j + 1, this.i - 5), node.attrs) +
 						this.data.substr(this.i - 5);
 					return this.i = j;
-				} else if (node.name == 'style')
+				} else if (name == 'style')
 					this.CssHandler.getStyle(this.data.substring(j + 1, this.i - 7));
-				else if (node.name == 'title')
+				else if (name == 'title')
 					this.title = this.data.substring(j + 1, this.i - 7);
 				if ((this.i = this.data.indexOf('>', this.i)) == -1) this.i = this.data.length;
 				// 处理 svg
-				if (node.name == 'svg') {
+				if (name == 'svg') {
 					var src = this.data.substring(j, this.i + 1);
 					if (!node.attrs.xmlns) src = ' xmlns="http://www.w3.org/2000/svg"' + src;
 					var i = j;
 					while (this.data[j] != '<') j--;
 					src = this.data.substring(j, i) + src;
+					var parent = this.STACK[this.STACK.length - 1];
+					if (node.attrs.width == '100%' && parent && (parent.attrs.style || '').includes('inline'))
+						parent.attrs.style = 'width:300px;max-width:100%;' + parent.attrs.style;
 					this.siblings().push({
 						name: 'img',
 						attrs: {
@@ -253,26 +177,18 @@ class MpHtmlParser {
 		var attrs = node.attrs,
 			style = this.CssHandler.match(node.name, attrs, node) + (attrs.style || ''),
 			styleObj = {};
+		if (attrs.id) {
+			if (this.compress & 1) attrs.id = void 0;
+			else if (this.useAnchor) this.bubble();
+		}
+		if ((this.compress & 2) && attrs.class) attrs.class = void 0;
 		switch (node.name) {
-			case 'div':
-			case 'p':
-				if (attrs.align) {
-					styleObj['text-align'] = attrs.align;
-					attrs.align = void 0;
-				}
-				break;
-			case 'img':
-				if (attrs['data-src']) {
-					attrs.src = attrs.src || attrs['data-src'];
-					attrs['data-src'] = void 0;
-				}
-				if (attrs.src && !attrs.ignore) {
-					if (this.bubble()) attrs.i = (this.imgNum++).toString();
-					else attrs.ignore = 'T';
-				}
-				break;
 			case 'a':
 			case 'ad':
+				// #ifdef APP-PLUS
+			case 'iframe':
+			case 'embed':
+				// #endif
 				this.bubble();
 				break;
 			case 'font':
@@ -298,28 +214,43 @@ class MpHtmlParser {
 				if (!attrs.id) attrs.id = node.name + (++this[`${node.name}Num`]);
 				else this[`${node.name}Num`]++;
 				if (node.name == 'video') {
+					if (this.videoNum > 3)
+						node.lazyLoad = 1;
 					if (attrs.width) {
-						style = `width:${parseFloat(attrs.width) + attrs.width.includes('%') ? '%' : 'px'};${style}`;
+						styleObj.width = parseFloat(attrs.width) + (attrs.width.includes('%') ? '%' : 'px');
 						attrs.width = void 0;
 					}
 					if (attrs.height) {
-						style = `height:${parseFloat(attrs.height) + attrs.height.includes('%') ? '%' : 'px'};${style}`;
+						styleObj.height = parseFloat(attrs.height) + (attrs.height.includes('%') ? '%' : 'px');
 						attrs.height = void 0;
 					}
-					if (this.videoNum > 3) node.lazyLoad = true;
 				}
 				attrs.source = [];
 				if (attrs.src) attrs.source.push(attrs.src);
 				if (!attrs.controls && !attrs.autoplay)
 					console.warn(`存在没有 controls 属性的 ${node.name} 标签，可能导致无法播放`, node);
 				this.bubble();
+				break;
+			case 'td':
+			case 'th':
+				if (attrs.colspan || attrs.rowspan)
+					for (var k = this.STACK.length, item; item = this.STACK[--k];)
+						if (item.name == 'table') {
+							item.c = void 0;
+							break;
+						}
+		}
+		if (attrs.align) {
+			styleObj['text-align'] = attrs.align;
+			attrs.align = void 0;
 		}
 		// 压缩 style
 		var styles = style.split(';');
-		for (var i = 0, len = styles.length, style = ''; i < len; i++) {
+		style = '';
+		for (var i = 0, len = styles.length; i < len; i++) {
 			var info = styles[i].split(':');
 			if (info.length < 2) continue;
-			var key = info[0].trim().toLowerCase(),
+			let key = info[0].trim().toLowerCase(),
 				value = info.slice(1).join(':').trim();
 			if (value.includes('-webkit') || value.includes('-moz') || value.includes('-ms') || value.includes('-o') || value
 				.includes(
@@ -328,8 +259,34 @@ class MpHtmlParser {
 			else if (!styleObj[key] || value.includes('import') || !styleObj[key].includes('import'))
 				styleObj[key] = value;
 		}
-		if (node.name == 'img' && parseInt(styleObj.width || attrs.width) > screenWidth)
-			styleObj.height = 'auto';
+		if (node.name == 'img' || node.name == 'picture') {
+			if (attrs['data-src']) {
+				attrs.src = attrs.src || attrs['data-src'];
+				attrs['data-src'] = void 0;
+			}
+			if ((attrs.src || node.name == 'picture') && !attrs.ignore) {
+				if (this.bubble())
+					attrs.i = (this.imgNum++).toString();
+				else attrs.ignore = 'T';
+			}
+			if (attrs.ignore) styleObj['max-width'] = '100%';
+			var width;
+			if (styleObj.width) width = styleObj.width;
+			else if (attrs.width) width = attrs.width.includes('%') ? attrs.width : attrs.width + 'px';
+			if (width) {
+				styleObj.width = width;
+				attrs.width = '100%';
+				if (parseInt(width) > screenWidth) {
+					styleObj.height = '';
+					if (attrs.height) attrs.height = void 0;
+				}
+			}
+			if (styleObj.height) {
+				attrs.height = styleObj.height;
+				styleObj.height = '';
+			} else if (attrs.height && !attrs.height.includes('%'))
+				attrs.height += 'px';
+		}
 		for (var key in styleObj) {
 			var value = styleObj[key];
 			if (key.includes('flex') || key == 'order' || key == 'self-align') node.c = 1;
@@ -338,57 +295,55 @@ class MpHtmlParser {
 				var j = value.indexOf('(');
 				if (j++ != -1) {
 					while (value[j] == '"' || value[j] == "'" || blankChar[value[j]]) j++;
-					value = value.substr(0, j) + this.getUrl(value.substr(j, 2)) + value.substr(j + 2);
+					value = value.substr(0, j) + this.getUrl(value.substr(j));
 				}
 			}
 			// 转换 rpx
 			else if (value.includes('rpx'))
-				value = value.replace(/[0-9.\s]*rpx/g, $ => parseFloat($) * screenWidth / 750 + 'px');
+				value = value.replace(/[0-9.]+\s*rpx/g, $ => parseFloat($) * screenWidth / 750 + 'px');
 			else if (key == 'white-space' && value.includes('pre'))
 				this.pre = node.pre = true;
 			style += `;${key}:${value}`;
 		}
 		style = style.substr(1);
 		if (style) attrs.style = style;
-		if (attrs.id) {
-			if (this.compress & 1) attrs.id = void 0;
-			else if (this.useAnchor) this.bubble();
-		}
-		if ((this.compress & 2) && attrs.class) attrs.class = void 0;
 	}
 	// 节点出栈处理
 	popNode(node) {
 		// 空白符处理
 		if (node.pre) {
 			node.pre = this.pre = void 0;
-			for (var i = this.STACK.length; i--;)
+			for (let i = this.STACK.length; i--;)
 				if (this.STACK[i].pre)
 					this.pre = true;
 		}
 		if (node.name == 'head' || (cfg.filter && cfg.filter(node, this) == false))
 			return this.siblings().pop();
+		var attrs = node.attrs;
 		// 替换一些标签名
 		if (node.name == 'picture') {
 			node.name = 'img';
-			if (!node.attrs.src && (node.children[0] || '').name == 'img')
-				node.attrs.src = node.children[0].attrs.src;
-			if (node.attrs.src && !node.attrs.ignore)
-				node.attrs.i = (this.imgNum++).toString();
+			if (!attrs.src && (node.children[0] || '').name == 'img')
+				attrs.src = node.children[0].attrs.src;
 			return node.children = void 0;
 		}
 		if (cfg.blockTags[node.name]) node.name = 'div';
 		else if (!cfg.trustTags[node.name]) node.name = 'span';
 		// 处理列表
-		if (node.c) {
-			if (node.name == 'ul') {
+		if (node.c && (node.name == 'ul' || node.name == 'ol')) {
+			if ((node.attrs.style || '').includes('list-style:none')) {
+				for (let i = 0, child; child = node.children[i++];)
+					if (child.name == 'li')
+						child.name = 'div';
+			} else if (node.name == 'ul') {
 				var floor = 1;
-				for (var i = this.STACK.length; i--;)
+				for (let i = this.STACK.length; i--;)
 					if (this.STACK[i].name == 'ul') floor++;
 				if (floor != 1)
-					for (i = node.children.length; i--;)
+					for (let i = node.children.length; i--;)
 						node.children[i].floor = floor;
-			} else if (node.name == 'ol') {
-				for (var i = 0, num = 1, child; child = node.children[i++];)
+			} else {
+				for (let i = 0, num = 1, child; child = node.children[i++];)
 					if (child.name == 'li') {
 						child.type = 'ol';
 						child.num = ((num, type) => {
@@ -403,53 +358,75 @@ class MpHtmlParser {
 								return res;
 							}
 							return num;
-						})(num++, node.attrs.type) + '.';
+						})(num++, attrs.type) + '.';
 					}
 			}
 		}
 		// 处理表格的边框
 		if (node.name == 'table') {
-			if (node.attrs.border)
-				node.attrs.style = `border:${node.attrs.border}px solid gray;${node.attrs.style || ''}`;
-			if (node.attrs.cellspacing)
-				node.attrs.style = `border-spacing:${node.attrs.cellspacing}px;${node.attrs.style || ''}`;
-			if (node.attrs.border || node.attrs.cellpadding)
+			var padding = attrs.cellpadding,
+				spacing = attrs.cellspacing,
+				border = attrs.border;
+			if (node.c) {
+				this.bubble();
+				if (!padding) padding = 2;
+				if (!spacing) spacing = 2;
+			}
+			if (border) attrs.style = `border:${border}px solid gray;${attrs.style || ''}`;
+			if (spacing) attrs.style = `border-spacing:${spacing}px;${attrs.style || ''}`;
+			if (border || padding)
 				(function f(ns) {
 					for (var i = 0, n; n = ns[i]; i++) {
 						if (n.name == 'th' || n.name == 'td') {
-							if (node.attrs.border)
-								n.attrs.style = `border:${node.attrs.border}px solid gray;${n.attrs.style || ''}`;
-							if (node.attrs.cellpadding)
-								n.attrs.style = `padding:${node.attrs.cellpadding}px;${n.attrs.style || ''}`;
+							if (border) n.attrs.style = `border:${border}px solid gray;${n.attrs.style}`;
+							if (padding) n.attrs.style = `padding:${padding}px;${n.attrs.style}`;
 						} else f(n.children || []);
 					}
 				})(node.children)
 		}
 		this.CssHandler.pop && this.CssHandler.pop(node);
 		// 自动压缩
-		if (node.name == 'div' && !Object.keys(node.attrs).length) {
+		if (node.name == 'div' && !Object.keys(attrs).length) {
 			var siblings = this.siblings();
-			if (!(node.children || []).length) siblings.pop();
-			else if (node.children.length == 1 && node.children[0].name == 'div')
+			if (node.children.length == 1 && node.children[0].name == 'div')
 				siblings[siblings.length - 1] = node.children[0];
 		}
 	}
 	// 工具函数
 	bubble() {
-		for (var i = this.STACK.length; i--;) {
-			if (cfg.richOnlyTags[this.STACK[i].name]) break;
-			this.STACK[i].c = 1;
+		for (var i = this.STACK.length, item; item = this.STACK[--i];) {
+			if (cfg.richOnlyTags[item.name]) {
+				if (item.name == 'table' && !Object.hasOwnProperty.call(item, 'c')) item.c = 1;
+				return false;
+			}
+			item.c = 1;
 		}
-		return i == -1;
+		return true;
 	}
-	getUrl(url) {
-		if (this.domain) {
-			if (url[0] == '/') {
-				if (url[1] == '/') url = this.protocol + ':' + url;
-				else url = this.domain + url;
-			} else if (!url.includes('://'))
-				url = this.domain + '/' + url;
+	decode(val, amp) {
+		var i = -1,
+			j, en;
+		while (1) {
+			if ((i = val.indexOf('&', i + 1)) == -1) break;
+			if ((j = val.indexOf(';', i + 2)) == -1) break;
+			if (val[i + 1] == '#') {
+				en = parseInt((val[i + 2] == 'x' ? '0' : '') + val.substring(i + 2, j));
+				if (!isNaN(en)) val = val.substr(0, i) + String.fromCharCode(en) + val.substr(j + 1);
+			} else {
+				en = val.substring(i + 1, j);
+				if (cfg.entities[en] || en == amp)
+					val = val.substr(0, i) + (cfg.entities[en] || '&') + val.substr(j + 1);
+			}
 		}
+		return val;
+	}
+	getName = val => this.xml ? val : val.toLowerCase();
+	getUrl(url) {
+		if (url[0] == '/') {
+			if (url[1] == '/') url = this.protocol + ':' + url;
+			else if (this.domain) url = this.domain + url;
+		} else if (this.domain && url.indexOf('data:') != 0 && !url.includes('://'))
+			url = this.domain + '/' + url;
 		return url;
 	}
 	isClose = () => this.data[this.i] == '>' || (this.data[this.i] == '/' && this.data[this.i + 1] == '>');
@@ -528,12 +505,11 @@ class MpHtmlParser {
 			for (; !blankChar[this.data[this.i]] && !this.isClose(); this.i++);
 			this.attrVal = this.section();
 		}
-		while (this.attrVal.includes('&quot;')) this.attrVal = this.attrVal.replace('&quot;', '"');
 		this.setAttr();
 	}
 	EndTag(c) {
 		if (blankChar[c] || c == '>' || c == '/') {
-			var name = this.section().toLowerCase();
+			var name = this.getName(this.section());
 			for (var i = this.STACK.length; i--;)
 				if (this.STACK[i].name == name) break;
 			if (i != -1) {

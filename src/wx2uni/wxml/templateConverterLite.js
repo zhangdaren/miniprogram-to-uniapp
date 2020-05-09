@@ -4,7 +4,7 @@ const clone = require('clone');
 const utils = require('../../utils/utils.js');
 const pathUtil = require('../../utils/pathUtil.js');
 const objectStringToObject = require('object-string-to-object');
-const paramsHandle = require('../paramsHandle');
+// const paramsHandle = require('../paramsHandle');
 
 let compiledProjectHandle = null;
 try {
@@ -97,6 +97,12 @@ const attrConverterConfigUni = {
     },
     'catch:tap': {
         key: '@tap.stop',
+        value: str => {
+            return repairAttr(str);
+        }
+    },
+    'data-ref': {
+        key: 'ref',
         value: str => {
             return repairAttr(str);
         }
@@ -249,13 +255,13 @@ function forTagHandle (node, attrs, k) {
 
     if (value) {
         //处理<view wx:for="{{ dates }}" wx:key="dates"></view>
-        if (value.replace(/{{ *(.*?) *}}/, '$1').trim() === wx_key)
+        if (value.replace(/{{\s*(.*?)\s*}}/, '$1').trim() === wx_key)
             wx_key = 'index';
 
         //替换{{}}
         if (wx_key) {
             wx_key = wx_key.trim();
-            wx_key = wx_key.replace(/{{ *(.*?) *}}/, '$1').replace(/\"/g, "'");
+            wx_key = wx_key.replace(/{{\s*(.*?)\s*}}/, '$1').replace(/\"/g, "'");
             //修复index，防止使用的item.id来替换index
             wx_key = wx_key.indexOf('.') === -1 ? wx_key : 'index';
 
@@ -286,17 +292,20 @@ function forTagHandle (node, attrs, k) {
         //设置for-item默认值
         wx_forItem = wx_forItem ? wx_forItem : 'item';
 
+        let wxForItems = value;
         if (value) {
             //判断是wx:for里是否已经包含in了
             if (value.indexOf(' in ') == -1) {
                 //将双引号转换单引号
                 value = value.replace(/\"/g, "'");
                 value = value.replace(
-                    /{{ *(.*?) *}}/,
+                    /{{\s*(.*?)\s*}}/,
                     '(' + wx_forItem + ', ' + wx_key + ') in $1'
                 );
 
                 if (value == node.attribs[k]) {
+                    wxForItems = value;
+
                     //奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
                     //这里处理无{{}}的情况
                     value = '(' + wx_forItem + ', ' + wx_key + ') in ' + value;
@@ -310,15 +319,25 @@ function forTagHandle (node, attrs, k) {
                     str1 += ', ' + wx_key;
                 }
                 value = '(' + str1 + ') in ' + tmpArr[1];
+                wxForItems = tmpArr[1];
+
             }
 
             attrs['v-for'] = value;
+            if (compiledProjectHandle) {
+                attrs['data-for-index'] = wx_key;
+                attrs['data-for-item'] = wx_forItem;
+                attrs['data-for-items'] = wxForItems.replace(/{{\s*(.*?)\s*}}/, '$1');
+            }
+
+
             if (node.attribs.hasOwnProperty('wx:for-index'))
                 delete node.attribs['wx:for-index'];
             if (node.attribs.hasOwnProperty('wx:for-item'))
                 delete node.attribs['wx:for-item'];
             if (node.attribs.hasOwnProperty('wx:for-items'))
                 delete node.attribs['wx:for-items'];
+
         }
     } else {
         const code = templateParser.astToString([node]);
@@ -367,6 +386,7 @@ function includeTagHandle (node, file_wxml) {
 }
 /**
  * 在处理之前先把变量处理一下
+ * 20200418->减少侵入，也因为修复不完全，不再进行重名！
  */
 function beforeTemplateConverter (node, file_wxml, isComponent) {
     for (const k in node.attribs) {
@@ -754,7 +774,8 @@ const templateConverterLite = async function (
         let node = ast[i];
 
         //处理标签上面的属性
-        beforeTemplateConverter(node, file_wxml, isComponent);
+        //20200418->减少侵入，也因为修复不完全，不再进行重名！
+        // beforeTemplateConverter(node, file_wxml, isComponent);
 
         //检测到是html节点
         if (node.type === 'tag') {
@@ -821,8 +842,9 @@ const templateConverterLite = async function (
             includeTagHandle(node, file_wxml);
         } else if (node.type === 'text') {
             //替换变量
-            if (node.data.trim())
-                node.data = paramsHandle(node.data, isComponent);
+            //20200418->减少侵入，也因为修复不完全，不再进行重名！
+            // if (node.data.trim())
+            //     node.data = paramsHandle(node.data, isComponent);
         }
 
         //compiled page handle

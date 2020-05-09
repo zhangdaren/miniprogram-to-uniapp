@@ -59,8 +59,7 @@ $ wtu -i miniprogramProject -w
 <a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a>
 
 ## 已完成   
-* 支持无云开发的小程序项目转换为uni-app项目
-* 支持有云开发的小程序项目转换为uni-app项目(cloudfunctions目录将被忽略，uni-app结合小程序云开发见：[使用uni-app进行微信小程序云开发经验分享](https://ask.dcloud.net.cn/article/35933))   
+* 支持有/无云开发的小程序项目转换为uni-app项目(cloudfunctions目录将被忽略，uni-app结合小程序云开发见：[使用uni-app进行微信小程序云开发经验分享](https://ask.dcloud.net.cn/article/35933))   
 * 支持解析TypeScript小程序项目   
 * 支持解析使用npm模块的小程序项目   
 * 支持解析include标签   
@@ -68,19 +67,47 @@ $ wtu -i miniprogramProject -w
 * 支持解析Behavior文件为mixins文件   
 * 支持*.js', *.wxml和*.wxss文件进行相应转换，并做了大量的优化   
 * 支持识别App、Page、Component、VantComponent、Behavior和纯Javascript文件的转换   
-* ~~App.vue里，this.globalData.xxx替换为this.$options.globalData.xxx(后续uni-app可以支持时，此功能将回滚，已回滚)~~   
-* ~~导出```<template data="abc"/>``` 标签为abc.vue，并注册为全局组件~~   
-* 使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)   
-* 搜索未在data声明，而直接在setData()里使用的变量，并修复   
+* 
+* 修复变量名与函数重名的情况   
 * 合并使用require导入的wxs文件   
-* 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径   
-* 修复变量名与函数重名的情况(目前uni编译时会将非static目录的文件复制一份到static目录，但并不完全，因此本功能仍保留)   
+* 搜索未在data声明，而直接在setData()里使用的变量，并修复   
+* 使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)   
+* 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径(目前uni编译时会将非static目录的文件复制一份到static目录，但并不完全，因此本功能仍保留)   
+* 
 * 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)   
 * 支持vue-cli模式，可以通过参数配置(-c)，默认为false，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发(建议爱折腾人士使用)  
-* 支持vant转换，可以通过参数配置(-z)，默认为false：自动识别（无须添加参数，工具已支持自动识别vant项目），~~如果需要转换使用vant-weapp组件的小程序项目，必须配置这个参数，否则转换后有问题。~~（另外，转换后的项目，目前仅支持v3和h5两个平台）  
-* 支持wx.xxx()转换为uni.xxx()，可以通过参数配置(-r)，默认为false（因uni已经对wx相关函数做了兼容，但仍有很多朋友有此需求，特作为可配置项，按需自取）  
+* 支持vant转换，可以通过参数配置(-z)，默认为false：（现已尽可能自动识别，而无须添加参数；另外，转换后的项目，目前仅支持v3和h5两个平台）  
+* 支持wx.xxx()转换为uni.xxx()，可以通过参数配置(-r)，默认为false（虽然uni已经对wx相关函数做了兼容，但仍有很多朋友有此需求，特作为可配置项，按需自取）  
    
+  
+## 不支持转换的功能及组件
+* 不支持转换使用redux的小程序(代表为：网易云信小程序DEMO)   
+* 不支持转换使用腾讯omi的小程序(https://github.com/Tencent/omi)   
+* 不支持转换小程序抽象节点componentGenerics   
+* 不支持以$开头的变量名称，如```Page({data:{$data:{name:"hello"}}})```，刚好$data是vue内置变量，so不支持，需手动修复   
+* 不支持使用js系统关键字作为函数或变量名(如default、import等)   
+* 更多，请参照[miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)   
+  
+
 ## 更新记录   
+### v1.0.63(20200509)   
+* [新增] 支持解析slot动态插槽   
+* [新增] include套娃的处理(感谢网友yiheyang提交代码)   
+* [更新] jyf-parser的版本为v2.11.2   
+* [优化] getApp的转换方式   
+* [优化] wx转换为uni的替换方式   
+* [优化] 去掉老版vant-ui的判断   
+* [优化] setData函数(支持多级数组，感谢网友☆_☆提供代码)   
+* [优化] wxss里失效字体文件的引用
+* [优化] 当js体积超过300kb时，忽略转换(防止转换时间过长)   
+* [优化] 去掉判断prop是否为js关键字并替换的操作(为减少代码侵入度及增加转换精确度，因此需转换后根据编译信息手动修复)
+* [优化] 代码```<view wx:for="{{tabs}}" wx:for-item="tabItem" wx:key="id">{{tabItem.name}}</view>```转换为```<view v-for="(tabItem, index) in tabs" :key="index">{{tabItem.name}}</view>```(即id -> index)   
+* [修复] 当函数与变量同名时wxml属性被误替换的bug   
+* [修复] 没有精确判断vant项目，导致其他项目也解析为vant项目的bug   
+* [修复] triggerEvent转换为$emit后，获取不到参数的bug(实际为：小程序里取参数是取e.detail.xxx，而uniapp则是直接取e.xxx；因此工具转换时，将在参数外面增加detail节点，以适应引用处的代码)   
+* [修复] 代码```<block wx:key="" wx:for="{{compon.slideimgs}}" wx:for-item="slideimg"></block>```转换后误把slideimg替换为item的bug   
+* [修复] 标签上只存在wx:key时，未进行转换的bug   
+
 ### v1.0.62(20200321)   
 * [更新] jyf-parser的版本为v2.8.1   
 * [优化] 注释css里已失效字体文件(含iconfont和GuildfordPro)    

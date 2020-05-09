@@ -9,16 +9,34 @@ module.exports = {
 	highlight: null,
 	// 文本处理函数
 	onText: null,
+	// 实体编码列表
+	entities: {
+		quot: '"',
+		apos: "'",
+		semi: ';',
+		nbsp: '\xA0',
+		ensp: '\u2002',
+		emsp: '\u2003',
+		ndash: '–',
+		mdash: '—',
+		middot: '·',
+		lsquo: '‘',
+		rsquo: '’',
+		ldquo: '“',
+		rdquo: '”',
+		bull: '•',
+		hellip: '…'
+	},
 	blankChar: makeMap(' ,\xA0,\t,\r,\n,\f'),
 	// 块级标签，将被转为 div
-	blockTags: makeMap('address,article,aside,body,center,cite,footer,header,html,nav,section'
+	blockTags: makeMap('address,article,aside,body,caption,center,cite,footer,header,html,nav,section' + (
 		// #ifdef MP-WEIXIN
-		+ (canIUse ? '' : ',caption,pre')
+		canIUse ? '' :
 		// #endif
-	),
+		',pre')),
 	// 将被移除的标签
 	ignoreTags: makeMap(
-		'area,base,basefont,canvas,command,embed,frame,iframe,input,isindex,keygen,link,map,meta,param,script,source,style,svg,textarea,title,track,use,wbr'
+		'area,base,basefont,canvas,command,frame,input,isindex,keygen,link,map,meta,param,script,source,style,svg,textarea,title,track,use,wbr'
 		// #ifdef MP-WEIXIN
 		+ (canIUse ? ',rp' : '')
 		// #endif
@@ -27,7 +45,7 @@ module.exports = {
 		// #endif
 	),
 	// 只能被 rich-text 显示的标签
-	richOnlyTags: makeMap('a,colgroup,fieldset,legend,picture,table,tbody,td,tfoot,th,thead,tr'
+	richOnlyTags: makeMap('a,colgroup,fieldset,legend,picture,table'
 		// #ifdef MP-WEIXIN
 		+ (canIUse ? ',bdi,bdo,caption,rt,ruby' : '')
 		// #endif
@@ -38,7 +56,7 @@ module.exports = {
 	),
 	// 信任的属性
 	trustAttrs: makeMap(
-		'align,alt,app-id,author,autoplay,border,cellpadding,cellspacing,class,color,colspan,controls,data-src,dir,face,height,href,id,ignore,loop,media,muted,name,path,poster,rowspan,size,span,src,start,style,type,unit-id,unitId,width,xmlns'
+		'align,alt,app-id,author,autoplay,border,cellpadding,cellspacing,class,color,colspan,controls,data-src,dir,face,height,href,id,ignore,loop,media,muted,name,path,poster,rowspan,size,span,src,start,style,type,unit-id,width,xmlns'
 	),
 	// bool 型的属性
 	boolAttrs: makeMap('autoplay,controls,ignore,loop,muted'),
@@ -57,12 +75,11 @@ module.exports = {
 		address: 'font-style:italic',
 		big: 'display:inline;font-size:1.2em',
 		blockquote: 'background-color:#f6f6f6;border-left:3px solid #dbdbdb;color:#6c6c6c;padding:5px 0 5px 10px',
+		caption: 'display:table-caption;text-align:center',
 		center: 'text-align:center',
 		cite: 'font-style:italic',
 		dd: 'margin-left:40px',
-		img: 'max-width:100%',
 		mark: 'background-color:yellow',
-		picture: 'max-width:100%',
 		pre: 'font-family:monospace;white-space:pre;overflow:scroll',
 		s: 'text-decoration:line-through',
 		small: 'display:inline;font-size:0.8em',

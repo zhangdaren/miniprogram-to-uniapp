@@ -193,7 +193,7 @@ function isInFolder (folderArr, filePath) {
     return result;
 }
 /**
- * 路径转换，转换根路径(路径前面为/)和当前路径(无/开头)为相对路径
+ * 路径转换，转换根路径(路径前面为/)和当前路径(无/开头)为相对于当前目录的路径
  * @param {*} filePath  文件相对路径
  * @param {*} root      根目录
  * @param {*} fileDir   当前文件所在目录

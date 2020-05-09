@@ -27,15 +27,20 @@ async function cssHandle (fileContent, file_wxss) {
             //删除掉import app.wxss的代码
             fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse[\/\.](.*?)["'];?/g, "");
 
-            const testReg = /url\(data:\s*application\/(x-)?font-woff(2)?;\s*charset=utf-8;\s*base64,/i;
+            const testReg = /url\(['"]?data:\s*application\/(x-)?font-woff(2)?;\s*charset=utf-8;\s*base64,/i;
             //清除css里失效的iconfont字体文件引用
             if (testReg.test(fileContent)) {
-                const eotReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).eot.*?['"]?\)[,;]/i;
-                const eotReg2 = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).eot.*?['"]?\)\s*format\(['"]embedded-opentype['"]\)[,;]/i;
-                const ttfReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).ttf.*?['"]?\)\s*format\(['"]truetype['"]\)[,;]/i;
-                const svgReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).svg.*?['"]?\)\s*format\(['"]svg['"]\)[,;]/i;
-                const woffReg = /(src:\s*?url\(data:\s*application\/font-woff2;.*?\)\s*format\(['"]woff2['"]\),[\w\W]*url\(data:\s*application\/font-woff;.*?\)\s*format\(['"]woff['"]\))[,;]/i;
-                const woffReg2 = /(url\(data:\s*application\/(x-)?font-woff;.*?\)\s*format\(['"]woff['"]\)),/i;
+                const eotReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).eot.*?['"]?\)[,;]/gi;
+                const eotReg2 = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).eot.*?['"]?\)\s*format\(['"]?embedded-opentype['"]?\)[,;]/gi;
+                const ttfReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).ttf.*?['"]?\)\s*format\(['"]?truetype['"]?\)[,;]/gi;
+                const svgReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).svg.*?['"]?\)\s*format\(['"]?svg['"]?\)[,;]/gi;
+                const woffReg = /(src:\s*url\(['"]?data:\s*application\/font-woff2;.*?\)\s*format\(['"]?woff2['"]?\),[\w\W]*url\(data:\s*application\/font-woff;.*?\)\s*format\(['"]woff['"]\))[,;]/gi;
+                const woffReg2 = /(url\(['"]?data:\s*application\/(x-)?font-woff2?;.*?\)\s*format\(['"]?woff2?['"]?\)),/gi;
+
+                const woffReg3 = /url\(['"]?iconfont.woff\?.*?\)\s*format\(['"]?woff['"]?\)[,;]/gi;
+
+                //可能会有误替换的情况，这里修复一下
+                const fixReg = /(format\(['"]embedded-opentype['"]\),[\w\W]*?)src:(\s*url\(.*?format\(['"]woff2['"]\));/gi;
 
                 fileContent = fileContent
                     .replace(eotReg, "/* $& */\n")
@@ -44,6 +49,8 @@ async function cssHandle (fileContent, file_wxss) {
                     .replace(svgReg, "/* $& */\n")
                     .replace(woffReg, "$1;\n")
                     .replace(woffReg2, "src: $1;")
+                    .replace(woffReg3, "/* $& */\n")
+                    .replace(fixReg, "$1$2")
                     ;
             }
 

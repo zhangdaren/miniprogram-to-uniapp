@@ -21,6 +21,8 @@ const TemplateParser = require('./wx2uni/wxml/TemplateParser');
 //初始化一个解析器
 const templateParser = new TemplateParser();
 
+const MAX_FILE_SIZE = 300 * 1024;
+
 /**
  * 解析小程序项目的配置
  * @param {*} folder        小程序主体所在目录
@@ -216,6 +218,7 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                         checkEnd
                     );
                 } else {
+                    //console.log(stats)
                     /*not use ignore files*/
                     if (fileName[0] == '.' || fileName === "project.config.json") {
                     } else {
@@ -245,7 +248,8 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                                     folder: '',
                                     json: '',
                                     fileName: '',
-                                    isAppFile: false
+                                    isAppFile: false,
+                                    jsFileSize: 0
                                 };
                             }
                             obj = fileData[key];
@@ -257,6 +261,9 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                                 global.miniprogramRoot &&
                                 fileName == 'app.js';
                             obj['isAppFile'] = isAppFile || obj['isAppFile'];
+                            if (extname === '.js') {
+                                obj['jsFileSize'] = stats.size;
+                            }
                         }
                         switch (extname) {
                             case '.js':
@@ -432,6 +439,7 @@ async function filesHandle (fileData, miniprogramRoot) {
                     let tFolder = obj['folder'];
                     let fileName = obj['fileName'];
                     let isAppFile = obj['isAppFile'];
+                    let jsFileSize = obj['jsFileSize'];
                     //
                     if (!fs.existsSync(tFolder)) {
                         fs.mkdirSync(tFolder);
@@ -792,47 +800,53 @@ async function filesHandle (fileData, miniprogramRoot) {
                         if (onlyJSFile) {
                             //如果是为单名的js文件，即同一个名字只有js文件，没有wxml或wxss文件，下同
                             if (file_js && fs.existsSync(file_js)) {
-                                let data_js = fs.readFileSync(file_js, 'utf8');
                                 targetFilePath = path.join(
                                     tFolder,
                                     fileName + '.js'
                                 );
-                                //可能文件为空，但它也存在。。。所以
-                                if (data_js) {
-                                    let data = await jsHandle(
-                                        data_js,
-                                        usingComponents,
-                                        file_js,
-                                        onlyJSFile
-                                    );
-                                    fileContent = data;
-
-                                    //写入文件
-                                    if (isAppFile)
-                                        targetFilePath = path.join(
-                                            tFolder,
-                                            'App.vue'
-                                        );
-
-                                    //存入全局对象
-                                    let fileKey = pathUtil.getFileKey(file_js);
-                                    if (fileKey) {
-                                        if (!global.pagesData[fileKey])
-                                            global.pagesData[fileKey] = {};
-                                        global.pagesData[fileKey]['data'] = {
-                                            type: 'js',
-                                            path: targetFilePath,
-                                            js: fileContent,
-                                            wxml: '',
-                                            css: ''
-                                        };
-                                    }
-                                    //
-                                    // fs.writeFile(targetFilePath, fileContent, () => {
-                                    // 	console.log(`Convert component ${path.relative(global.targetFolder, targetFilePath)} success!`);
-                                    // });
-                                } else {
+                                if (jsFileSize > MAX_FILE_SIZE) {
+                                    console.log('文件体积超过300kb，忽略解析。 file-->' + file_js);
                                     fs.copySync(file_js, targetFilePath);
+                                } else {
+                                    let data_js = fs.readFileSync(file_js, 'utf8');
+
+                                    //可能文件为空，但它也存在。。。所以
+                                    if (data_js) {
+                                        let data = await jsHandle(
+                                            data_js,
+                                            usingComponents,
+                                            file_js,
+                                            onlyJSFile
+                                        );
+                                        fileContent = data;
+
+                                        //写入文件
+                                        if (isAppFile)
+                                            targetFilePath = path.join(
+                                                tFolder,
+                                                'App.vue'
+                                            );
+
+                                        //存入全局对象
+                                        let fileKey = pathUtil.getFileKey(file_js);
+                                        if (fileKey) {
+                                            if (!global.pagesData[fileKey])
+                                                global.pagesData[fileKey] = {};
+                                            global.pagesData[fileKey]['data'] = {
+                                                type: 'js',
+                                                path: targetFilePath,
+                                                js: fileContent,
+                                                wxml: '',
+                                                css: ''
+                                            };
+                                        }
+                                        //
+                                        // fs.writeFile(targetFilePath, fileContent, () => {
+                                        // 	console.log(`Convert component ${path.relative(global.targetFolder, targetFilePath)} success!`);
+                                        // });
+                                    } else {
+                                        fs.copySync(file_js, targetFilePath);
+                                    }
                                 }
                             }
                         }
@@ -909,7 +923,7 @@ function replaceFunName (fileContentWxml, key) {
         const replaceFunNameList = global.pagesData[key].replaceFunNameList;
         // let reg_funName = /(@.*?)="(abc|xyz)"/g;  //仅仅转换事件上面的函数
         let reg_funName = new RegExp(
-            '(@.*?)="(' + replaceFunNameList.join('|') + ')"',
+            '(@\\w*)="(' + replaceFunNameList.join('|') + ')"',
             'mg'
         );
         result = fileContentWxml.replace(reg_funName, function (match, $1, $2) {
@@ -1104,6 +1118,10 @@ async function transform (
     //判断是否含使用vant
     global.hasVant = isVantProject;
 
+    //判断是否为vant项目--粗粗判断一下
+    let vantFolder = path.join(sourceFolder, 'dist', 'action-sheet');
+    global.hasVant = fs.existsSync(vantFolder);
+
     //判断是否为ts项目,ts项目里tsconfig.json必须存在
     let tsconfigPath = path.join(sourceFolder, 'tsconfig.json');
     global.isTSProject = fs.existsSync(tsconfigPath);
@@ -1274,7 +1292,7 @@ async function transform (
 
     try {
         if (fs.existsSync(global.outputFolder)) {
-            pathUtil.emptyDirSyncEx(global.targetFolder);
+            pathUtil.emptyDirSyncEx(global.targetFolder);  //不清空了
         } else {
             fs.mkdirSync(global.outputFolder);
         }
@@ -1290,6 +1308,10 @@ async function transform (
     if (!fs.existsSync(global.targetFolder)) {
         //创建输出目录，如果是vue-cli模式，那就直接创建src目录，这样输出目录也会一并创建
         fs.mkdirSync(global.targetFolder);
+    }
+
+    if (!fs.existsSync(miniprogramRoot)) {
+        console.log("源目录不存在！", miniprogramRoot)
     }
 
     traverseFolder(miniprogramRoot, miniprogramRoot, targetFolder, () => {
@@ -1386,7 +1408,7 @@ async function transform (
                     str +=
                         '注意：\r\n1.当看到"image漏网之鱼"，意味着您"可能"需要手动调整对应代码(以实际编译运行为准)，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径\r\n';
                 }
-                if (global.hasVant !== isVantProject) {
+                if (isVantProject && global.hasVant !== isVantProject) {
                     str +=
                         '\r\n\r\n\r\n注意!!! 注意!!! 注意!!!\r\n检测到当前项目使用了vant组件，已经自动按vant项目进行转换(转换后的项目仅支持app v3模式和H5 ！！！)。\r\n\r\n';
                 }

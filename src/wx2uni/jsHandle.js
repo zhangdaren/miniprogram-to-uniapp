@@ -500,6 +500,25 @@ const componentTemplateBuilder = function (
     }
 
     let fileDir = nodePath.dirname(file_js);
+
+    // traverse(ast, {
+    //     noScope: true,
+    //     VariableDeclarator (path) {
+    //         let id = path.get("id");
+    //         let init = path.get("init");
+    //         if (t.isCallExpression(init)) {
+    //             let callee = init.get("callee");
+    //             if (t.isIdentifier(id) && t.isIdentifier(callee.node, { name: "getApp" })) {
+    //                 path.parentPath.scope.rename("app", "app.globalData");
+    //                 path.parentPath.stop();
+    //                 path.remove();
+    //                 path.stop();
+    //             }
+    //         }
+    //     }
+    // });
+
+
     //久久不能遍历，搜遍google，template也没有回调，后面想着源码中应该会有蛛丝马迹，果然，在templateVisitor里找到了看到这么一个属性noScope，有点嫌疑
     //noScope: 从babel-template.js中发现这么一个属性，因为直接转出来的ast进行遍历时会报错，找了官方文档，没有这个属性的介绍信息。。。
     //Error: You must pass a scope and parentPath unless traversing a Program/File. Instead of that you tried to traverse a ExportDefaultDeclaration node without passing scope and parentPath.
@@ -523,32 +542,17 @@ const componentTemplateBuilder = function (
                 }
             }
         },
-        VariableDeclarator (path) {
-            const init = path.get("init");
-            if (
-                t.isCallExpression(init) &&
-                init.node &&
-                t.isCallExpression(init.node)
-            ) {
-                if (
-                    t.isIdentifier(init.node.callee, {
-                        name: "getApp"
-                    })
-                ) {
-                    /**
-                     * var t = getApp();
-                     * 替换为:
-                     * var t = getApp().globalData;
-                     */
-                    const me = t.memberExpression(
-                        t.callExpression(t.identifier("getApp"), []),
-                        t.identifier("globalData")
-                    );
-                    init.replaceWith(me);
-                    path.skip();
-                }
-            }
-        },
+        // VariableDeclarator (path) {
+        //     let id = path.get("id");
+        //     let init = path.get("init");
+        //     if (t.isCallExpression(init)) {
+        //         let callee = init.get("callee");
+        //         if (t.isIdentifier(id) && t.isIdentifier(callee.node, { name: "getApp" })) {
+        //             path.parentPath.scope.rename(id.node.name, "getApp().globalData");
+        //             path.remove();
+        //         }
+        //     }
+        // },
         ObjectMethod (path) {
             // console.log("--------", path.node.key.name);
             if (path.node.key.name === "data") {
@@ -644,7 +648,24 @@ const componentTemplateBuilder = function (
                         let val = arguments[0].value;
                         arguments[0] = t.stringLiteral("./static/" + val);
                     }
+                } else if (t.isIdentifier(property.node, { name: "triggerEvent" })) {
+                    //this.triggerEvent()转换为this.$emit()
+                    let obj = t.memberExpression(object.node, t.identifier("$emit"));
+                    callee.replaceWith(obj);
+
+                    let args = path.get("arguments");
+                    if (args && args.length > 1) {
+                        //给第二个参数，再包一层detail节点，这里小程序与uniapp有所不同
+                        let eventDetail = args[1];
+                        let objProperty = t.objectProperty(t.identifier("detail"), eventDetail.node);
+                        let objExp = t.objectExpression([objProperty]);
+                        path.node.arguments[1] = objExp;
+                        path.skip();
+                        return;
+                    }
                 }
+
+
                 //
                 let objNode = object.node ? object.node : object;
                 let propertyNode = property.node ? property.node : property;
@@ -761,10 +782,6 @@ const componentTemplateBuilder = function (
                             global.log.push(logStr);
                         }
                     }
-                } else {
-                    if (!isApp) {
-                        babelUtil.globalDataHandle(callee, fileKey);
-                    }
                 }
             } else {
                 babelUtil.requirePathHandle(path, fileDir);
@@ -775,14 +792,6 @@ const componentTemplateBuilder = function (
             let property = path.get("property");
 
             if (
-                t.isIdentifier(property.node, {
-                    name: "triggerEvent"
-                })
-            ) {
-                //this.triggerEvent()转换为this.$emit()
-                let obj = t.memberExpression(object.node, t.identifier("$emit"));
-                path.replaceWith(obj);
-            } else if (
                 babelUtil.isThisExpression(
                     object,
                     global.pagesData[fileKey] && global.pagesData[fileKey]["thisNameList"]
@@ -843,19 +852,9 @@ const componentTemplateBuilder = function (
                     }
                 }
 
-                if (t.isMemberExpression(object)) {
-                    babelUtil.globalDataHandle(object, fileKey);
-                } else {
-                    babelUtil.globalDataHandle(path, fileKey);
-                }
             }
         }
     });
-
-    //替换wx为uni
-    if (global.isRenameWxToUni) {
-        babelUtil.renameWXToUni(ast);
-    }
 
     return ast;
 };
@@ -920,6 +919,11 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
     //先反转义
     let javascriptContent = fileData;
 
+    //替换wx为uni，在前面加上标记，方便转换，后面再将其去掉。
+    if (global.isRenameWxToUni) {
+        javascriptContent = "const wx = 'replace-tag-375890534@qq.com';\r\n" + javascriptContent;
+    }
+
     let fileKey = pathUtil.getFileKey(file_js);
 
     //缓存当前文件所使用过的getApp别名
@@ -964,6 +968,11 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
         nodePath.relative(global.targetFolder, file_js)
     );
 
+    //替换wx为uni
+    if (global.isRenameWxToUni) {
+        babelUtil.renameToUni(javascriptAst);
+    }
+
     let astInfoObject = null;
     if (!isVueFile) {
         switch (astType) {
@@ -978,8 +987,14 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
                 astInfoObject = behaviorConverter(javascriptAst, file_js);
                 break;
             case "Component":
-            case "VantComponent":
                 astInfoObject = componentConverter(javascriptAst, file_js, false);
+                break;
+            case "VantComponent":
+                if (global.isCompiledProject) {
+                    astType = "Webpack";
+                } else {
+                    astInfoObject = componentConverter(javascriptAst, file_js, false);
+                }
                 break;
             case "Webpack":
                 break;
@@ -1080,10 +1095,6 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
     } else {
         if (astType === "Webpack") {
             //compiled page handle  SSS
-
-            console.log("111", file_js);
-
-
             if (compiledProjectHandle) {
                 console.log("222", file_js);
                 codeText = await compiledProjectHandle.jsHandle(fileData, file_js);
@@ -1091,10 +1102,6 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
             codeText = `<script>\r\n${codeText}\r\n</script>\r\n`;
         } else {
             let cloneAst = clone(javascriptAst);
-            //替换wx为uni
-            if (global.isRenameWxToUni) {
-                babelUtil.renameWXToUni(cloneAst);
-            }
             convertedJavascript = singleJSConverter(cloneAst, file_js);
             codeText = `${generate(convertedJavascript).code}`;
         }
