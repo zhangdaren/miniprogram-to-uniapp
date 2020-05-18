@@ -28,14 +28,15 @@ function replaceField (name, replacePropsMap = {}) {
     if (utils.isObject(replacePropsMap)) {
         reuslt = replacePropsMap[name] || name;
     } else {
-        reuslt = utils.getPropsAlias(name);
+        //可能会误替换，这里不进行替换 20200515
+        // reuslt = utils.getPropsAlias(name);
     }
     return reuslt;
 }
 
 
 /**
- * 解析params(暂时停用！！！)
+ * 解析params
  * 
  * <view :class="'i-class i-btn '(long ? 'i-btn-long' : '')"></view>  
  * 
@@ -43,7 +44,15 @@ function replaceField (name, replacePropsMap = {}) {
  * @param {*} params 
  */
 function parseParams (params, replacePropsMap = {}) {
-    if (!/[\.\[\]\(\)]/.test(params)) return params;
+    // if (!/[\.\[\]\(\)\=\?\<\>\-\*\:]/.test(params)) {
+    if (/^\w+$/.test(params.trim())) {
+        //单个单词的情况
+        if (replacePropsMap[params]) {
+            return replacePropsMap[params];
+        } {
+            return params;
+        }
+    }
     //先反转义
     let javascriptContent = params;
 
@@ -90,7 +99,9 @@ function parseParams (params, replacePropsMap = {}) {
                 },
                 BinaryExpression (path) {
                     const left = path.get("left");
+                    const right = path.get("right");
                     if (left.node.name) left.node.name = replaceField(left.node.name, replacePropsMap);
+                    if (right.node.name) right.node.name = replaceField(right.node.name, replacePropsMap);
                     // console.log("BinaryExpression-", left.name)
                 },
             });
@@ -98,7 +109,7 @@ function parseParams (params, replacePropsMap = {}) {
             let newCode = `${generate(javascriptAst).code}`;
             if (newCode !== oldCode) {
                 codeText = newCode;
-                let logStr = "[绑定值命名替换]:  " + oldValue + "  -->  " + newValue + "    file: " + path.relative(global.sourceFolder, file_wxml);
+                let logStr = "[绑定值命名替换]:  " + oldCode + "  -->  " + newCode;
 
                 //存入日志，方便查看
                 utils.log(logStr, "base");
@@ -125,8 +136,8 @@ function replaceReserverdKeyword (params) {
 
 /**
  * 替换template里参数里的内置关键字，如data、id等  
- * "{{data.text}}"  --> {{dataAttr.text}}   
- * "{{id}}"  --> {{idAttr}}  
+ * //"{{data.text}}"  --> {{dataAttr.text}}   
+ * //"{{id}}"  --> {{idAttr}}  
  * @param {*} params 
  * @param {*} isComponent 
  * @param {*} isInitialCode 

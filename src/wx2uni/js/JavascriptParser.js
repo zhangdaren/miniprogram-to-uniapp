@@ -12,31 +12,28 @@ class JavascriptParser {
     /**
      * 解析前替换掉无用字符   
      * 1.export default App; --> ""   
-     * 2.(var|let|const) app = getApp; --> ""   
+     * // 2.(var|let|const) app = getApp; --> ""   
      * 3.getApp().page({ --> ""   
      * 4.exports.default = App({ --> ""   
      * @param {*} code 
      */
-    beforeParse (code) {
-
-        //这种怎么弄？不弄也问题不大
-        // var _animation, app = getApp();
-
-        // return code.replace(/const\s+app\s+=\s+getApp\(\)/gm, '');  //保留getApp()
-        return code.replace(/export default App;?/img, '')
-            //   .replace(/(var|let|const)\s*(\w+)\s*=\s*getApp\(\)\s*,/img, '$1 $2 = getApp().globalData,')  //处理这种var app = getApp(), http = app.http;情况会报错
-            //   .replace(/(var|let|const)\s*(\w+)\s*=\s*getApp\(\)(?!\.)[;]?/img, '$1 $2 = getApp().globalData;')
-            .replace(/\.globalData\./img, '.')
+    beforeParse (code, isAppFile) {
+        let newCode = code.replace(/export default App;?/img, '')
             .replace(/^getApp\(\)\.page\({/img, 'Page({')
-            // .replace(/export.*?\s*=\s*Behavior\({/, 'Behavior({')
-            .replace(/^exports\.default\s+=\s+App\({/img, 'App({');
+            .replace(/^exports\.default\s+=\s+App\({/img, 'App({')
+            .replace(/,\s*Page\(\s*\{/g, '; Page({');
+
+        if (!isAppFile) {
+            newCode = newCode.replace(/\.globalData\./img, '.');
+        }
+        return newCode;
     }
 
 
     /**
      * 保存当前文件里，使用过的this别名
-     * //仅仅可以过滤一半问题，毕竟有时候，压缩过的源码，this的别名还是会有混用的情况，与其他回调函数里的参数重名
-     * //那时，就需要在遍历时，去动态向父级找，找到this的别名是什么，不过一般情况下够用了
+     * * 仅仅可以过滤一半问题，毕竟有时候，压缩过的源码，this的别名还是会有混用的情况，与其他回调函数里的参数重名
+     * * 那时，就需要在遍历时，去动态向父级找，找到this的别名是什么，不过一般情况下够用了
      * @param {*} code 
      */
     getAliasThisNameList (code) {

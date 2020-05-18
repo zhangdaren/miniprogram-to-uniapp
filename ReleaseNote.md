@@ -2,6 +2,35 @@
 ======================================
 
 
+## v1.0.63(20200509)   
+* [新增] 支持解析slot动态插槽   
+* [新增] include套娃的处理(感谢网友yiheyang提交代码)   
+* [更新] jyf-parser的版本为v2.11.2   
+* [优化] getApp的转换方式   
+* [优化] wx转换为uni的替换方式   
+* [优化] 去掉老版vant-ui的判断   
+* [优化] setData函数(支持多级数组，感谢网友☆_☆提供代码)   
+* [优化] wxss里失效字体文件的引用
+* [优化] 当js体积超过300kb时，忽略转换(防止转换时间过长)   
+* [优化] 去掉判断prop是否为js关键字并替换的操作(为减少代码侵入度及增加转换精确度，因此需转换后根据编译信息手动修复)
+* [优化] 代码```<view wx:for="{{tabs}}" wx:for-item="tabItem" wx:key="id">{{tabItem.name}}</view>```转换为```<view v-for="(tabItem, index) in tabs" :key="index">{{tabItem.name}}</view>```(即id -> index)   
+* [修复] 当函数与变量同名时wxml属性被误替换的bug   
+* [修复] 没有精确判断vant项目，导致其他项目也解析为vant项目的bug   
+* [修复] triggerEvent转换为$emit后，获取不到参数的bug(实际为：小程序里取参数是取e.detail.xxx，而uniapp则是直接取e.xxx；因此工具转换时，将在参数外面增加detail节点，以适应引用处的代码)   
+* [修复] 代码```<block wx:key="" wx:for="{{compon.slideimgs}}" wx:for-item="slideimg"></block>```转换后误把slideimg替换为item的bug   
+* [修复] 标签上只存在wx:key时，未进行转换的bug   
+
+
+## v1.0.62(20200321)   
+* [更新] jyf-parser的版本为v2.8.1   
+* [优化] 注释css里已失效字体文件(含iconfont和GuildfordPro)    
+* [优化] 对template里引号的处理(例:```<view style="top:{{StatusBar}}px;{{bgImage?'background-image:url(' + bgImage+')':''}}"></view>```)   
+* [修复] 另一种00未转换的问题(如```<view wx:if="{{countDownHour == 00 && countDownMinute == 00 && countDownSecond == 00}}"></view>```)   
+* [修复] 音频不能播放的问题(音频资源(*.mp3)移动到static目录，并修复路径引用)   
+* [修复] 变量与methods重名时，对methods进行setData导致工具转换失败的bug(```this.setData({methods: methods})```)   
+* [修复] 试处理一则wxparse转换异常情况(```WxParse.wxParse('editors.editor' + item.id, 'html', item.fulltext, this)```)   
+
+
 ## v1.0.60(20200316)   
 * [优化] 进一步转换在变量或数组里面的资源路径，减少漏网之鱼   
 * [新增] ```capture-bind:tap```转换为```@tap```，```capture-catch:tap```转换为```@tap.stop```(uniapp无对应的语法，只能合二为一)   

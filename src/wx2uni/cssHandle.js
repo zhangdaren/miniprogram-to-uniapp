@@ -30,10 +30,10 @@ async function cssHandle (fileContent, file_wxss) {
             const testReg = /url\(['"]?data:\s*application\/(x-)?font-woff(2)?;\s*charset=utf-8;\s*base64,/i;
             //清除css里失效的iconfont字体文件引用
             if (testReg.test(fileContent)) {
-                const eotReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).eot.*?['"]?\)[,;]/gi;
-                const eotReg2 = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).eot.*?['"]?\)\s*format\(['"]?embedded-opentype['"]?\)[,;]/gi;
-                const ttfReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).ttf.*?['"]?\)\s*format\(['"]?truetype['"]?\)[,;]/gi;
-                const svgReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro).svg.*?['"]?\)\s*format\(['"]?svg['"]?\)[,;]/gi;
+                const eotReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).eot.*?['"]?\)[,;]/gi;
+                const eotReg2 = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).eot.*?['"]?\)\s*format\(['"]?embedded-opentype['"]?\)[,;]/gi;
+                const ttfReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).ttf.*?['"]?\)\s*format\(['"]?truetype['"]?\)[,;]/gi;
+                const svgReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).svg.*?['"]?\)\s*format\(['"]?svg['"]?\)[,;]/gi;
                 const woffReg = /(src:\s*url\(['"]?data:\s*application\/font-woff2;.*?\)\s*format\(['"]?woff2['"]?\),[\w\W]*url\(data:\s*application\/font-woff;.*?\)\s*format\(['"]woff['"]\))[,;]/gi;
                 const woffReg2 = /(url\(['"]?data:\s*application\/(x-)?font-woff2?;.*?\)\s*format\(['"]?woff2?['"]?\)),/gi;
 
@@ -41,6 +41,12 @@ async function cssHandle (fileContent, file_wxss) {
 
                 //可能会有误替换的情况，这里修复一下
                 const fixReg = /(format\(['"]embedded-opentype['"]\),[\w\W]*?)src:(\s*url\(.*?format\(['"]woff2['"]\));/gi;
+
+                //可能替换后会有src重复的问题
+                const fixReg2 = /src:\s*(src:\s*url\(data:application)/gi;
+
+                //可以误替换，导致语法错误的问题
+                const fixReg3 = /(\)\s*format\(['"]woff['"]\));([\w\W]*url\('\/\/)/gi;
 
                 fileContent = fileContent
                     .replace(eotReg, "/* $& */\n")
@@ -51,6 +57,8 @@ async function cssHandle (fileContent, file_wxss) {
                     .replace(woffReg2, "src: $1;")
                     .replace(woffReg3, "/* $& */\n")
                     .replace(fixReg, "$1$2")
+                    .replace(fixReg2, "$1")
+                    .replace(fixReg3, "$1,$2")
                     ;
             }
 

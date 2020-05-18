@@ -339,6 +339,24 @@ function applifeCycleFunHandle (
 }
 
 /**
+ *获取props里面的变量，用于将this.properties.xxx替换为this.xxx
+ * @param {*} props
+ * @returns
+ */
+function getPropsNameList (props) {
+    let list = [];
+    for (const item of props) {
+        if (t.isObjectProperty(item)) {
+            const keyName = item.key.name;
+            list.push(keyName);
+        }
+    }
+    return list;
+}
+
+
+
+/**
  * 组件模板处理
  * @param {*} ast
  * @param {*} vistors
@@ -499,7 +517,9 @@ const componentTemplateBuilder = function (
         }
     }
 
+
     let fileDir = nodePath.dirname(file_js);
+    const propsNameList = getPropsNameList(vistors.props.getData());
 
     // traverse(ast, {
     //     noScope: true,
@@ -523,6 +543,7 @@ const componentTemplateBuilder = function (
     //noScope: 从babel-template.js中发现这么一个属性，因为直接转出来的ast进行遍历时会报错，找了官方文档，没有这个属性的介绍信息。。。
     //Error: You must pass a scope and parentPath unless traversing a Program/File. Instead of that you tried to traverse a ExportDefaultDeclaration node without passing scope and parentPath.
     //babel-template直接转出来的ast只是完整ast的一部分
+    //ps:也可以直接ast.traverse();
     traverse(ast, {
         noScope: true,
         StringLiteral (path) {
@@ -795,21 +816,30 @@ const componentTemplateBuilder = function (
                 babelUtil.isThisExpression(
                     object,
                     global.pagesData[fileKey] && global.pagesData[fileKey]["thisNameList"]
-                ) &&
-                t.isIdentifier(property.node, {
-                    name: "data"
-                })
+                )
             ) {
-                //将this.data.xxx转换为this.xxx
                 let parent = path.parent;
-                //如果父级是AssignmentExpression，则不需再进行转换
-                if (parent && !t.isAssignmentExpression(parent)) {
-                    if (t.isUpdateExpression(parent)) {
-                        //++this.data.notify_count;
-                        object.replaceWith(object.node.object);
-                        path.skip();
-                    } else {
-                        path.replaceWith(object);
+                if (t.isIdentifier(property.node, { name: "data" })) {
+                    //将this.data.xxx转换为this.xxx
+
+                    //如果父级是AssignmentExpression，则不需再进行转换
+                    if (parent && !t.isAssignmentExpression(parent)) {
+                        if (t.isUpdateExpression(parent)) {
+                            //++this.data.notify_count;
+                            object.replaceWith(object.node.object);
+                            path.skip();
+                        } else {
+                            path.replaceWith(object);
+                        }
+                    }
+                } else if (t.isIdentifier(property.node, { name: "properties" })) {
+                    //将this.properties.xxx转换为this.xxx
+                    if (t.isMemberExpression(parent)) {
+                        let pProperty = parent.property;
+                        let propName = pProperty.name;
+                        if (propsNameList.indexOf(propName)) {
+                            path.replaceWith(object);
+                        }
                     }
                 }
             }
@@ -911,8 +941,9 @@ function isOther (val) {
  * @param {*} usingComponents   使用的自定义组件列表
  * @param {*} file_js           当前处理的文件路径
  * @param {*} onlyJSFile        是否仅单单一个js文件(即没有配套的wxml和wxss文件)
+ * @param {*} isAppFile         是否为app.js文件
  */
-async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
+async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFile) {
     //初始化一个解析器
     const javascriptParser = new JavascriptParser();
 
@@ -936,7 +967,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
     global.pagesData[fileKey]["getAppNamelist"] = getAppNamelist;
 
     //去除无用代码
-    javascriptContent = javascriptParser.beforeParse(javascriptContent);
+    javascriptContent = javascriptParser.beforeParse(javascriptContent, isAppFile);
 
     //缓存当前文件所使用过的this别名
     let list = javascriptParser.getAliasThisNameList(javascriptContent);
@@ -960,7 +991,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
     }
 
     //是否为vue文件
-    const isVueFile = babelUtil.checkVueFile(javascriptAst);
+    const isVueFile = babelUtil.checkVueFile(javascriptAst) || isAppFile;
 
     //判断文件类型
     let astType = babelUtil.getAstType(
@@ -1103,7 +1134,12 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile) {
         } else {
             let cloneAst = clone(javascriptAst);
             convertedJavascript = singleJSConverter(cloneAst, file_js);
-            codeText = `${generate(convertedJavascript).code}`;
+            if (isAppFile) {
+                codeText = `<script>\r\n${generate(convertedJavascript).code}\r\n</script>\r\n`;
+            } else {
+                codeText = `${generate(convertedJavascript).code}`;
+            }
+
         }
     }
 

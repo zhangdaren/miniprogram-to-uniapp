@@ -424,7 +424,7 @@ function parseTemplateAttrParams (attr) {
  * 判断关键字是否与vant有关  //van-是老版vant，可以支持。
  */
 function isVant (name) {
-    return /\bvant-weapp\b|\bvant\b/.test(name);
+    return /\bvant-weapp\b|\bvant\b|van-/.test(name);
 }
 
 /**

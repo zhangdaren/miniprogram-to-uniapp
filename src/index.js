@@ -464,8 +464,10 @@ async function filesHandle (fileData, miniprogramRoot) {
                         ((isAppFile || /\bcommon[\\|\/]main\.js/.test(file_js)) && (file_js && file_wxss))) &&
                         fileName != 'wxParse';
 
-                    if (isAllFile) {
+
+                    if (isAllFile || isAppFile) {
                         //当有wxml，那必然会有js文件，可能会有wxss文件，单独的.wxml，转为.vue
+                        //可能也会有“仅有app.js和app.wxss”的情况，所以要多加一个判断
                         extName = '.vue';
                         hasAllFile = true;
                     } else {
@@ -526,35 +528,37 @@ async function filesHandle (fileData, miniprogramRoot) {
                                 return utils.isVant(key);
                             }) || global.hasVant;
 
-                            //处理根路径
-                            for (const kk in data.usingComponents) {
-                                let value = data.usingComponents[kk];
-                                //plugin是微信自定义组件
-                                if (value.indexOf('plugin:') > -1) {
-                                    delete data.usingComponents[kk];
-                                } else {
-                                    let fileDir = path.dirname(file_json);
-
-                                    if (
-                                        global.dependencies &&
-                                        global.dependencies[value] &&
-                                        !/\.\//.test(value)
-                                    ) {
-                                        //处理 "datepicker": "miniprogram-datepicker"  这种情况
-                                        //没有.也没有/，并且是在dependencies里有记录的。
-                                        let absPath = path.join(
-                                            global.miniprogram_npm,
-                                            value
-                                        );
-                                        value = path.relative(fileDir, absPath);
+                            if (!global.hasVant) {
+                                //处理根路径
+                                for (const kk in data.usingComponents) {
+                                    let value = data.usingComponents[kk];
+                                    //plugin是微信自定义组件
+                                    if (value.indexOf('plugin:') > -1) {
+                                        delete data.usingComponents[kk];
                                     } else {
-                                        value = pathUtil.relativePath(
-                                            value,
-                                            global.miniprogramRoot,
-                                            fileDir
-                                        );
+                                        let fileDir = path.dirname(file_json);
+
+                                        if (
+                                            global.dependencies &&
+                                            global.dependencies[value] &&
+                                            !/\.\//.test(value)
+                                        ) {
+                                            //处理 "datepicker": "miniprogram-datepicker"  这种情况
+                                            //没有.也没有/，并且是在dependencies里有记录的。
+                                            let absPath = path.join(
+                                                global.miniprogram_npm,
+                                                value
+                                            );
+                                            value = path.relative(fileDir, absPath);
+                                        } else {
+                                            value = pathUtil.relativePath(
+                                                value,
+                                                global.miniprogramRoot,
+                                                fileDir
+                                            );
+                                        }
+                                        data.usingComponents[kk] = value;
                                     }
-                                    data.usingComponents[kk] = value;
                                 }
                             }
 
@@ -597,20 +601,24 @@ async function filesHandle (fileData, miniprogramRoot) {
                                 fileContentWxml = templateString;
                                 fileContentMinWxml = templateStringMin;
                                 wxsInfoHandle(tFolder, file_wxml);
-
-                                if (fileKey) {
-                                    global.pagesData[fileKey]['data'][
-                                        'wxml'
-                                    ] = fileContentWxml;
-                                    global.pagesData[fileKey]['data'][
-                                        'minWxml'
-                                    ] = fileContentMinWxml;
-                                }
                             } else {
                                 //存个空标签
                                 fileContentWxml =
-                                    '<template><view></view></template>';
+                                    '<template>\r\n<view>\r\n</view>\r\n</template>\r\n';
                             }
+                        } else {
+                            //存个空标签
+                            fileContentWxml =
+                                '<template>\r\n<view>\r\n</view>\r\n</template>\r\n';
+                        }
+
+                        if (fileKey) {
+                            global.pagesData[fileKey]['data'][
+                                'wxml'
+                            ] = fileContentWxml;
+                            global.pagesData[fileKey]['data'][
+                                'minWxml'
+                            ] = fileContentMinWxml;
                         }
 
                         //读取.js文件
@@ -650,8 +658,11 @@ async function filesHandle (fileData, miniprogramRoot) {
                                     let data = await jsHandle(
                                         data_js,
                                         usingComponents,
-                                        file_js
+                                        file_js,
+                                        onlyJSFile,
+                                        isAppFile
                                     );
+
                                     fileContentJs = data;
 
                                     //根据与data变量重名的函数名，将wxml里引用的地方进行替换
@@ -696,17 +707,21 @@ async function filesHandle (fileData, miniprogramRoot) {
                                 );
                                 //
                                 const content = `${data_wxss}`;
-                                //写入文件
-                                fs.writeFile(cssFilePath, content, () => {
-                                    console.log(
-                                        `Convert ${path.relative(
-                                            global.targetFolder,
-                                            cssFilePath
-                                        )} success!`
-                                    );
-                                });
 
-                                fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
+                                if (global.isMergeWxssToVue) {
+                                    fileContentCss = `<style>\r\n${content}\r\n</style>`;
+                                } else {
+                                    //写入文件
+                                    fs.writeFile(cssFilePath, content, () => {
+                                        console.log(
+                                            `Convert ${path.relative(
+                                                global.targetFolder,
+                                                cssFilePath
+                                            )} success!`
+                                        );
+                                    });
+                                    fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
+                                }
 
                                 if (fileKey)
                                     global.pagesData[fileKey]['data']['css'] =
@@ -816,8 +831,10 @@ async function filesHandle (fileData, miniprogramRoot) {
                                             data_js,
                                             usingComponents,
                                             file_js,
-                                            onlyJSFile
+                                            onlyJSFile,
+                                            isAppFile
                                         );
+
                                         fileContent = data;
 
                                         //写入文件
@@ -1065,6 +1082,7 @@ function writeLog (folder) {
  * @param {*} isTransformWXS   是否需要转换wxs文件，默认为false，目前uni-app已支持wxs文件，仅支持app和小程序
  * @param {*} isVantProject    是否为vant项目，默认为false
  * @param {*} isRenameWxToUni  是否转换wx为uni，默认为false
+ * @param {*} isMergeWxssToVue 是否合并wxss到vue文件，默认为false
  */
 async function transform (
     sourceFolder,
@@ -1072,7 +1090,8 @@ async function transform (
     isVueAppCliMode,
     isTransformWXS,
     isVantProject,
-    isRenameWxToUni
+    isRenameWxToUni,
+    isMergeWxssToVue
 ) {
     fileData = {};
     routerData = {};
@@ -1115,12 +1134,15 @@ async function transform (
     //是否需要转换wxs文件，默认为true
     global.isTransformWXS = isTransformWXS || false;
 
+    //是否合并wxss到vue文件
+    global.isMergeWxssToVue = isMergeWxssToVue || false;
+
     //判断是否含使用vant
     global.hasVant = isVantProject;
 
-    //判断是否为vant项目--粗粗判断一下
-    let vantFolder = path.join(sourceFolder, 'dist', 'action-sheet');
-    global.hasVant = fs.existsSync(vantFolder);
+    //判断是否为vant项目--粗粗判断一下(这样判断会有问题)
+    // let vantFolder = path.join(sourceFolder, 'dist', 'action-sheet');
+    // global.hasVant = fs.existsSync(vantFolder);
 
     //判断是否为ts项目,ts项目里tsconfig.json必须存在
     let tsconfigPath = path.join(sourceFolder, 'tsconfig.json');
@@ -1404,13 +1426,13 @@ async function transform (
                     tmpStr = '注意：\r\n1.';
                 } else {
                     str +=
-                        '当前转换模式：【Hbuilder X】，生成HbuilderX项目。\r\n优点：上手快，项目结构较简单；\r\n缺点：资源路径会因为表达式而无法全部被修复(需手动修复)\r\n\r\n';
+                        '当前转换模式：【Hbuilder X】，生成HbuilderX项目。\r\n优点：上手快，项目结构较简单；\r\n缺点：资源路径会因为表达式而无法全部被修复(“可能”需手动修复)\r\n\r\n';
                     str +=
                         '注意：\r\n1.当看到"image漏网之鱼"，意味着您"可能"需要手动调整对应代码(以实际编译运行为准)，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径\r\n';
                 }
                 if (isVantProject && global.hasVant !== isVantProject) {
                     str +=
-                        '\r\n\r\n\r\n注意!!! 注意!!! 注意!!!\r\n检测到当前项目使用了vant组件，已经自动按vant项目进行转换(转换后的项目仅支持app v3模式和H5 ！！！)。\r\n\r\n';
+                        '\r\n\r\n\r\n注意!!! \r\n注意!!! \r\n注意!!!\r\n检测到当前项目使用了vant组件，已经自动按vant项目进行转换(转换后的项目仅支持app和H5 ！！！)。\r\n\r\n';
                 }
                 str += tmpStr;
                 str += '\r\n\r\n日志说明：\r\n';

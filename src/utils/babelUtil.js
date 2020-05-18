@@ -78,18 +78,19 @@ function globalDataHandle2 (path) {
         if (t.isIdentifier(id) && t.isIdentifier(callee.node, { name: "getApp" })) {
             /**
              * 这里两种解决方案，反正，预处理时已经把.globalData.替换为.了，
-             * 一、将变量所在引用替换为getApp().globalData
+             * 一、将变量所在引用替换为getApp的变量+globalData，如：var abc = getApp(); abc.globalData.xxx
              * 二、将变替换一下即可，改动较小，但可能会遇到在vue加载前就加载了组件的情况。。。
              */
             //方案一：
-            // path.parentPath.scope.rename(id.node.name, "getApp().globalData");
-            // path.remove();
+            var oldIdName = id.node.name;
+            path.parentPath.scope.rename(id.node.name, id.node.name + ".globalData");
+            path.node.id.name = oldIdName;
 
             //方案二：
-            let memExp = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
-            let varDec = t.variableDeclarator(id.node, memExp);
-            path.replaceWith(varDec);
-            path.skip();
+            // let memExp = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
+            // let varDec = t.variableDeclarator(id.node, memExp);
+            // path.replaceWith(varDec);
+            // path.skip();
         }
     }
 
@@ -336,6 +337,15 @@ function getAstType (ast, _file_js) {
                     path.stop(); //完全停止遍历，目前还没有遇到什么奇葩情况~
                 }
             }
+        }, CallExpression (path) {
+            //托底判断一下t.globalData.requirejs("jquery"), Page({});这种情况
+            if (t.isIdentifier(path.node.callee)) {
+                let name = path.node.callee.name;
+                if (astTypeList[name]) {
+                    type = name;
+                    path.stop(); //完全停止遍历，目前还没有遇到什么奇葩情况~
+                }
+            }
         }
     });
     console.log("文件类型: " + type + "       路径: " + _file_js);
@@ -392,10 +402,16 @@ function getSetDataFunAST () {
 	var setData = {
         setData: function(obj, callback) {
 			let that = this;
-			const handleData = (tepData, tepKey) => {
+			const handleData = (tepData, tepKey, afterKey) => {
 				tepKey = tepKey.split('.');
 				tepKey.forEach(item => {
-					tepData = tepData[item];
+					if (tepData[item] === null || tepData[item] === undefined) {
+						let reg = /^[0-9]+$/;
+						tepData[item] = reg.test(afterKey) ? [] : {};
+						tepData = tepData[item];
+					} else {
+						tepData = tepData[item];
+					}
 				});
 				return tepData;
 			};
@@ -404,19 +420,34 @@ function getSetDataFunAST () {
 			};
 			Object.keys(obj).forEach(function(key) {
 				let val = obj[key];
-				key = key.replace(/\]/g, '').replace(/\[/g, '.');
+				key = key.replace(/\\]/g, '').replace(/\\[/g, '.');
 				let front, after;
 				let index_after = key.lastIndexOf('.');
 				if (index_after != -1) {
-					front = handleData(that, key.slice(0, index_after));
 					after = key.slice(index_after + 1);
+					front = handleData(that, key.slice(0, index_after), after);
 				} else {
-					front = that;
 					after = key;
+					front = that;
 				}
-				that.$set(front, after, val);
+				if (front.$data && front.$data[after] === undefined) {
+					Object.defineProperty(front, after, {
+						get() {
+							return front.$data[after];
+						},
+						set(newValue) {
+							front.$data[after] = newValue;
+							that.$forceUpdate();
+						},
+						enumerable: true,
+						configurable: true
+					});
+					front[after] = val;
+				} else {
+					that.$set(front, after, val);
+				}
 			});
-			this.$forceUpdate();
+			// this.$forceUpdate();
 			isFn(callback) && this.$nextTick(callback);
 		}
 	}

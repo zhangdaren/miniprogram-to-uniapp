@@ -15,17 +15,29 @@ const clone = require('clone');
  * 将小程序subPackages节点处理为uni-app所需要的节点
  * @param {*} subPackages 
  */
-function subPackagesHandle (subPackages) {
+function subPackagesHandle (subPackages, routerData) {
     let reuslt = [];
     for (const key in subPackages) {
         const obj = subPackages[key];
         const root = obj.root;
         const pages = obj.pages;
+
         let newPages = [];
         for (const subKey in pages) {
             const subObj = pages[subKey];
+
+            let absKey = root + subObj;
+            let style = {};
+            if (routerData[absKey]) {
+                style = routerData[absKey];
+            }
+            delete style.usingComponents;
+
             newPages.push({
-                "path": subObj
+                "path": subObj,
+                "style": {
+                    ...style
+                }
             })
         }
 
@@ -87,22 +99,19 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
                 // }
 
                 let obj;
+                let dataBak = {};
                 if (data) {
-                    let dataBak = clone(data);
-                    delete dataBak.usingComponents;
-
-                    obj = {
-                        "path": pagePath,
-                        "style": {
-                            ...dataBak
-                        }
-                    };
-                } else {
-                    obj = {
-                        "path": pagePath,
-                        "style": {}
-                    };
+                    dataBak = clone(data);
+                    if (!global.hasVant) {
+                        delete dataBak.usingComponents;
+                    }
                 }
+                obj = {
+                    "path": pagePath,
+                    "style": {
+                        ...dataBak
+                    }
+                };
                 pages.push(obj);
             }
             appJson.pages = pages;
@@ -128,7 +137,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
 
             //处理分包加载subPackages
             let subPackages = appJson["subPackages"] || appJson["subpackages"];
-            appJson["subPackages"] = subPackagesHandle(subPackages);
+            appJson["subPackages"] = subPackagesHandle(subPackages, routerData);
 
             //usingComponents节点，上面删除缓存，这里删除
             delete appJson["usingComponents"];
@@ -186,7 +195,12 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             manifestJson.name = name;
             manifestJson.description = configData.description;
             manifestJson.versionName = configData.version || "1.0.0";
-            manifestJson["mp-weixin"].appid = configData.appid;
+
+            let mpWeixin = manifestJson["mp-weixin"];
+            mpWeixin.appid = configData.appid;
+            if (appJson["plugins"]) {
+                mpWeixin["plugins"] = appJson["plugins"];
+            }
 
             //manifest.json
             file_manifest = path.join(targetFolder, "manifest.json");
@@ -226,40 +240,55 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
 Vue.mixin({
 	methods: {
 		setData: function(obj, callback) {
-            let that = this;
-            let keys = [];
-            let val, data;
-            let reg = /\\[\\d+\\]/;
-            Object.keys(obj).forEach(function(key) {
-                keys = key.split('.');
-                val = obj[key];
-                data = that.$data;
-                keys.forEach(function(key2, index) {
-                    if (index + 1 == keys.length) {
-                        if (reg.test(key2)) {
-                            let re = /(.*?)\\[(\\d+)\\]/.exec(key2);
-                            let name = re[1];
-                            let kk = re[2];
-                            data = data[name];
-                            data[kk] && that.$set(data, kk, val);
-                        } else {
-                            data[key2] && that.$set(data, key2, val);
-                        }
-                    } else {
-                        if (reg.test(key2)) {
-                            let re = /(.*?)\\[(\\d+)\\]/.exec(key2);
-                            let name = re[1];
-                            let kk = re[2];
-                            data = data[name][kk];
-                        } else if (data[key2]) {
-                            that.$set(data, key2, {});
-                            data = data[key2];
-                        }
-                    }
-                });
-            });
-            callback && callback();
-        }
+			let that = this;
+			const handleData = (tepData, tepKey, afterKey) => {
+				tepKey = tepKey.split('.');
+				tepKey.forEach(item => {
+					if (tepData[item] === null || tepData[item] === undefined) {
+						let reg = /^[0-9]+$/;
+						tepData[item] = reg.test(afterKey) ? [] : {};
+						tepData = tepData[item];
+					} else {
+						tepData = tepData[item];
+					}
+				});
+				return tepData;
+			};
+			const isFn = function(value) {
+				return typeof value == 'function' || false;
+			};
+			Object.keys(obj).forEach(function(key) {
+				let val = obj[key];
+				key = key.replace(/\\]/g, '').replace(/\\[/g, '.');
+				let front, after;
+				let index_after = key.lastIndexOf('.');
+				if (index_after != -1) {
+					after = key.slice(index_after + 1);
+					front = handleData(that, key.slice(0, index_after), after);
+				} else {
+					after = key;
+					front = that;
+				}
+				if (front.$data && front.$data[after] === undefined) {
+					Object.defineProperty(front, after, {
+						get() {
+							return front.$data[after];
+						},
+						set(newValue) {
+							front.$data[after] = newValue;
+							that.$forceUpdate();
+						},
+						enumerable: true,
+						configurable: true
+					});
+					front[after] = val;
+				} else {
+					that.$set(front, after, val);
+				}
+			});
+			// this.$forceUpdate();
+			isFn(callback) && this.$nextTick(callback);
+		}
 	}
 });\r\n\r\n`;
 

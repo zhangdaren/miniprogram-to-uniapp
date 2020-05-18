@@ -27,8 +27,9 @@ Options:
   -h, --help        output usage information [帮助信息]
   -c, --cli         the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -w, --wxs         transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
-  -z, --vant        transform vant-weapp project to uni-app, automatic check [是否支持转换vant项目，无需添加参数，自动识别是否为vant项目]
+  -z, --vant        transform vant-weapp project to uni-app, automatic check [是否支持转换vant项目，默认为false]
   -r, --rename      rename wx.xxx() to uni.xxx(), which default value is false [是否转换wx.xxx()为uni.xxx()，默认false]
+  -m, --merge       merge wxss file to vue file, which default value is false [是否合并wxss到vue文件，默认false]
 
 ```
 
@@ -81,41 +82,33 @@ $ wtu -i miniprogramProject -w
    
   
 ## 不支持转换的功能及组件
-* 不支持转换使用redux的小程序(代表为：网易云信小程序DEMO)   
-* 不支持转换使用腾讯omi的小程序(https://github.com/Tencent/omi)   
+* 不支持转换反编译后的小程序项目   
+* 不支持转换使用uni-app编译的小程序项目   
+* 不支持转换使用redux开发的小程序(代表为：网易云信小程序DEMO)   
+* 不支持转换使用wxpage开发的小程序(https://github.com/tvfe/wxpage)   
+* 不支持转换使用腾讯omi开发的小程序(https://github.com/Tencent/omi)   
 * 不支持转换小程序抽象节点componentGenerics   
-* 不支持以$开头的变量名称，如```Page({data:{$data:{name:"hello"}}})```，刚好$data是vue内置变量，so不支持，需手动修复   
-* 不支持使用js系统关键字作为函数或变量名(如default、import等)   
+* 不支持component里的pageLifetimes生命周期，请手动绕过   
+* 不支持使用js系统关键字作为函数或变量名(如default、import、return、switch等)   
+* 不支持以$开头的变量名称，如```Page({data:{$data:{name:"hello"}}})```，刚好$data是vue内置变量，so不支持，需手动修复  
 * 更多，请参照[miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)   
   
 
 ## 更新记录   
-### v1.0.63(20200509)   
-* [新增] 支持解析slot动态插槽   
-* [新增] include套娃的处理(感谢网友yiheyang提交代码)   
-* [更新] jyf-parser的版本为v2.11.2   
-* [优化] getApp的转换方式   
-* [优化] wx转换为uni的替换方式   
-* [优化] 去掉老版vant-ui的判断   
-* [优化] setData函数(支持多级数组，感谢网友☆_☆提供代码)   
-* [优化] wxss里失效字体文件的引用
-* [优化] 当js体积超过300kb时，忽略转换(防止转换时间过长)   
-* [优化] 去掉判断prop是否为js关键字并替换的操作(为减少代码侵入度及增加转换精确度，因此需转换后根据编译信息手动修复)
-* [优化] 代码```<view wx:for="{{tabs}}" wx:for-item="tabItem" wx:key="id">{{tabItem.name}}</view>```转换为```<view v-for="(tabItem, index) in tabs" :key="index">{{tabItem.name}}</view>```(即id -> index)   
-* [修复] 当函数与变量同名时wxml属性被误替换的bug   
-* [修复] 没有精确判断vant项目，导致其他项目也解析为vant项目的bug   
-* [修复] triggerEvent转换为$emit后，获取不到参数的bug(实际为：小程序里取参数是取e.detail.xxx，而uniapp则是直接取e.xxx；因此工具转换时，将在参数外面增加detail节点，以适应引用处的代码)   
-* [修复] 代码```<block wx:key="" wx:for="{{compon.slideimgs}}" wx:for-item="slideimg"></block>```转换后误把slideimg替换为item的bug   
-* [修复] 标签上只存在wx:key时，未进行转换的bug   
-
-### v1.0.62(20200321)   
-* [更新] jyf-parser的版本为v2.8.1   
-* [优化] 注释css里已失效字体文件(含iconfont和GuildfordPro)    
-* [优化] 对template里引号的处理(例:```<view style="top:{{StatusBar}}px;{{bgImage?'background-image:url(' + bgImage+')':''}}"></view>```)   
-* [修复] 另一种00未转换的问题(如```<view wx:if="{{countDownHour == 00 && countDownMinute == 00 && countDownSecond == 00}}"></view>```)   
-* [修复] 音频不能播放的问题(音频资源(*.mp3)移动到static目录，并修复路径引用)   
-* [修复] 变量与methods重名时，对methods进行setData导致工具转换失败的bug(```this.setData({methods: methods})```)   
-* [修复] 试处理一则wxparse转换异常情况(```WxParse.wxParse('editors.editor' + item.id, 'html', item.fulltext, this)```)   
+### v1.0.64(20200518)   
+* [新增] template套娃的处理   
+* [新增] 命令行[-m]参数，用于将wxss并入vue文件，默认为false(即不并入vue文件)    
+* [更新] this.properties.xxx转换为this.xxx   
+* [更新] jyf-parser的版本为v2.12.0(2020-05-13)   
+* [更新] 补上subPackages分包页面遗漏的style样式   
+* [更新] setData代码，解决变量未在data定义而进行setData时报错的问题(感谢网友☆_☆的研究)   
+* [优化] getApp()转换方式   
+* [优化] 调整vant组件加载方式   
+* [修复] app.vue里代码转换有问题的bug   
+* [修复] wxss里含DINCond-Medium.ttf字体的处理   
+* [修复] 项目仅含app.js和app.wxss，而无app.wxml的情况   
+* [修复] 小程序插件加载逻辑，解决小程序第三方插件找不到的问题   
+* [修复] 支持转换```t.requirejs("jquery"),Page({...}})```或```getApp,Page({...})```这类代码   
 
 ## [历史更新记录](ReleaseNote.md)   
 
@@ -124,9 +117,9 @@ $ wtu -i miniprogramProject -w
 * 感谢网友[没有好名字了]给予帮助。   
 * 感谢DCloud官方大佬[安静]给予帮助。   
 * 感谢网友[☆_☆]给予帮助。   
+* 感谢网友☆_☆提供增强版setData。     
 * 感谢官方大佬DCloud_heavensoft的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。   
-* this.setData()代码出处：https://ask.dcloud.net.cn/article/35020，在些表示感谢~(新版由网友☆_☆提供)  
-* 工具使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse，表示感谢~
+* 工具使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse，表示感谢~   
 * 感谢为本项目提供建议以及帮助的热心网友们~~   
     
       
@@ -142,9 +135,9 @@ $ wtu -i miniprogramProject -w
    
    
 ## 最后
-如果觉得帮助到你的话，点个赞呗~
-
-打赏一下的话就更好了~
+如果觉得帮助到你的话，可以支持一下作者，请作者喝杯咖啡哈~
+这样会更有动力更新哈~~
+非常感谢~~
 
 ![微信支付](https://zhangdaren.github.io/articles/img/WeChanQR.png)![支付宝支付](https://zhangdaren.github.io/articles/img/AliPayQR.png)
 

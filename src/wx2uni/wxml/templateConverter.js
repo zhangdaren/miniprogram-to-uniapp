@@ -388,7 +388,7 @@ function templateTagHandle (node, file_wxml, onlyWxmlFile) {
     let newNode = null;
     //处理template标签<template is="head" data="{{title: 'addPhoneContact'}}"/>
     if (node.name == 'template') {
-        // 	//包含is属性的才是页面里面的<template/>标签，否则为被引入的那个组件
+        // 	包含is属性的才是页面里面的<template/>标签，否则为被引入的那个组件
         let templateName = node.attribs.is;
         let fileKey = pathUtil.getFileKey(file_wxml);
         if (templateName) {
@@ -764,8 +764,13 @@ const templateConverter = async function (
         if (node.type === 'tag') {
             //处理import标签
             if (node.name === 'import') {
-                //<import src="../plugin/plugin.wxml"/>这类标签，直接删除
-                delete ast[i];
+                //<import src="../plugin/plugin.wxml"/>这类标签，注释
+                const code = templateParser.astToString([node]);
+                let newNode = {
+                    data: code,
+                    type: "comment"
+                }
+                ast[i] = newNode;
                 continue;
             } else if (node.name === 'wxs') {
                 //wxs标签处理
@@ -776,6 +781,17 @@ const templateConverter = async function (
                 //疑难代码处理
                 difficultCodeHandle(node);
             }
+
+            //将template标签进行注释
+            if (node.name == 'template' && node.attribs && node.attribs.is) {
+                const code = templateParser.astToString([node]);
+                let newNode = {
+                    data: code,
+                    type: "comment"
+                }
+                ast.splice(Math.max(i - 1, 0), 0, newNode);
+            }
+
 
             //处理template标签<template is="head" data="{{title: 'addPhoneContact'}}"/>
             let newNode = templateTagHandle(node, file_wxml, onlyWxmlFile);
