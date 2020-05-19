@@ -1074,7 +1074,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
             let jsFolder = nodePath.dirname(file_js);
             for (const key in usingComponents) {
                 let filePath = usingComponents[key];
-                if (utils.isVant(key)) {
+                if (global.hasVant && utils.isVant(key)) {
                     //如果有vant的组件，这里不管，因为已经在pages.json里全部加载了
                     continue;
                 } else {

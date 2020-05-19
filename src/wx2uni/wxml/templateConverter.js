@@ -783,14 +783,14 @@ const templateConverter = async function (
             }
 
             //将template标签进行注释
-            if (node.name == 'template' && node.attribs && node.attribs.is) {
-                const code = templateParser.astToString([node]);
-                let newNode = {
-                    data: code,
-                    type: "comment"
-                }
-                ast.splice(Math.max(i - 1, 0), 0, newNode);
-            }
+            // if (node.name == 'template' && node.attribs && node.attribs.is) {
+            //     const code = templateParser.astToString([node]);
+            //     let newNode = {
+            //         data: code,
+            //         type: "comment"
+            //     }
+            //     ast.splice(Math.max(i - 1, 0), 0, newNode);
+            // }
 
 
             //处理template标签<template is="head" data="{{title: 'addPhoneContact'}}"/>

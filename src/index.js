@@ -96,9 +96,9 @@ function wxProjectParse (folder, sourceFolder) {
             projectConfig.dependencies = packageJson.dependencies || {}; //安装的npm包
 
             //判断是否加载了vant
-            global.hasVant = Object.keys(projectConfig.dependencies).some(key => {
-                return utils.isVant(key);
-            }) || global.hasVant;
+            // global.hasVant = Object.keys(projectConfig.dependencies).some(key => {
+            //     return utils.isVant(key);
+            // }) || global.hasVant;
         }
     } else {
         // console.log(`Warning： 找不到package.json文件(不影响转换，无视这条)`);
@@ -524,9 +524,9 @@ async function filesHandle (fileData, miniprogramRoot) {
                             }
 
                             //判断是否加载了vant
-                            global.hasVant = Object.keys(data.usingComponents).some(key => {
-                                return utils.isVant(key);
-                            }) || global.hasVant;
+                            // global.hasVant = Object.keys(data.usingComponents).some(key => {
+                            //     return utils.isVant(key);
+                            // }) || global.hasVant;
 
                             if (!global.hasVant) {
                                 //处理根路径
@@ -1139,10 +1139,6 @@ async function transform (
 
     //判断是否含使用vant
     global.hasVant = isVantProject;
-
-    //判断是否为vant项目--粗粗判断一下(这样判断会有问题)
-    // let vantFolder = path.join(sourceFolder, 'dist', 'action-sheet');
-    // global.hasVant = fs.existsSync(vantFolder);
 
     //判断是否为ts项目,ts项目里tsconfig.json必须存在
     let tsconfigPath = path.join(sourceFolder, 'tsconfig.json');

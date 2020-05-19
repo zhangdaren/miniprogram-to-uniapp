@@ -48,6 +48,8 @@ async function cssHandle (fileContent, file_wxss) {
                 //可以误替换，导致语法错误的问题
                 const fixReg3 = /(\)\s*format\(['"]woff['"]\));([\w\W]*url\('\/\/)/gi;
 
+                const fixReg4 = /(\),[\w\W]*)src:\s*(url\()/gi;
+
                 fileContent = fileContent
                     .replace(eotReg, "/* $& */\n")
                     .replace(eotReg2, "/* $& */\n")
@@ -59,6 +61,7 @@ async function cssHandle (fileContent, file_wxss) {
                     .replace(fixReg, "$1$2")
                     .replace(fixReg2, "$1")
                     .replace(fixReg3, "$1,$2")
+                    .replace(fixReg4, "$1$2")
                     ;
             }
 

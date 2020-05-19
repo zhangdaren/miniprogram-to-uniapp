@@ -98,7 +98,7 @@ $ wtu -i miniprogramProject -w
   
 
 ## 更新记录   
-### v1.0.64(20200518)   
+### v1.0.65(20200519)   
 * [新增] template套娃的处理   
 * [新增] 命令行[-m]参数，用于将wxss并入vue文件，默认为false(即不并入vue文件)    
 * [更新] this.properties.xxx转换为this.xxx   
@@ -107,11 +107,15 @@ $ wtu -i miniprogramProject -w
 * [更新] 增强版setData代码，解决变量未在data定义而进行setData时报错的问题(感谢网友☆_☆的研究)   
 * [优化] getApp()转换方式   
 * [优化] 调整vant组件加载方式   
+* [优化] 不再自动识别是否为vant项目，请手动添加参数[-z]   
 * [修复] app.vue里代码转换有问题的bug   
 * [修复] wxss里含DINCond-Medium.ttf字体的处理   
 * [修复] 项目仅含app.js和app.wxss，而无app.wxml的情况   
 * [修复] 小程序插件加载逻辑，解决小程序第三方插件找不到的问题   
 * [修复] 支持转换```t.requirejs("jquery"),Page({...}})```或```getApp,Page({...})```这类代码   
+* [修复] wxss替换异常的bug   
+* [修复] wxParse未被替换掉的bug   
+
 
 ## [历史更新记录](ReleaseNote.md)   
 
@@ -120,7 +124,7 @@ $ wtu -i miniprogramProject -w
 * 感谢网友[没有好名字了]给予帮助。   
 * 感谢DCloud官方大佬[安静]给予帮助。   
 * 感谢网友[☆_☆]给予帮助。   
-* 感谢网友☆_☆提供增强版setData。     
+* 感谢网友[☆_☆]提供增强版setData。     
 * 感谢官方大佬DCloud_heavensoft的文章：[微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。   
 * 工具使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse，表示感谢~   
 * 感谢为本项目提供建议以及帮助的热心网友们~~   

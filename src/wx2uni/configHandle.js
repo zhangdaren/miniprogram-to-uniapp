@@ -81,9 +81,9 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             let globalUsingComponents = appJson.usingComponents || {};
 
             //判断是否加载了vant
-            global.hasVant = Object.keys(globalUsingComponents).some(key => {
-                return utils.isVant(key);
-            }) || global.hasVant;
+            // global.hasVant = Object.keys(globalUsingComponents).some(key => {
+            //     return utils.isVant(key);
+            // }) || global.hasVant;
 
             //将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
             let pages = [];
