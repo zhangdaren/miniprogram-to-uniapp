@@ -33,21 +33,26 @@ Options:
 
 ```
 
-Examples:
+#### Examples:   
 
 ```sh
 $ wtu -i miniprogramProject
 ```
 
-vue-cli mode [转换项目为vue-cli项目(因vue-cli项目门槛较高，且该功能长时间未维护，不推荐使用)]:
+#### vue-cli mode   
+转换项目为vue-cli项目(因vue-cli项目门槛较高，且该功能长时间未维护，不推荐使用):
+
 ```sh
 $ wtu -i miniprogramProject -c
 ```
 
-Transform wxs file to js file [转换项目并将wxs文件转换为js文件(因uni-app已支持wxs，此功能未维护)]:
+#### Transform wxs file to js file  
+转换项目并将wxs文件转换为js文件(因uni-app已支持wxs，此功能未维护):
+
 ```sh
 $ wtu -i miniprogramProject -w
 ```
+
 
 ## 使用指南
 
@@ -68,13 +73,11 @@ $ wtu -i miniprogramProject -w
 * 支持解析Behavior文件为mixins文件   
 * 支持*.js', *.wxml和*.wxss文件进行相应转换，并做了大量的优化   
 * 支持识别App、Page、Component、VantComponent、Behavior和纯Javascript文件的转换   
-* 
 * 修复变量名与函数重名的情况   
 * 合并使用require导入的wxs文件   
 * 搜索未在data声明，而直接在setData()里使用的变量，并修复   
 * 使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)   
 * 因uni-app会将所有非static目录的资源文件删除，因此将所有资源文件移入static目录，并修复所有能修复到的路径(目前uni编译时会将非static目录的文件复制一份到static目录，但并不完全，因此本功能仍保留)   
-* 
 * 支持wxs文件转换，可以通过参数配置(-w)，默认为false(目前uni-app已支持wxs，不再推荐转换wxs)   
 * 支持vue-cli模式，可以通过参数配置(-c)，默认为false，即生成为vue-cli项目，转换完成需运行npm -i安装包，然后再导入hbuilder x里开发(建议爱折腾人士使用)  
 * 支持vant转换，可以通过参数配置(-z)，默认为false：（现已尽可能自动识别，而无须添加参数；另外，转换后的项目，目前仅支持v3和h5两个平台）  
@@ -101,7 +104,7 @@ $ wtu -i miniprogramProject -w
 * [更新] this.properties.xxx转换为this.xxx   
 * [更新] jyf-parser的版本为v2.12.0(2020-05-13)   
 * [更新] 补上subPackages分包页面遗漏的style样式   
-* [更新] setData代码，解决变量未在data定义而进行setData时报错的问题(感谢网友☆_☆的研究)   
+* [更新] 增强版setData代码，解决变量未在data定义而进行setData时报错的问题(感谢网友☆_☆的研究)   
 * [优化] getApp()转换方式   
 * [优化] 调整vant组件加载方式   
 * [修复] app.vue里代码转换有问题的bug   
@@ -131,13 +134,12 @@ $ wtu -i miniprogramProject -w
 5. [Babel官网](https://babeljs.io/docs/en/babel-types)   有问题直接阅读官方文档哈   
 6. [微信小程序转换uni-app详细指南](http://ask.dcloud.net.cn/article/35786)  补充了我一些未考虑到的规则。   
 7. 更新babel版本，命令：npx babel-upgrade --write
-8. 发布npm版本：npm publish --acces=public
    
    
 ## 最后
-如果觉得帮助到你的话，可以支持一下作者，请作者喝杯咖啡哈~
-这样会更有动力更新哈~~
-非常感谢~~
+如果觉得帮助到你的话，可以支持一下作者，请作者喝杯咖啡哈~   
+这样会更有动力更新哈~~   
+非常感谢~~   
 
 ![微信支付](https://zhangdaren.github.io/articles/img/WeChanQR.png)![支付宝支付](https://zhangdaren.github.io/articles/img/AliPayQR.png)
 
