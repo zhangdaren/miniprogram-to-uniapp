@@ -158,15 +158,17 @@ function templateSelfHandle (parent, parentKey, templateList, tempKey) {
     let node = parent[parentKey];
     if (node.type === "tag") {
         if (node.name === "template") {
-            let dataAttr = node.attribs[":data"];
-            if (dataAttr) {
-                let replacePropsMap = utils.parseTemplateAttrParams(
-                    dataAttr
-                );
-
-                let templateName = node.attribs.is;
-
+            let templateName = node.attribs.is;
+            if (templateName) {
                 if (templateList[templateName]) {
+                    let dataAttr = node.attribs[":data"];
+                    let replacePropsMap = {};
+                    if (dataAttr) {
+                        replacePropsMap = utils.parseTemplateAttrParams(
+                            dataAttr
+                        );
+                    }
+
                     let newAst = templateList[templateName].oldAst[0];
                     for (const kk in newAst.children) {
                         templateSelfHandle(newAst.children, kk, templateList, tempKey);
@@ -210,26 +212,26 @@ function templateSelfHandle (parent, parentKey, templateList, tempKey) {
                 } else if (!/wxParse|WxEmojiView/i.test(templateName)) {
                     const templateTagContent = templateParser.astToString([node]);
 
-                    const logStr = "Error: template对应的wxml不存在，无法替换 --> " + templateTagContent + "   templateName --> " + templateName;
+                    const logStr = "Error: template对应的wxml不存在，无法替换2 --> " + templateTagContent + "   templateName --> " + templateName;
                     utils.log(logStr, "base");
                     global.log.push(logStr);
-                }
-            } else {
-                //有name属性时，它就是一个类似于include的对象
-                var children = node.children;
-                if (children.length) {
-                    for (const kk in children) {
-                        templateSelfHandle(children, kk, templateList, tempKey);
-                    }
                 }
             }
         } else {
             //有name属性时，它就是一个类似于include的对象
             var children = node.children;
-            if (children.length) {
+            if (children && children.length) {
                 for (const kk in children) {
                     templateSelfHandle(children, kk, templateList, tempKey);
                 }
+            }
+        }
+    } else {
+        //有name属性时，它就是一个类似于include的对象
+        var children = node.children;
+        if (children && children.length) {
+            for (const kk in children) {
+                templateSelfHandle(children, kk, templateList, tempKey);
             }
         }
     }

@@ -98,6 +98,10 @@ $ wtu -i miniprogramProject -w
   
 
 ## 更新记录   
+### v1.0.66(20200521)   
+* [修复] app.js未解析的bug   
+* [优化] 忽略对wx:key标签的处理   
+
 ### v1.0.65(20200519)   
 * [新增] template套娃的处理   
 * [新增] 命令行[-m]参数，用于将wxss并入vue文件，默认为false(即不并入vue文件)    

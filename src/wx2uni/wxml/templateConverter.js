@@ -215,12 +215,14 @@ function forTagHandle (node, attrs) {
 	 * 情况五：
 	 * <view wx:for="{{giftList}}" wx:key="item" wx:for-index="idx"></view>
 	 * 解析规则：
-	 * 1. wx:key和wx:for-index共存时，优先使用wx:for-index作为key
+	 * 1. wx:key和wx:for-index共存时，优先使用wx:for-index作为key（错误！！！！）
+     * 1. 直接忽略wx:key
 	 *
 	 */
 
     //这里预先设置wx:for是最前面的一个属性，这样会第一个被遍历到
-    let wx_key = node.attribs['wx:key'];
+    // let wx_key = node.attribs['wx:key'];
+    let wx_key = "";
     let wx_forIndex = node.attribs['wx:for-index'];
 
     //有定义for-index时，优先使用wx_forIndex
@@ -230,15 +232,15 @@ function forTagHandle (node, attrs) {
 
     //处理wx:key="this"或wx:key="*this"的情况
     //如果wx:key="*this"、wx:key="*item"或wx:key="*"时，那么直接设置为空
-    if (wx_key && (wx_key === 'this' || wx_key.indexOf('*') > -1)) {
-        wx_key = '';
-    } else if (checkExp(wx_key)) {
-        //处理<block wx:for="{{5-num}}" wx:key="{{num + index}}"></block>的情况
-        wx_key = 'index';
-    } else if (/<|>/.test(wx_key)) {
-        //<block wx:for="{{rechargelist}}" wx:for-item="items" wx:key="index<=6">
-        wx_key = wx_key.split(/<|>/)[0];
-    }
+    // if (wx_key && (wx_key === 'this' || wx_key.indexOf('*') > -1)) {
+    //     wx_key = '';
+    // } else if (checkExp(wx_key)) {
+    //     //处理<block wx:for="{{5-num}}" wx:key="{{num + index}}"></block>的情况
+    //     wx_key = 'index';
+    // } else if (/<|>/.test(wx_key)) {
+    //     //<block wx:for="{{rechargelist}}" wx:for-item="items" wx:key="index<=6">
+    //     wx_key = wx_key.split(/<|>/)[0];
+    // }
 
     let wx_for = node.attribs['wx:for'];
     let wx_forItem = node.attribs['wx:for-item'];
@@ -480,6 +482,10 @@ function templateTagHandle (node, file_wxml, onlyWxmlFile) {
                     global.globalTemplateComponents[nameAttr].ast = node;
                 }
 
+                //有可能同时含有data属性
+                // node.attribs["data-bak"] = node.attribs["data"];
+                delete node.attribs["data"];
+
                 let templateList = global.templateInfo['templateList'];
                 if (!templateList[nameAttr]) templateList[nameAttr] = {};
                 templateList[nameAttr]['curFileKey'] = fileKey;
@@ -563,6 +569,7 @@ function otherTagHandle (node, attrs, k) {
     //<view style="background-image:url('{{iconURL}}/invitation-red-packet-btn.png')"></view>
     //<view style='font-weight:{{item.b==1? "bold": "normal"}};'></view>
     //<view style="width:{{percent}}% }};"></view> //原始代码有问题
+
     attrs[wx_key] = attrs[wx_key]
         .replace(/url\(['"](.*?{{.*?}}.*?)['"]\)/g, 'url($1)')
         .replace(/['"]{{(.*?)}}['"]/g, '{{$1}}');

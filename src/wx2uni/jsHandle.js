@@ -991,7 +991,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
     }
 
     //是否为vue文件
-    const isVueFile = babelUtil.checkVueFile(javascriptAst) || isAppFile;
+    const isVueFile = babelUtil.checkVueFile(javascriptAst);
 
     //判断文件类型
     let astType = babelUtil.getAstType(
