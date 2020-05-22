@@ -188,7 +188,7 @@ function defineValueHandle (ast, vistors, file_js) {
     //转为json对象，这样方便查找
     let dataJson = {};
     dataArr.forEach(obj => {
-        dataJson[obj.key.name] = obj.value.name;
+        dataJson[obj.key.name] = '';
     });
     let propsJson = {};
     propsArr.forEach(obj => {
