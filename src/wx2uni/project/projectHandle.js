@@ -47,6 +47,8 @@ function saveAllFile () {
                 break;
         }
 
+        // the data argument must be of type string or an instance of buffer typeArray or dataView receive type Number(NaN)
+
         //写入文件
         fs.writeFile(targetFilePath, fileContent, () => {
             console.log(msg);

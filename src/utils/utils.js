@@ -1,4 +1,5 @@
 const chalk = require('chalk');
+const { switchCase } = require('@babel/types');
 
 
 function log (msg, type = 'error') {
@@ -507,6 +508,98 @@ function removeSingleQuote (value) {
     return value;
 }
 
+/**
+ * 根据文件后缀名，获取template所对应的属性名的前缀
+ * @param {*} exname
+ */
+function getAttrPrefixExtname (exname) {
+    var attrPrefix = ''
+    switch (exname) {
+        case '.wxml':
+        case '.wxss':
+            //微信小程序
+            attrPrefix = 'wx'
+            break
+        case '.qml':
+        case '.qss':
+            //qq小程序
+            attrPrefix = 'qq'
+            break
+        case '.ttml':
+        case '.ttss':
+            //头条小程序
+            attrPrefix = 'tt'
+            break
+        case '.axml':
+        case '.acss':
+            //支付宝/钉钉小唷
+            attrPrefix = 'a'
+            break
+        case '.swan':
+            //百度小程序
+            attrPrefix = 's'
+            break
+        default:
+            break
+    }
+    return attrPrefix
+}
+
+/**
+ * 根据后缀名判断小程序项目类型
+ * @param {} extname 
+ */
+function getMPType (extname) {
+    var mpType = "";
+    switch (extname) {
+        case '.wxml':
+            mpType = "weixin";
+            break;
+        case '.qml':
+            mpType = "qq";
+            break;
+        case '.ttml':
+            mpType = "toutiao";
+            break;
+        case '.axml':
+            mpType = "alipay";
+            break;
+        case '.swan':
+            mpType = "baidu";
+            break;
+        default:
+            mpType = "wx";
+            break;
+    }
+    return mpType;
+}
+/**
+ * 小程序对应信息
+ * attrPrefix template里面的前缀
+ * keyword    js代码里面的全局变量
+ */
+const mpInfo = {
+    weixin: {
+        attrPrefix: "wx",
+        keyword: "wx"
+    },
+    qq: {
+        attrPrefix: "qq",
+        keyword: "qq"
+    },
+    toutiao: {
+        attrPrefix: "tt",
+        keyword: "tt"
+    },
+    alipay: {
+        attrPrefix: "a",
+        keyword: "my"
+    },
+    baidu: {
+        attrPrefix: "s",
+        keyword: "swan"
+    },
+}
 
 module.exports = {
     log,
@@ -545,4 +638,7 @@ module.exports = {
     isVant,
     vantComponentList,
 
+    getAttrPrefixExtname,
+    getMPType,
+    mpInfo
 }

@@ -7,101 +7,125 @@ const objectStringToObject = require('object-string-to-object');
 // const paramsHandle = require('../paramsHandle');
 
 /**
+ * 小程序类型
+ * 默认为wx
+ */
+var mpType = 'wx'
+
+/**
  * 去掉属性的值的双括号，然后将值里面的双引号改为单引号
  * @param {*} attr
  */
 function repairAttr (attr) {
-    return attr.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'");
+    return attr.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 }
 
 //html标签替换规则，可以添加更多
-const attrConverterConfigUni = {
-    'wx:if': {
-        key: 'v-if',
-        value: str => {
-            return repairAttr(str);
+var attrConverterConfigUni = null
+
+/**
+ * 根据attr的值进行相应替换
+ * @param {*} key
+ */
+function getAttrConverterConfig (key) {
+    if (attrConverterConfigUni === null) {
+        attrConverterConfigUni = {
+            scrollX: {
+                key: 'scroll-x',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            scrollY: {
+                key: 'scroll-y',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            bindtap: {
+                key: '@tap',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            //参考：https://www.cnblogs.com/baohanblog/p/12457490.html
+            'capture-bind:tap': {
+                key: '@tap',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            'bind:tap': {
+                key: '@tap',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            bindinput: {
+                key: '@input',
+            },
+            bindgetuserinfo: {
+                key: '@getuserinfo',
+            },
+            catchtap: {
+                key: '@tap.stop',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            'capture-catch:tap': {
+                key: '@tap.stop',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            'catch:tap': {
+                key: '@tap.stop',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            'data-ref': {
+                key: 'ref',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
+            //支付宝小程序
+            onTap: {
+                key: '@tap',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
         }
-    },
-    'wx-if': {
-        key: 'v-if',
-        value: str => {
-            return repairAttr(str);
+        attrConverterConfigUni[mpType + ':if'] = {
+            key: 'v-if',
+            value: (str) => {
+                return repairAttr(str)
+            },
         }
-    },
-    'wx:else': {
-        key: 'v-else',
-        value: str => {
-            return repairAttr(str);
+        attrConverterConfigUni[mpType + '-if'] = {
+            key: 'v-if',
+            value: (str) => {
+                return repairAttr(str)
+            },
         }
-    },
-    'wx:elif': {
-        key: 'v-else-if',
-        value: str => {
-            return repairAttr(str);
+        attrConverterConfigUni[mpType + ':else'] = {
+            key: 'v-else',
+            value: (str) => {
+                return repairAttr(str)
+            },
         }
-    },
-    scrollX: {
-        key: 'scroll-x',
-        value: str => {
-            return repairAttr(str);
-        }
-    },
-    scrollY: {
-        key: 'scroll-y',
-        value: str => {
-            return repairAttr(str);
-        }
-    },
-    bindtap: {
-        key: '@tap',
-        value: str => {
-            return repairAttr(str);
-        }
-    },
-    //参考：https://www.cnblogs.com/baohanblog/p/12457490.html
-    'capture-bind:tap': {
-        key: '@tap',
-        value: str => {
-            return repairAttr(str);
-        }
-    },
-    'bind:tap': {
-        key: '@tap',
-        value: str => {
-            return repairAttr(str);
-        }
-    },
-    bindinput: {
-        key: '@input'
-    },
-    bindgetuserinfo: {
-        key: '@getuserinfo'
-    },
-    catchtap: {
-        key: '@tap.stop',
-        value: str => {
-            return repairAttr(str);
-        }
-    },
-    'capture-catch:tap': {
-        key: '@tap.stop',
-        value: str => {
-            return repairAttr(str);
-        }
-    },
-    'catch:tap': {
-        key: '@tap.stop',
-        value: str => {
-            return repairAttr(str);
-        }
-    },
-    'data-ref': {
-        key: 'ref',
-        value: str => {
-            return repairAttr(str);
+        attrConverterConfigUni[mpType + ':elif'] = {
+            key: 'v-else-if',
+            value: (str) => {
+                return repairAttr(str)
+            },
         }
     }
-};
+    return attrConverterConfigUni[key]
+}
 
 /**
  * 替换bind为@，有两种情况：bindtap="" 和 bind:tap=""
@@ -114,7 +138,8 @@ function replaceBindToAt (attr) {
  * 替换wx:abc为:abc
  */
 function replaceWxBind (attr) {
-    return attr.replace(/^wx:*/, ':');
+    let reg = new RegExp('^' + mpType + ':*')
+    return attr.replace(reg, ':')
 }
 
 /**
@@ -223,11 +248,13 @@ function forTagHandle (node, attrs) {
     //这里预先设置wx:for是最前面的一个属性，这样会第一个被遍历到
     // let wx_key = node.attribs['wx:key'];
     let wx_key = "";
-    let wx_forIndex = node.attribs['wx:for-index'];
+    let wx_forIndex = node.attribs[mpType + ':for-index']
 
     //有定义for-index时，优先使用wx_forIndex
     if (wx_forIndex) {
         wx_key = wx_forIndex;
+    } else {
+        wx_key = "index";
     }
 
     //处理wx:key="this"或wx:key="*this"的情况
@@ -242,11 +269,11 @@ function forTagHandle (node, attrs) {
     //     wx_key = wx_key.split(/<|>/)[0];
     // }
 
-    let wx_for = node.attribs['wx:for'];
-    let wx_forItem = node.attribs['wx:for-item'];
-    let wx_forItems = node.attribs['wx:for-items'];
+    let wx_for = node.attribs[mpType + ':for']
+    let wx_forItem = node.attribs[mpType + ':for-item']
+    let wx_forItems = node.attribs[mpType + ':for-items']
     //wx:for与wx:for-items互斥
-    let value = wx_for ? wx_for : wx_forItems;
+    let value = wx_for ? wx_for : wx_forItems
 
     if (value) {
         //处理<view wx:for="{{ dates }}" wx:key="dates"></view>
@@ -297,39 +324,43 @@ function forTagHandle (node, attrs) {
                     '(' + wx_forItem + ', ' + wx_key + ') in $1'
                 );
 
-                if (value == node.attribs['wx:for'] || value == node.attribs['wx:for-items']) {
+                if (
+                    value == node.attribs[mpType + ':for'] ||
+                    value == node.attribs[mpType + ':for-items']
+                ) {
                     //奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
                     //这里处理无{{}}的情况
-                    value = '(' + wx_forItem + ', ' + wx_key + ') in ' + value;
+                    value = '(' + wx_forItem + ', ' + wx_key + ') in ' + value
                 }
             } else {
                 //处理包含in的情况，如：wx:for="item in 12"
                 //这里粗糙处理一下，官方也没有这种写法
-                let tmpArr = value.split(' in ');
-                let str1 = tmpArr[0];
+                let tmpArr = value.split(' in ')
+                let str1 = tmpArr[0]
                 if (str1.indexOf(',') == -1) {
-                    str1 += ', ' + wx_key;
+                    str1 += ', ' + wx_key
                 }
-                value = '(' + str1 + ') in ' + tmpArr[1];
+                value = '(' + str1 + ') in ' + tmpArr[1]
             }
 
-            attrs['v-for'] = value;
+            attrs['v-for'] = value
 
-            if (node.attribs.hasOwnProperty('wx:for'))
-                delete node.attribs['wx:for'];
-            if (node.attribs.hasOwnProperty('wx:for-index'))
-                delete node.attribs['wx:for-index'];
-            if (node.attribs.hasOwnProperty('wx:for-item'))
-                delete node.attribs['wx:for-item'];
-            if (node.attribs.hasOwnProperty('wx:for-items'))
-                delete node.attribs['wx:for-items'];
+            if (node.attribs.hasOwnProperty(mpType + ':for'))
+                delete node.attribs[mpType + ':for']
+            if (node.attribs.hasOwnProperty(mpType + ':for-index'))
+                delete node.attribs[mpType + ':for-index']
+            if (node.attribs.hasOwnProperty(mpType + ':for-item'))
+                delete node.attribs[mpType + ':for-item']
+            if (node.attribs.hasOwnProperty(mpType + ':for-items'))
+                delete node.attribs[mpType + ':for-items']
         }
     } else {
-        const code = templateParser.astToString([node]);
-        console.log('当前这个标签只有一个wx:key --> ' + code);
+        const code = templateParser.astToString([node])
+        console.log('当前这个标签只有一个' + mpType + +':key --> ' + code)
     }
-    attrs[':key'] = wx_key;
-    if (node.attribs.hasOwnProperty('wx:key')) delete node.attribs['wx:key'];
+    attrs[':key'] = wx_key
+    if (node.attribs.hasOwnProperty(mpType + ':key'))
+        delete node.attribs[mpType + ':key']
 }
 
 /**
@@ -734,7 +765,7 @@ function imageTagHandle (node, file_wxml) {
                     node.attribs.src +
                     '"     file--> ' +
                     path.relative(global.miniprogramRoot, file_wxml);
-                console.log(logStr);
+                // console.log(logStr);
                 global.logArr.fish.push(logStr);
             }
         }
@@ -755,6 +786,8 @@ const templateConverter = async function (
     templateParser
 ) {
     const fileKey = pathUtil.getFileKey(file_wxml);
+    let extname = path.extname(file_wxml)
+    mpType = utils.getAttrPrefixExtname(extname)
     const isComponent =
         (global.pagesData[fileKey] &&
             global.pagesData[fileKey]['data'] &&
@@ -816,8 +849,8 @@ const templateConverter = async function (
             let attrs = {};
 
             if (
-                node.attribs['wx:for'] ||
-                node.attribs['wx:for-items']
+                node.attribs[mpType + ':for'] ||
+                node.attribs[mpType + ':for-items']
             ) {
                 //wx:for处理
                 forTagHandle(node, attrs);
@@ -825,7 +858,7 @@ const templateConverter = async function (
 
             const oldNode = clone(node);
             for (let k in node.attribs) {
-                let target = attrConverterConfigUni[k];
+                let target = getAttrConverterConfig(k)
                 if (target) {
                     //单独判断style的绑定情况
                     let key = target['key'];

@@ -67,7 +67,7 @@ function wxProjectParse (folder, sourceFolder) {
             projectConfig.miniprogramRoot = folder;
         }
 
-        projectConfig.appid = data.appid || '';
+        projectConfig.appid = data.appid || data.qqappid || ''
         projectConfig.compileType = data.compileType || '';
         projectConfig.name = decodeURIComponent(data.projectname || '');
     } else {
@@ -238,7 +238,25 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                         // var key = path.join(tFolder, fileNameNoExt);
                         let key = pathUtil.getFileKey(fileDir);
 
-                        if (/\.(js|wxml|wxss|qs|qml|qss|json)/.test(extname)) {
+                        let extnameArr = [
+                            'js',
+                            'wxml',
+                            'wxss',
+                            //qq小程序
+                            'qs',
+                            'qml',
+                            'qss',
+                            //头条小程序
+                            'ttml',
+                            'ttss',
+                            //支付宝/钉钉小程序
+                            'axml',
+                            'acss',
+                            //百度小程序
+                            'swan',
+                        ]
+                        let extnameReg = new RegExp('\\.(' + extnameArr.join('|') + ')')
+                        if (extnameReg.test(extname)) {
                             //如果obj为false，那么肯定是还没有初始化的underfined
                             if (!fileData[key]) {
                                 fileData[key] = {
@@ -271,10 +289,16 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                                 break;
                             case '.wxml':
                             case '.qml':
+                            case '.ttml':
+                            case '.axml':
+                            case '.swan':
+                                global.mpType = utils.getMPType(extname);
                                 obj['wxml'] = fileDir;
                                 break;
                             case '.wxss':
                             case '.qss':
+                            case '.ttss':
+                            case '.acss':
                                 obj['wxss'] = fileDir;
                                 break;
                             case '.json':
@@ -606,10 +630,6 @@ async function filesHandle (fileData, miniprogramRoot) {
                                 fileContentWxml =
                                     '<template>\r\n<view>\r\n</view>\r\n</template>\r\n';
                             }
-                        } else {
-                            //存个空标签
-                            fileContentWxml =
-                                '<template>\r\n<view>\r\n</view>\r\n</template>\r\n';
                         }
 
                         if (fileKey) {
@@ -1159,6 +1179,9 @@ async function transform (
     //是否提取到static及转换资源的路径(注意：现阶段仍然为true，2020-03-16)
     global.isTransformAssetsPath = true;
 
+    //记录当前项目的项目类型，猜测！默认是微信小程序
+    global.mpType = "wx";
+
     //是否为编译过的项目
     let runtimePath = path.join(sourceFolder, 'common/runtime.js');
     let vendorPath = path.join(sourceFolder, 'common/vendor.js');
@@ -1426,9 +1449,13 @@ async function transform (
                     str +=
                         '注意：\r\n1.当看到"image漏网之鱼"，意味着您"可能"需要手动调整对应代码(以实际编译运行为准)，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径\r\n';
                 }
-                if (isVantProject && global.hasVant !== isVantProject) {
+                // if (isVantProject && global.hasVant !== isVantProject) {
+                //     str +=
+                //         '\r\n\r\n\r\n注意!!! \r\n注意!!! \r\n注意!!!\r\n检测到当前项目使用了vant组件，已经自动按vant项目进行转换(转换后的项目仅支持app和H5 ！！！)。\r\n\r\n';
+                // }
+                if (isVantProject) {
                     str +=
-                        '\r\n\r\n\r\n注意!!! \r\n注意!!! \r\n注意!!!\r\n检测到当前项目使用了vant组件，已经自动按vant项目进行转换(转换后的项目仅支持app和H5 ！！！)。\r\n\r\n';
+                        '\r\n\r\n\r\n注意!!! \r\n注意!!! \r\n注意!!!\r\n因uniapp限制，当前转换后的Uniapp项目仅支持app和H5 ！！！仅支持app和H5 ！！！仅支持app和H5 ！！！)。\r\n\r\n';
                 }
                 str += tmpStr;
                 str += '\r\n\r\n日志说明：\r\n';

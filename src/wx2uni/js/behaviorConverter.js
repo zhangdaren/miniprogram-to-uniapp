@@ -333,58 +333,51 @@ function lifeCycleHandle (path) {
                         let objProp;
                         //observer换成watch
                         let op_value = null;
+                        //
+                        if (t.isObjectProperty(observerItem.node)) {
+                            op_value = observerItem.node.value;
+                        } else if (t.isObjectMethod(observerItem.node)) {
+                            op_value = t.functionExpression(
+                                null,
+                                observerItem.node.params,
+                                observerItem.node.body
+                            );
+                        } else {
+                            op_value = observerItem.node.value;
+                        }
+
+                        let objExp_handle = t.objectProperty(
+                            t.identifier("handler"),
+                            op_value
+                        );
+                        //对齐微信小程序，开启首次赋值监听
+                        let objExp_immediate = t.objectProperty(
+                            t.identifier("immediate"),
+                            t.booleanLiteral(true)
+                        );
+
+                        let properties = [objExp_handle, objExp_immediate];
+
                         if (
                             typeItem.node.value.name == "Array" ||
                             typeItem.node.value.name == "Object"
                         ) {
                             //Array和Object换成深度监听
-                            if (t.isObjectProperty(observerItem.node)) {
-                                op_value = observerItem.node.value;
-                            } else if (t.isObjectMethod(observerItem.node)) {
-                                op_value = t.functionExpression(
-                                    null,
-                                    observerItem.node.params,
-                                    observerItem.node.body
-                                );
-                            } else {
-                                op_value = observerItem.node.value;
-                            }
-
-                            let objExp_handle = t.objectProperty(
-                                t.identifier("handler"),
-                                op_value
-                            );
                             let objExp_deep = t.objectProperty(
                                 t.identifier("deep"),
                                 t.booleanLiteral(true)
                             );
-                            let properties = [objExp_handle, objExp_deep];
-                            let objExp = t.objectExpression(properties);
-                            //如果observer的属性名是字符串，那就进行命名的修正
-                            //20200418->减少侵入，也因为修复不完全，不再进行重名！
-                            // if (t.isStringLiteral(objExp))
-                            //     objExp.value = utils.getPropsAlias(objExp.value);
-                            objProp = t.objectProperty(t.identifier(propItemName), objExp);
-                        } else {
-                            if (t.isObjectProperty(observerItem.node)) {
-                                op_value = observerItem.node.value;
-                            } else if (t.isObjectMethod(observerItem.node)) {
-                                op_value = t.functionExpression(
-                                    null,
-                                    observerItem.node.params,
-                                    observerItem.node.body
-                                );
-                            } else {
-                                op_value = observerItem.node.value;
-                            }
-                            //如果observer的属性名是字符串，那就进行命名的修正
-                            //20200418->减少侵入，也因为修复不完全，不再进行重名！
-                            // if (t.isStringLiteral(op_value))
-                            //     op_value.value = utils.getPropsAlias(op_value.value);
-
-                            //其他类型原样
-                            objProp = t.objectProperty(t.identifier(propItemName), op_value);
+                            properties = [...properties, objExp_deep];
                         }
+
+                        let objExp = t.objectExpression(properties);
+                        //如果observer的属性名是字符串，那就进行命名的修正
+                        //20200418->减少侵入，也因为修复不完全，不再进行重名！
+                        // if (t.isStringLiteral(objExp))
+                        //     objExp.value = utils.getPropsAlias(objExp.value);
+                        objProp = t.objectProperty(t.identifier(propItemName), objExp);
+
+                        //
                         vistors.watch.handle(objProp);
                         observerItem.remove();
                     }

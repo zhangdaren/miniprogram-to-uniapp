@@ -5,6 +5,7 @@ const parse = require("@babel/parser").parse;
 const generate = require("@babel/generator").default;
 const traverse = require("@babel/traverse").default;
 const pathUtil = require("./pathUtil");
+const utils = require('./utils')
 
 /**
  * App生命周期函数
@@ -68,29 +69,46 @@ function hasDataExp (path) {
     );
 }
 
-
+var useScopeList = {};
 function globalDataHandle2 (path) {
-
     let id = path.get("id");
     let init = path.get("init");
     if (t.isCallExpression(init)) {
         let callee = init.get("callee");
         if (t.isIdentifier(id) && t.isIdentifier(callee.node, { name: "getApp" })) {
+            let scope = path.parentPath.scope;
+            //判断二次声明app的骚写法
             /**
-             * 这里两种解决方案，反正，预处理时已经把.globalData.替换为.了，
-             * 一、将变量所在引用替换为getApp的变量+globalData，如：var abc = getApp(); abc.globalData.xxx
-             * 二、将变替换一下即可，改动较小，但可能会遇到在vue加载前就加载了组件的情况。。。
+             * var app = getApp();
+             * var app = getApp();
+             * app.test();
              */
-            //方案一：
-            var oldIdName = id.node.name;
-            path.parentPath.scope.rename(id.node.name, id.node.name + ".globalData");
-            path.node.id.name = oldIdName;
+            // console.log("scope.uid", scope.uid)
+            if (useScopeList[scope.uid] === true) {
+                //已经遍历过
+                path.remove();
+                return;
+            }
 
-            //方案二：
-            // let memExp = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
-            // let varDec = t.variableDeclarator(id.node, memExp);
-            // path.replaceWith(varDec);
-            // path.skip();
+            if (!useScopeList.hasOwnProperty(scope.uid)) {
+                /**
+                 * 这里两种解决方案，反正，预处理时已经把.globalData.替换为.了，
+                 * 一、将变量所在引用替换为getApp的变量+globalData，如：var abc = getApp(); abc.globalData.xxx
+                 * 二、将变替换一下即可，改动较小，但可能会遇到在vue加载前就加载了组件的情况。。。
+                 */
+                //方案一：
+                var oldIdName = id.node.name;
+                scope.rename(id.node.name, id.node.name + ".globalData");
+                path.node.id.name = oldIdName;
+
+                useScopeList[scope.uid] = true;
+
+                //方案二：
+                // let memExp = t.memberExpression(t.callExpression(t.identifier("getApp"), []), t.identifier("globalData"));
+                // let varDec = t.variableDeclarator(id.node, memExp);
+                // path.replaceWith(varDec);
+                // path.skip();
+            }
         }
     }
 
@@ -705,18 +723,28 @@ function isThisExpression (path, thisNameList) {
  * 替换ast里指定关键字(如wx或qq)为uni
  * @param {*} ast 
  */
-function renameToUni (ast, name = "wx") {
-    traverse(ast, {
-        Program (path) {
-            path.scope.rename(name, "uni");
-        },
-        VariableDeclarator (path) {
-            if (t.isStringLiteral(path.node.init, { value: "replace-tag-375890534@qq.com" })) {
-                path.remove();
-                path.stop();
-            }
-        }
-    });
+function renameToUni(ast, name = 'wx') {
+  traverse(ast, {
+    Program(path) {
+      if (Array.isArray(name)) {
+        name.forEach((n) => {
+          path.scope.rename(n, 'uni')
+        })
+      } else {
+        path.scope.rename(name, 'uni')
+      }
+    },
+    VariableDeclarator(path) {
+      if (
+        t.isStringLiteral(path.node.init, {
+          value: 'replace-tag-375890534@qq.com',
+        })
+      ) {
+        path.remove()
+        path.stop()
+      }
+    },
+  })
 }
 
 

@@ -25,6 +25,18 @@ let fileDir = "";
 //key
 let fileKey = "";
 
+
+/**
+ * 初始化globalData数据
+ */
+function initGlobalData () {
+    if (globalData.value && globalData.value.properties) {
+    } else {
+        globalData = babelUtil.createObjectProperty("globalData");
+        vistors.lifeCycle.handle(globalData);
+    }
+}
+
 /*
  * 注：为防止深层遍历，将直接路过子级遍历，所以使用enter进行全遍历时，孙级节点将跳过
  *
@@ -139,11 +151,13 @@ const vistor = {
         const parent = path.parentPath.parent;
         if (t.isFile(parent)) {
             //定义的外部函数
-
             declareNodeList.push(path);;
-
             path.skip();
         }
+    },
+    SpreadElement (path) {
+        initGlobalData();
+        globalData.value.properties.push(path.node);
     },
     ObjectMethod (path) {
         const parent = path.parentPath.parent;
@@ -153,11 +167,7 @@ const vistor = {
         if (value) {
             //async函数
             //app.js里面的函数，除生命周期外全部放入到gloabalData里
-            if (globalData.value && globalData.value.properties) {
-            } else {
-                globalData = babelUtil.createObjectProperty("globalData");
-                vistors.lifeCycle.handle(globalData);
-            }
+            initGlobalData();
             globalData.value.properties.push(path.node);
         } else {
             //这里function
@@ -166,11 +176,7 @@ const vistor = {
                 vistors.lifeCycle.handle(path.node);
             } else {
                 //类似这种函数 fun(){}
-                if (globalData.value && globalData.value.properties) {
-                } else {
-                    globalData = babelUtil.createObjectProperty("globalData");
-                    vistors.lifeCycle.handle(globalData);
-                }
+                initGlobalData();
                 globalData.value.properties.push(path.node);
             }
         }
@@ -183,11 +189,7 @@ const vistor = {
         // console.log("name", path.node.key.name)
         switch (name) {
             case "data":
-                if (globalData.value && globalData.value.properties) {
-                } else {
-                    globalData = babelUtil.createObjectProperty("globalData");
-                    vistors.lifeCycle.handle(globalData);
-                }
+                initGlobalData();
                 if (path.node.value && path.node.value.properties) {
                     globalData.value.properties = [
                         ...globalData.value.properties,
@@ -234,11 +236,7 @@ const vistor = {
                             vistors.lifeCycle.handle(path.node);
                             //跳过生命周期下面的子级，不然会把里面的也给遍历出来
                         } else {
-                            if (globalData.value && globalData.value.properties) {
-                            } else {
-                                globalData = babelUtil.createObjectProperty("globalData");
-                                vistors.lifeCycle.handle(globalData);
-                            }
+                            initGlobalData();
                             globalData.value.properties.push(path.node);
                         }
                         path.skip();
@@ -250,11 +248,7 @@ const vistor = {
                         // 	}
                         // 	globalData.value.properties.push(path.node);
                     } else {
-                        if (globalData.value && globalData.value.properties) {
-                        } else {
-                            globalData = babelUtil.createObjectProperty("globalData");
-                            vistors.lifeCycle.handle(globalData);
-                        }
+                        initGlobalData();
                         globalData.value.properties.push(path.node);
                     }
                 }

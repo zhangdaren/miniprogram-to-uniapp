@@ -192,7 +192,7 @@ function defineValueHandle (ast, vistors, file_js) {
     });
     let propsJson = {};
     propsArr.forEach(obj => {
-        propsJson[obj.key.name] = obj.value.name;
+        propsJson[obj.key.name] = '';
     });
     traverse(ast, {
         noScope: true,
@@ -420,7 +420,8 @@ const componentTemplateBuilder = function (
                                 t.isArrowFunctionExpression(subItem.value)));
                     if (isFun) {
                         appGlobalDataFunNameList[subItem.key.name] = true;
-                    } else {
+                    } else if (subItem.key) {
+                        //这里需要判断一下，因为可能会有...utils这样的属性存在，它是SpreadElement没有key的。
                         appGlobalDataValueNameList[subItem.key.name] = true;
                     }
                 }
@@ -950,9 +951,14 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
     //先反转义
     let javascriptContent = fileData;
 
+    //获取当前小程序的关键字
+    var keyword = utils.mpInfo[global.mpType].keyword;
+
     //替换wx为uni，在前面加上标记，方便转换，后面再将其去掉。
     if (global.isRenameWxToUni) {
-        javascriptContent = "const wx = 'replace-tag-375890534@qq.com';\r\n" + javascriptContent;
+        javascriptContent =
+            "const " + keyword + " = 'replace-tag-375890534@qq.com';\r\n" +
+            javascriptContent
     }
 
     let fileKey = pathUtil.getFileKey(file_js);
@@ -1001,7 +1007,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
 
     //替换wx为uni
     if (global.isRenameWxToUni) {
-        babelUtil.renameToUni(javascriptAst);
+        babelUtil.renameToUni(javascriptAst, keyword)
     }
 
     let astInfoObject = null;

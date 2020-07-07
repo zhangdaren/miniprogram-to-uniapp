@@ -24,7 +24,7 @@ function includeTagHandle () {
                 item.parsedIncluded = true;
             } else {
                 // path.relative(global.miniprogramRoot, item.includeWxmlAbsPath)
-                let logStr = 'Error: 找不到include所对应的wxml文件-->' + path.relative(global.miniprogramRoot, item.includeWxmlAbsPath) + '   标签：' + item.includeTag
+                let logStr = '[Error]: 找不到include所对应的wxml文件-->' + path.relative(global.miniprogramRoot, item.includeWxmlAbsPath) + '   标签：' + item.includeTag
                 console.log(logStr);
                 global.log.push(logStr);
             }

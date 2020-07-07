@@ -291,3 +291,98 @@ leftIndex:index+1,section3Title:item.title
 
 三元表达式拆分？
 
+
+/////////////////////////////////////////////////////////
+
+
+
+wxSearch
+
+template样式文件带入---------------------
+
+小程序自定义tabbar
+
+* qq小程序
+* include套娃 测试
+
+
+抛出一个语法错误
+如果您想用babel-code-frame和一个消息抛出一个错误：
+
+export default function({ types: t }) {
+  return {
+    visitor: {
+      StringLiteral(path) {
+        throw path.buildCodeFrameError("Error message here");
+      }
+    }
+  };
+}
+该错误看起来像：
+
+file.js: Error message here
+   7 |
+   8 | let tips = [
+>  9 |   "Click on any AST node with a '+' to expand it",
+     |   ^
+  10 |
+  11 |   "Hovering over a node highlights the \
+  12 |    corresponding part in the source code",
+
+
+VM2429:1 [Vue warn]: Avoid replacing instance root $data. Use nested data properties instead.
+
+export default {
+  data() {
+    return {
+      $data: {
+        stickyFlag: false,
+        scrollTop: 0,
+        overPageNum: 1,
+        loadOver: false,
+        hasOverGoods: false,
+        countDownMap: {},
+        actEndMap: {},
+        timer: {},
+        scrollHeight: 1300,
+        stickyTop: 0,
+        hasCommingGoods: true
+      },
+    }
+var that = this;
+      that.$data = { ...that.$data,
+        ...{
+          overPageNum: 1,
+          loadOver: false,
+          hasOverGoods: false,
+          countDownMap: {},
+          actEndMap: {},
+          timer: {}
+        }
+      }
+
+
+key $data is reserved  提示：
+
+$data 是vue的变量名。。。。
+ that.$data.hasOverGoods = false;
+
+
+---------------------------------------------------------------------------------
+直接scope.rename????????
+转换为 $data -->  dataBak
+
+
+
+https://ask.dcloud.net.cn/article/37086
+
+
+
+QQ 小程序
+qs文件 qq标签
+
+qq:if
+qq.login
+
+好像小程序转了 uniapp之后  van-datetime-picker， van-area 这些都无法使用啊@No.3389 大佬
+
