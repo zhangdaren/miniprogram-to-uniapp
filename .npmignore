@@ -1,7 +1,6 @@
 test
 demo
 node_modules
-package-lock.json
 .history/
 .vscode/
 *.zip
