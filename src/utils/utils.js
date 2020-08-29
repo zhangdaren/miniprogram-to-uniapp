@@ -18,9 +18,9 @@ function log (msg, type = '') {
             break;
         default:
             console.log(msg);
-            global.hbxOutputChannel && global.hbxOutputChannel.appendLine && global.hbxOutputChannel.appendLine(msg);
             break;
     }
+    global.hbxOutputChannel && global.hbxOutputChannel.appendLine && global.hbxOutputChannel.appendLine(msg);
 };
 
 
