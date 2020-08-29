@@ -366,7 +366,7 @@ function getAstType (ast, _file_js) {
             }
         }
     });
-    console.log("文件类型: " + type + "       路径: " + _file_js);
+    // console.log("文件类型: [ " + type + " ]       路径: " + _file_js);
     return type;
 }
 
@@ -721,30 +721,30 @@ function isThisExpression (path, thisNameList) {
 
 /**
  * 替换ast里指定关键字(如wx或qq)为uni
- * @param {*} ast 
+ * @param {*} ast
  */
-function renameToUni(ast, name = 'wx') {
-  traverse(ast, {
-    Program(path) {
-      if (Array.isArray(name)) {
-        name.forEach((n) => {
-          path.scope.rename(n, 'uni')
-        })
-      } else {
-        path.scope.rename(name, 'uni')
-      }
-    },
-    VariableDeclarator(path) {
-      if (
-        t.isStringLiteral(path.node.init, {
-          value: 'replace-tag-375890534@qq.com',
-        })
-      ) {
-        path.remove()
-        path.stop()
-      }
-    },
-  })
+function renameToUni (ast, name = 'wx') {
+    traverse(ast, {
+        Program (path) {
+            if (Array.isArray(name)) {
+                name.forEach((n) => {
+                    path.scope.rename(n, 'uni')
+                })
+            } else {
+                path.scope.rename(name, 'uni')
+            }
+        },
+        VariableDeclarator (path) {
+            if (
+                t.isStringLiteral(path.node.init, {
+                    value: 'replace-tag-375890534@qq.com',
+                })
+            ) {
+                path.remove()
+                path.stop()
+            }
+        },
+    })
 }
 
 

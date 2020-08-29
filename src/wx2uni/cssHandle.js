@@ -7,10 +7,10 @@ const pathUtil = require('../utils/pathUtil.js');
 
 
 /**
- * 处理css文件 
+ * 处理css文件
  * 1.内部引用的wxss文件修改为css文件
  * 2.修正引用的wxss文件的路径
- * 
+ *
  * @param {*} fileContent       css文件内容
  * @param {*} file_wxss         当前处理的文件路径
  */
@@ -24,45 +24,52 @@ async function cssHandle (fileContent, file_wxss) {
             //"../../wxParse/icon/css"
             //@import "./wxParse/suui/suui.css";
 
-            //删除掉import app.wxss的代码
+            //删除掉import wxParse.wxss的代码
             fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse[\/\.](.*?)["'];?/g, "");
 
-            const testReg = /url\(['"]?data:\s*application\/(x-)?font-woff(2)?;\s*charset=utf-8;\s*base64,/i;
-            //清除css里失效的iconfont字体文件引用
-            if (testReg.test(fileContent)) {
-                const eotReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).eot.*?['"]?\)[,;]/gi;
-                const eotReg2 = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).eot.*?['"]?\)\s*format\(['"]?embedded-opentype['"]?\)[,;]/gi;
-                const ttfReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).ttf.*?['"]?\)\s*format\(['"]?truetype['"]?\)[,;]/gi;
-                const svgReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).svg.*?['"]?\)\s*format\(['"]?svg['"]?\)[,;]/gi;
-                const woffReg = /(src:\s*url\(['"]?data:\s*application\/font-woff2;.*?\)\s*format\(['"]?woff2['"]?\),[\w\W]*url\(data:\s*application\/font-woff;.*?\)\s*format\(['"]woff['"]\))[,;]/gi;
-                const woffReg2 = /(url\(['"]?data:\s*application\/(x-)?font-woff2?;.*?\)\s*format\(['"]?woff2?['"]?\)),/gi;
+            // const testReg = /url\(['"]?data:\s*application\/(x-)?font-woff(2)?;\s*charset=utf-8;\s*base64,/i;
+            // //清除css里失效的iconfont字体文件引用
+            // if (testReg.test(fileContent)) {
+            //     const eotReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).eot.*?['"]?\)[,;]/gi;
+            //     const eotReg2 = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).eot.*?['"]?\)\s*format\(['"]?embedded-opentype['"]?\)[,;]/gi;
+            //     const ttfReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).ttf.*?['"]?\)\s*format\(['"]?truetype['"]?\)[,;]/gi;
+            //     const svgReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).svg.*?['"]?\)\s*format\(['"]?svg['"]?\)[,;]/gi;
+            //     const woffReg = /(src:\s*url\(['"]?data:\s*application\/font-woff2;.*?\)\s*format\(['"]?woff2['"]?\),[\w\W]*url\(data:\s*application\/font-woff;.*?\)\s*format\(['"]woff['"]\))[,;]/gi;
+            //     const woffReg2 = /(url\(['"]?data:\s*application\/(x-)?font-woff2?;.*?\)\s*format\(['"]?woff2?['"]?\)),/gi;
 
-                const woffReg3 = /url\(['"]?iconfont.woff\?.*?\)\s*format\(['"]?woff['"]?\)[,;]/gi;
+            //     const woffReg3 = /url\(['"]?iconfont.woff\?.*?\)\s*format\(['"]?woff['"]?\)[,;]/gi;
 
-                //可能会有误替换的情况，这里修复一下
-                const fixReg = /(format\(['"]embedded-opentype['"]\),[\w\W]*?)src:(\s*url\(.*?format\(['"]woff2['"]\));/gi;
+            //     //可能会有误替换的情况，这里修复一下
+            //     const fixReg = /(format\(['"]embedded-opentype['"]\),[\w\W]*?)src:(\s*url\(.*?format\(['"]woff2['"]\));/gi;
 
-                //可能替换后会有src重复的问题
-                const fixReg2 = /src:\s*(src:\s*url\(data:application)/gi;
+            //     //可能替换后会有src重复的问题
+            //     const fixReg2 = /src:\s*(src:\s*url\(data:application)/gi;
 
-                //可以误替换，导致语法错误的问题
-                const fixReg3 = /(\)\s*format\(['"]woff['"]\));([\w\W]*url\('\/\/)/gi;
+            //     //可以误替换，导致语法错误的问题
+            //     const fixReg3 = /(\)\s*format\(['"]woff['"]\));([\w\W]*url\('\/\/)/gi;
 
-                const fixReg4 = /(\),[\w\W]*)src:\s*(url\()/gi;
+            //     const fixReg4 = /(\),[\w\W]*)src:\s*(url\()/gi;
 
-                fileContent = fileContent
-                    .replace(eotReg, "/* $& */\n")
-                    .replace(eotReg2, "/* $& */\n")
-                    .replace(ttfReg, "/* $& */\n")
-                    .replace(svgReg, "/* $& */\n")
-                    .replace(woffReg, "$1;\n")
-                    .replace(woffReg2, "src: $1;")
-                    .replace(woffReg3, "/* $& */\n")
-                    .replace(fixReg, "$1$2")
-                    .replace(fixReg2, "$1")
-                    .replace(fixReg3, "$1,$2")
-                    .replace(fixReg4, "$1$2")
-                    ;
+            //     fileContent = fileContent
+            //         .replace(eotReg, "/* $& */\n")
+            //         .replace(eotReg2, "/* $& */\n")
+            //         .replace(ttfReg, "/* $& */\n")
+            //         .replace(svgReg, "/* $& */\n")
+            //         .replace(woffReg, "$1;\n")
+            //         .replace(woffReg2, "src: $1;")
+            //         .replace(woffReg3, "/* $& */\n")
+            //         .replace(fixReg, "$1$2")
+            //         .replace(fixReg2, "$1")
+            //         .replace(fixReg3, "$1,$2")
+            //         .replace(fixReg4, "$1$2")
+            //         ;
+            // }
+
+            var iconfontReg = /["'\/]iconfont\.(eot|woff|ttf|svg)/;
+            if (iconfontReg.test(fileContent)) {
+                let logStr = "Tip: " + file_wxss + "包含字体文件，可能需要手工进行修复";
+                global.log.push(logStr);
+                utils.log(logStr);
             }
 
             //wxss文件所在目录

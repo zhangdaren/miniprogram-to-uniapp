@@ -6,6 +6,7 @@ moment.locale('zh-cn');
 const utils = require('./utils/utils.js');
 const pathUtil = require('./utils/pathUtil.js');
 //
+
 const jsHandle = require('./wx2uni/jsHandle');
 const wxmlHandle = require('./wx2uni/wxmlHandle');
 const cssHandle = require('./wx2uni/cssHandle');
@@ -21,91 +22,7 @@ const TemplateParser = require('./wx2uni/wxml/TemplateParser');
 //初始化一个解析器
 const templateParser = new TemplateParser();
 
-const MAX_FILE_SIZE = 300 * 1024;
-
-/**
- * 解析小程序项目的配置
- * @param {*} folder        小程序主体所在目录
- * @param {*} sourceFolder  输入目录
- */
-function wxProjectParse (folder, sourceFolder) {
-    let file_projectConfigJson = path.join(folder, 'project.config.json');
-    let projectConfig = {
-        name: '',
-        version: '',
-        description: '',
-        appid: '',
-        projectname: '',
-        miniprogramRoot: '',
-        cloudfunctionRoot: '',
-        compileType: '',
-        author: ''
-    };
-
-    if (fs.existsSync(file_projectConfigJson)) {
-        let data = {};
-        try {
-            data = fs.readJsonSync(file_projectConfigJson);
-        } catch (error) {
-            console.log(`Error： 解析project.config.json报错：` + error);
-        }
-
-        if (data.cloudfunctionRoot) {
-            //有云函数的
-            projectConfig.cloudfunctionRoot = path.resolve(
-                sourceFolder,
-                data.cloudfunctionRoot
-            );
-        }
-
-        if (data.miniprogramRoot) {
-            projectConfig.miniprogramRoot = path.resolve(
-                sourceFolder,
-                data.miniprogramRoot
-            );
-        } else {
-            projectConfig.miniprogramRoot = folder;
-        }
-
-        projectConfig.appid = data.appid || data.qqappid || ''
-        projectConfig.compileType = data.compileType || '';
-        projectConfig.name = decodeURIComponent(data.projectname || '');
-    } else {
-        projectConfig.miniprogramRoot = sourceFolder;
-        // console.log(`Warning： 找不到project.config.json文件(不影响转换，无视这条)`);
-        global.log.push("\r\nWarning： 找不到project.config.json文件(不影响转换，无视这条)\r\n");
-        // throw (`error： 这个目录${sourceFolder}应该不是小程序的目录，找不到project.config.json文件`)
-    }
-
-    //读取package.json
-    let file_package = path.join(folder, 'package.json');
-    if (fs.existsSync(file_package)) {
-        let packageJson = null;
-        try {
-            packageJson = fs.readJsonSync(file_package);
-        } catch (error) {
-            console.log(`Error： 解析package.json报错：` + error);
-        }
-        //
-        if (packageJson) {
-            projectConfig.name = packageJson.name || '';
-            projectConfig.version = packageJson.version || '';
-            projectConfig.description = packageJson.description || '';
-            //author用不到，先留着
-            projectConfig.author = packageJson.author || '';
-            projectConfig.dependencies = packageJson.dependencies || {}; //安装的npm包
-
-            //判断是否加载了vant
-            // global.hasVant = Object.keys(projectConfig.dependencies).some(key => {
-            //     return utils.isVant(key);
-            // }) || global.hasVant;
-        }
-    } else {
-        // console.log(`Warning： 找不到package.json文件(不影响转换，无视这条)`);
-        global.log.push("\r\nWarning： 找不到package.json文件(不影响转换，无视这条)\r\n");
-    }
-    return projectConfig;
-}
+const MAX_FILE_SIZE = 500 * 1024;
 
 //文件组数据
 //数据结构为：
@@ -238,25 +155,7 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                         // var key = path.join(tFolder, fileNameNoExt);
                         let key = pathUtil.getFileKey(fileDir);
 
-                        let extnameArr = [
-                            'js',
-                            'wxml',
-                            'wxss',
-                            //qq小程序
-                            'qs',
-                            'qml',
-                            'qss',
-                            //头条小程序
-                            'ttml',
-                            'ttss',
-                            //支付宝/钉钉小程序
-                            'axml',
-                            'acss',
-                            //百度小程序
-                            'swan',
-                        ]
-                        let extnameReg = new RegExp('\\.(' + extnameArr.join('|') + ')')
-                        if (extnameReg.test(extname)) {
+                        if (utils.extnameReg.test(extname)) {
                             //如果obj为false，那么肯定是还没有初始化的underfined
                             if (!fileData[key]) {
                                 fileData[key] = {
@@ -333,19 +232,9 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                                                     fileNameNoExt + '.js'
                                                 );
                                                 //写入文件
-                                                fs.writeFile(
-                                                    targetFile,
-                                                    fileContent,
-                                                    () => {
-                                                        console.log(
-                                                            `Convert wxs file ${targetFile} success!`
-                                                        );
-
-                                                        global.log.push(
-                                                            `Convert wxs file ${targetFile} success!`
-                                                        );
-                                                    }
-                                                );
+                                                fs.writeFileSync(targetFile, fileContent);
+                                                console.log(`Convert wxs file ${targetFile} success!`);
+                                                global.log.push(`Convert wxs file ${targetFile} success!`);
                                             })
                                             .catch(error => {
                                                 console.log('wxsHandle', error);
@@ -364,22 +253,10 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                                         // fs.copySync(fileDir, newFileDir);
 
                                         //写入文件
-                                        fs.writeFile(
-                                            newFileDir,
-                                            fileContent,
-                                            () => {
-                                                const relWxsFile = path.relative(
-                                                    global.miniprogramRoot,
-                                                    newFileDir
-                                                );
-                                                console.log(
-                                                    `Convert wxs file ${relWxsFile} success!`
-                                                );
-                                                global.log.push(
-                                                    `Convert wxs file ${relWxsFile} success!`
-                                                );
-                                            }
-                                        );
+                                        fs.writeFileSync(newFileDir, fileContent);
+                                        const relWxsFile = path.relative(global.miniprogramRoot, newFileDir);
+                                        console.log(`Convert wxs file ${relWxsFile} success!`);
+                                        global.log.push(`Convert wxs file ${relWxsFile} success!`);
                                     })(fileDir, newFileDir);
                                 }
                                 break;
@@ -614,31 +491,19 @@ async function filesHandle (fileData, miniprogramRoot) {
                         if (file_wxml && fs.existsSync(file_wxml)) {
                             let data_wxml = fs.readFileSync(file_wxml, 'utf8');
                             if (data_wxml) {
-                                let {
-                                    templateString,
-                                    templateStringMin
-                                } = await wxmlHandle(
-                                    data_wxml,
-                                    file_wxml,
-                                    false
-                                );
+                                let { templateString, templateStringMin } = await wxmlHandle(data_wxml, file_wxml, false);
                                 fileContentWxml = templateString;
                                 fileContentMinWxml = templateStringMin;
                                 wxsInfoHandle(tFolder, file_wxml);
                             } else {
                                 //存个空标签
-                                fileContentWxml =
-                                    '<template>\r\n<view>\r\n</view>\r\n</template>\r\n';
+                                fileContentWxml = '<template>\r\n<view>\r\n</view>\r\n</template>\r\n';
                             }
                         }
 
                         if (fileKey) {
-                            global.pagesData[fileKey]['data'][
-                                'wxml'
-                            ] = fileContentWxml;
-                            global.pagesData[fileKey]['data'][
-                                'minWxml'
-                            ] = fileContentMinWxml;
+                            global.pagesData[fileKey]['data']['wxml'] = fileContentWxml;
+                            global.pagesData[fileKey]['data']['minWxml'] = fileContentMinWxml;
                         }
 
                         //读取.js文件
@@ -675,7 +540,7 @@ async function filesHandle (fileData, miniprogramRoot) {
 									</script>
 									`.replace(/\t+/g, '');
                                 } else {
-                                    let data = await jsHandle(
+                                    const { codeText: data, newFile } = await jsHandle(
                                         data_js,
                                         usingComponents,
                                         file_js,
@@ -684,6 +549,7 @@ async function filesHandle (fileData, miniprogramRoot) {
                                     );
 
                                     fileContentJs = data;
+                                    file_js = newFile;
 
                                     //根据与data变量重名的函数名，将wxml里引用的地方进行替换
                                     fileContentWxml = replaceFunName(
@@ -721,10 +587,7 @@ async function filesHandle (fileData, miniprogramRoot) {
                             );
                             //这里不判断，wxss为空也进行原样保存空文件
                             if (data_wxss) {
-                                data_wxss = await cssHandle(
-                                    data_wxss,
-                                    file_wxss
-                                );
+                                data_wxss = await cssHandle(data_wxss, file_wxss);
                                 //
                                 const content = `${data_wxss}`;
 
@@ -732,14 +595,13 @@ async function filesHandle (fileData, miniprogramRoot) {
                                     fileContentCss = `<style>\r\n${content}\r\n</style>`;
                                 } else {
                                     //写入文件
-                                    fs.writeFile(cssFilePath, content, () => {
-                                        console.log(
-                                            `Convert ${path.relative(
-                                                global.targetFolder,
-                                                cssFilePath
-                                            )} success!`
-                                        );
-                                    });
+                                    fs.writeFileSync(cssFilePath, content);
+                                    console.log(
+                                        `Convert ${path.relative(
+                                            global.targetFolder,
+                                            cssFilePath
+                                        )} success!`
+                                    );
                                     fileContentCss = `<style>\r\n@import "./${fileName}.css";\r\n</style>`;
                                 }
 
@@ -797,13 +659,13 @@ async function filesHandle (fileData, miniprogramRoot) {
                                         file_wxml
                                     );
                                     let fileContentJs = `
-	<script> 
+	<script>
 		${wxsImportStr}
 		export default {
 			props: [${props}]
 		}
-    </script> 
-    
+    </script>
+
 									`;
 
                                     //写入文件
@@ -840,14 +702,14 @@ async function filesHandle (fileData, miniprogramRoot) {
                                     fileName + '.js'
                                 );
                                 if (jsFileSize > MAX_FILE_SIZE) {
-                                    console.log('文件体积超过300kb，忽略解析。 file-->' + file_js);
+                                    console.log('文件体积超过500kb，忽略解析。 file-->' + file_js);
                                     fs.copySync(file_js, targetFilePath);
                                 } else {
                                     let data_js = fs.readFileSync(file_js, 'utf8');
 
                                     //可能文件为空，但它也存在。。。所以
                                     if (data_js) {
-                                        let data = await jsHandle(
+                                        const { codeText: data, newFile } = await jsHandle(
                                             data_js,
                                             usingComponents,
                                             file_js,
@@ -856,6 +718,7 @@ async function filesHandle (fileData, miniprogramRoot) {
                                         );
 
                                         fileContent = data;
+                                        file_js = newFile;
 
                                         //写入文件
                                         if (isAppFile)
@@ -1004,38 +867,35 @@ function wxsInfoHandle (tFolder, file_wxml) {
                     wxsHandle(obj.content)
                         .then(fileContent => {
                             //写入文件
-                            fs.writeFile(jsFilePath, fileContent, () => {
-                                console.log(
-                                    `Convert wxs file ${path.relative(
-                                        global.targetFolder,
-                                        jsFilePath
-                                    )} success!`
-                                );
-                            });
+                            fs.writeFileSync(jsFilePath, fileContent);
+                            console.log(
+                                `Convert wxs file ${path.relative(
+                                    global.targetFolder,
+                                    jsFilePath
+                                )} success!`
+                            );
                         })
                         .catch(error => {
                             console.log('wxsHandle', error);
                             global.log.push('wxsHandle', error);
                             //写入文件
-                            fs.writeFile(jsFilePath, obj.content, () => {
-                                console.log(
-                                    `Convert wxs file ${path.relative(
-                                        global.targetFolder,
-                                        jsFilePath
-                                    )} success!`
-                                );
-                            });
+                            fs.writeFileSync(jsFilePath, obj.content);
+                            console.log(
+                                `Convert wxs file ${path.relative(
+                                    global.targetFolder,
+                                    jsFilePath
+                                )} success!`
+                            );
                         });
                 } else {
                     //写入文件
-                    fs.writeFile(jsFilePath, obj.content, () => {
-                        console.log(
-                            `Convert wxs file ${path.relative(
-                                global.targetFolder,
-                                jsFilePath
-                            )} success!`
-                        );
-                    });
+                    fs.writeFileSync(jsFilePath, obj.content);
+                    console.log(
+                        `Convert wxs file ${path.relative(
+                            global.targetFolder,
+                            jsFilePath
+                        )} success!`
+                    );
                 }
             }
         });
@@ -1089,9 +949,18 @@ function writeLog (folder) {
 
     let file_log = path.join(folder, 'transform_log.log');
     //写入文件
-    fs.writeFile(file_log, logStr, () => {
-        // console.log(`Write log file success!`);
-    });
+    fs.writeFileSync(file_log, logStr);
+}
+
+
+/**
+ * 预处理
+ */
+function preHandle (folder, hbxOutputChannel) {
+
+    //检查是否为vant项目
+    //检查什么小程序，就后面再展示
+    global.hbxOutputChannel = hbxOutputChannel;
 }
 
 /**
@@ -1101,8 +970,9 @@ function writeLog (folder) {
  * @param {*} isVueAppCliMode  是否需要生成vue-cli项目，默认为false
  * @param {*} isTransformWXS   是否需要转换wxs文件，默认为false，目前uni-app已支持wxs文件，仅支持app和小程序
  * @param {*} isVantProject    是否为vant项目，默认为false
- * @param {*} isRenameWxToUni  是否转换wx为uni，默认为false
- * @param {*} isMergeWxssToVue 是否合并wxss到vue文件，默认为false
+ * @param {*} isRenameWxToUni  是否转换wx为uni，默认为true
+ * @param {*} isMergeWxssToVue 是否合并wxss到vue文件，默认为true
+ * @param {*} callback         回调函数
  */
 async function transform (
     sourceFolder,
@@ -1110,8 +980,9 @@ async function transform (
     isVueAppCliMode,
     isTransformWXS,
     isVantProject,
-    isRenameWxToUni,
-    isMergeWxssToVue
+    isRenameWxToUni = true,
+    isMergeWxssToVue = true,
+    callback = null
 ) {
     fileData = {};
     routerData = {};
@@ -1127,13 +998,24 @@ async function transform (
     //起始时间
     const startTime = new Date();
 
+    //如果选择的目录里面只有一个目录的话，那就把source目录定位为此目录，暂时只管这一层，多的不理了。
+    var readDir = fs.readdirSync(sourceFolder);
+    if (readDir.length === 1) {
+        var baseFolder = path.join(sourceFolder, readDir[0]);
+        var statInfo = fs.statSync(baseFolder);
+        if (statInfo.isDirectory()) {
+            sourceFolder = baseFolder;
+        }
+    }
+
+    console.log("sourceFolder ", sourceFolder)
     let miniprogramRoot = sourceFolder;
 
     //因后面会清空输出目录，为防止误删除其他目录/文件，所以这里不给自定义!!!
     targetFolder = sourceFolder + '_uni';
 
     //读取小程序项目配置
-    const configData = wxProjectParse(miniprogramRoot, sourceFolder);
+    const configData = projectHandle.getProjectConfig(miniprogramRoot, sourceFolder);
 
     // if(configData.compileType && configData.compileType !== "miniprogram")
     // {
@@ -1186,6 +1068,9 @@ async function transform (
     let runtimePath = path.join(sourceFolder, 'common/runtime.js');
     let vendorPath = path.join(sourceFolder, 'common/vendor.js');
     global.isCompiledProject = fs.existsSync(runtimePath) && fs.existsSync(vendorPath);
+
+    //编译后的项目的文件信息
+    global.compiledData = {};
 
     // console.log(" global.isCompiledProject = " + global.isCompiledProject)
 
@@ -1254,8 +1139,8 @@ async function transform (
     global.log.push('---日志信息---');
 
     //
-    utils.log('outputFolder = ' + global.outputFolder, 'log', 'text');
-    utils.log('targetFolder = ' + global.targetFolder, 'log', 'text');
+    utils.log('outputFolder = ' + global.outputFolder);
+    utils.log('targetFolder = ' + global.targetFolder);
 
     //大部分页面的数据
     global.pagesData = {
@@ -1338,9 +1223,7 @@ async function transform (
             fs.mkdirSync(global.outputFolder);
         }
     } catch (error) {
-        utils.log(
-            `Error: ${global.outputFolder}可能被其他文件占用，请手动删除再试`
-        );
+        utils.log(`Error: ${global.outputFolder}可能被其他文件占用，请手动删除再试`);
         return;
     }
 
@@ -1359,7 +1242,7 @@ async function transform (
         //处理文件组
         filesHandle(fileData, miniprogramRoot).then(() => {
             //
-            projectHandle(global.pagesData);
+            projectHandle.projectHandle(global.pagesData);
 
             //将<template name="abc"/>标签全部存为component组件
             let componentFolder = path.join(targetFolder, 'components');
@@ -1378,9 +1261,8 @@ async function transform (
                 let componentFile = path.join(componentFolder, alias + '.vue');
 
                 //写入文件
-                fs.writeFile(componentFile, fileContent, () => {
-                    console.log(`write component file ${alias} success!`);
-                });
+                fs.writeFileSync(componentFile, fileContent);
+                console.log(`write component file ${alias} success!`);
             }
 
             //处理配置文件
@@ -1388,19 +1270,13 @@ async function transform (
 
             //拷贝jyf-parser到components
             if (global.hasWxParse) {
-                const source = path.join(
-                    __dirname,
-                    'wx2uni/project-template/components'
-                );
+                const source = path.join(__dirname, 'wx2uni/project-template/components');
                 const target = path.join(targetFolder, 'components');
                 fs.copySync(source, target);
             }
             //拷贝wxcomponents到根目录
             if (global.hasVant) {
-                const source = path.join(
-                    __dirname,
-                    'wx2uni/project-template/wxcomponents'
-                );
+                const source = path.join(__dirname, 'wx2uni/project-template/wxcomponents');
                 const target = path.join(targetFolder, 'wxcomponents');
                 if (!fs.existsSync(target)) {
                     fs.mkdirSync(target);
@@ -1462,18 +1338,20 @@ async function transform (
                 str +=
                     '1. image漏网之鱼 --> 为HbuilderX模式时，需要将资源移动到static，并且修复相应文件路径，有可能src为网络文件，有可能为变量或表达式，可能会导致转换后文件找不到，因此提示一下\r\n';
                 str +=
-                    '修复提示：编译时，如有报错就将对应位置修复即可(虽然目前uni-app有类似的支持，似乎并不完善)\r\n';
+                    '修复提示：编译时，如有报错就将对应位置修复即可(虽然目前uni-app有类似的支持，似乎并不完善)\r\n\r\n';
                 str +=
-                    '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如id能做属性名，data下面的变量和函数名还能重名，但这些在uni-app里是不支持的，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看此文档\r\n';
+                    '2. 命名替换 --> 小程序里对于属性名基本没什么限制，如id能做属性名，data下面的变量和函数名还能重名，但这些在uni-app里是不支持的，因此做了相关替换，并记录日志，也许组件在外部调用时，函数名被改而因此报错时，请查看答疑文档\r\n';
 
                 str = '\r\n转换完成: ' + str;
 
                 global.log.push(str);
                 utils.log(str, 'base');
                 writeLog(global.outputFolder);
+
+                callback && callback(global.outputFolder);
             }, 1000);
         });
     });
 }
 
-module.exports = transform;
+module.exports = { transform, preHandle };

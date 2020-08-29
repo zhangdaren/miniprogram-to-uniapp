@@ -3,6 +3,7 @@
  * 处理js文件
  *
  */
+const fs = require('fs-extra');
 const t = require("@babel/types");
 const nodePath = require("path");
 const generate = require("@babel/generator").default;
@@ -20,11 +21,13 @@ const pageConverter = require("./js/pageConverter");
 const componentConverter = require("./js/componentConverter");
 const singleJSConverter = require("./js/singleJSConverter");
 const behaviorConverter = require("./js/behaviorConverter");
+const { indexOf } = require('lodash');
 
 let compiledProjectHandle = null;
 try {
     compiledProjectHandle = require('./plugins/compiledProjectHandle');
 } catch (error) {
+    console.log("加载失败，", error)
 }
 
 
@@ -70,7 +73,7 @@ module.exports = {
  *    return Behavior({})
  * }
  */
-const behaviorTemplate2 = `	
+const behaviorTemplate2 = `
 export default function(PARAMS) {
 	return {
 		data() {
@@ -691,17 +694,11 @@ const componentTemplateBuilder = function (
                 //
                 let objNode = object.node ? object.node : object;
                 let propertyNode = property.node ? property.node : property;
-                if (
-                    (t.isIdentifier(objNode, {
-                        name: "WxParse"
-                    }) ||
-                        t.isIdentifier(objNode, {
-                            name: "wxParse"
-                        })) &&
-                    t.isIdentifier(propertyNode, {
-                        name: "wxParse"
-                    })
-                ) {
+                // if (
+                //     (t.isIdentifier(objNode, { name: "WxParse" }) || t.isIdentifier(objNode, { name: "wxParse" })) &&
+                //     t.isIdentifier(propertyNode, { name: "wxParse" })
+                // ) {
+                if (t.isIdentifier(propertyNode, { name: "wxParse" })) {
                     /**
                      * WxParse.wxParse(bindName , type, data, target,imagePadding)
                      * 1.bindName绑定的数据名(必填)
@@ -1036,13 +1033,14 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
             case "Webpack":
                 break;
             default:
-                // console.log("其他类型：", astType);
+                // console.log("其他类型： [", astType + " ]");
                 astType = "";
                 break;
         }
     }
 
     let codeText = "";
+    let newFile = file_js;
     let convertedJavascript;
     if (astInfoObject) {
         convertedJavascript = astInfoObject.convertedJavascript;
@@ -1133,10 +1131,21 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
         if (astType === "Webpack") {
             //compiled page handle  SSS
             if (compiledProjectHandle) {
-                console.log("222", file_js);
-                codeText = await compiledProjectHandle.jsHandle(fileData, file_js);
+                var pFolderName = pathUtil.getParentFolderName(file_js);
+                if (pFolderName === "common") {
+                    if (fileKey === 'common/vendor') {
+                        newFile = file_js.replace("vendor.js", "main.js");
+                        fileData = fs.readFileSync(newFile, 'utf8');
+                    } else if (fileKey === 'common/main') {
+                        newFile = file_js.replace("main.js", "vendor.js");
+                        fileData = fs.readFileSync(newFile, 'utf8');
+                    }
+                }
+                codeText = await compiledProjectHandle.jsHandle(fileData, newFile);
+                codeText = `<script>\r\n${codeText}\r\n</script>\r\n`;
+            } else {
+                codeText = `<script>\r\n${generate(javascriptAst).code}\r\n</script>\r\n`;
             }
-            codeText = `<script>\r\n${codeText}\r\n</script>\r\n`;
         } else {
             let cloneAst = clone(javascriptAst);
             convertedJavascript = singleJSConverter(cloneAst, file_js);
@@ -1145,7 +1154,6 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
             } else {
                 codeText = `${generate(convertedJavascript).code}`;
             }
-
         }
     }
 
@@ -1153,6 +1161,6 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
     if (isParseError) {
         codeText = fileData;
     }
-    return codeText;
+    return { codeText, newFile };
 }
 module.exports = jsHandle;

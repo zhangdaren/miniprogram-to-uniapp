@@ -312,9 +312,42 @@ function lifeCycleHandle (path) {
                             typeItem.node.value.name == "Array" ||
                             typeItem.node.value.name == "Object"
                         ) {
-                            let afx = t.arrowFunctionExpression([], defaultItem.node.value);
-                            let op = t.ObjectProperty(defaultItem.node.key, afx);
-                            defaultItem.replaceWith(op);
+                            if (defaultItem && defaultItem.node) {
+                                if (t.isObjectProperty(defaultItem)) {
+                                    var value = defaultItem.node.value;
+                                    if (t.isObjectExpression(value)) {
+                                        /**
+                                         * shopConfig: {
+                                         *    type: Object,
+                                         *    value: {},
+                                         * }
+                                         */
+                                        let afx = t.arrowFunctionExpression([], defaultItem.node.value);
+                                        let op = t.ObjectProperty(defaultItem.node.key, afx);
+                                        defaultItem.replaceWith(op);
+                                    } else if (t.isFunctionExpression(value)) {
+                                        /**
+                                         * shopConfig: {
+                                         *    type: Object,
+                                         *    value:function() {
+                                         *      return {};
+                                         *  }
+                                         */
+                                    }
+                                } else if (t.isObjectMethod(defaultItem)) {
+                                    /**
+                                     * shopConfig: {
+                                     *    type: Object,
+                                     *    value() {
+                                     *      return {};
+                                     *  }
+                                     */
+                                } else {
+                                    console.log("异常信息：---- defaultItem.node.value 怪异类型 ", defaultItem);
+                                }
+                            } else {
+                                console.log("异常信息：---- defaultItem.node.value 为Undefined ", defaultItem);
+                            }
                         }
                     }
                     if (observerItem) {

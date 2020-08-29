@@ -2,11 +2,25 @@ const chalk = require('chalk');
 const { switchCase } = require('@babel/types');
 
 
-function log (msg, type = 'error') {
-    if (type === 'error') {
-        return console.log(chalk.red(`[wx-to-uni-app]: ${msg}`));
+
+function log (msg, type = '') {
+    var fullMsg = `[wx-to-uni-app]: ${msg}`;
+    switch (type) {
+        case "error":
+        case "red":
+            console.log(chalk.red(fullMsg));
+            break;
+        case "green":
+            console.log(chalk.green(fullMsg));
+            break;
+        case "yellow":
+            console.log(chalk.yellow(fullMsg));
+            break;
+        default:
+            console.log(msg);
+            global.hbxOutputChannel && global.hbxOutputChannel.appendLine && global.hbxOutputChannel.appendLine(msg);
+            break;
     }
-    console.log(msg);
 };
 
 
@@ -17,7 +31,7 @@ const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path);
 
 // /**
 //  * 是否为数字
-//  * @param {*} n 
+//  * @param {*} n
 //  */
 // function isNumber (n) {
 //     return !isNaN(parseFloat(n)) && isFinite(n);
@@ -26,7 +40,7 @@ const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path);
 
 // /**
 //  * 是否为Object
-//  * @param {*} n 
+//  * @param {*} n
 //  */
 // function isObject (val) {
 //     return val != null && typeof val === 'object' && Array.isArray(val) === false;
@@ -62,6 +76,75 @@ function isEmpty (arg) {
 }
 
 
+// function isString (val) {
+//     return Object.prototype.toString.call(val) === '[object String]'
+// }
+
+// function isNumber (val) {
+//     return Object.prototype.toString.call(val) === '[object Number]'
+// }
+
+// function isBoolean (val) {
+//     return Object.prototype.toString.call(val) === '[object Boolean]'
+// }
+
+// function isSymbol (val) {
+//     return Object.prototype.toString.call(val) === '[object Symbol]'
+// }
+
+// function isUndefined (val) {
+//     return Object.prototype.toString.call(val) === '[object Undefined]'
+// }
+
+// function isNull (val) {
+//     return Object.prototype.toString.call(val) === '[object Null]'
+// }
+
+// function isFunction (val) {
+//     return Object.prototype.toString.call(val) === '[object Function]'
+// }
+
+// function isDate (val) {
+//     return Object.prototype.toString.call(val) === '[object Date]'
+// }
+
+// function isArray (val) {
+//     return Object.prototype.toString.call(val) === '[object Array]'
+// }
+
+// function isRegExp (val) {
+//     return Object.prototype.toString.call(val) === '[object RegExp]'
+// }
+
+// function isError (val) {
+//     return Object.prototype.toString.call(val) === '[object Error]'
+// }
+
+// function isHTMLDocument (val) {
+//     return Object.prototype.toString.call(val) === '[object HTMLDocument]'
+// }
+
+// function isGlobal (val) {
+//     return Object.prototype.toString.call(val) === '[object global]'
+// }
+
+
+// Object.prototype.toString.call(''); // [object String]
+// Object.prototype.toString.call(1); // [object Number]
+// Object.prototype.toString.call(true); // [object Boolean]
+// Object.prototype.toString.call(Symbol()); //[object Symbol]
+// Object.prototype.toString.call(undefined); // [object Undefined]
+// Object.prototype.toString.call(null); // [object Null]
+// Object.prototype.toString.call(newFunction()); // [object Function]
+// Object.prototype.toString.call(newDate()); // [object Date]
+// Object.prototype.toString.call([]); // [object Array]
+// Object.prototype.toString.call(newRegExp()); // [object RegExp]
+// Object.prototype.toString.call(newError()); // [object Error]
+// Object.prototype.toString.call(document); // [object HTMLDocument]
+// Object.prototype.toString.call(window); //[object global] window 是全局对象 global 的引用
+
+
+
 /**
  * 判断是否为url
  * @param {*} str_url 网址，支持http及各种协议
@@ -84,7 +167,7 @@ function isURL (str_url) {
 
 /**
  * 判断当前名字是否为资源目录
- * @param {*} name 
+ * @param {*} name
  */
 function isAssetsFolderName (name) {
     const reg = /\b(images|img|image|static|asset|assets)\b/i;
@@ -93,7 +176,7 @@ function isAssetsFolderName (name) {
 
 /**
  * 是否为十六进制
- * @param {*} str 
+ * @param {*} str
  */
 function isHex (str) {
     return /[0-9a-f]{4}/i.test("" + str);
@@ -103,7 +186,7 @@ function isHex (str) {
 /**
  * 驼峰式转下横线
  * console.log(toLowerLine("TestToLowerLine"));  //test_to_lower_line
- * @param {*} str 
+ * @param {*} str
  */
 function toLowerLine (str) {
     var temp = str.replace(/[A-Z]/g, function (match) {
@@ -117,10 +200,10 @@ function toLowerLine (str) {
 
 
 
-/** 
+/**
  * 下横线转驼峰式
  * console.log(toCamel('test_to_camel')); //testToCamel
- * @param {*} str 
+ * @param {*} str
  */
 function toCamel (str) {
     return str.replace(/([^_])(?:_+([^_]))/g, function ($0, $1, $2) {
@@ -137,11 +220,11 @@ function getKebabCase (str) {
     })
 }
 
-/** 
- * 中划线转驼峰式   
- * console.log(toCamel('test-to-camel')); //testToCamel   
- * console.log(toCamel('diy-imageSingle')); //diyImageSingle   
- * @param {*} str 
+/**
+ * 中划线转驼峰式
+ * console.log(toCamel('test-to-camel')); //testToCamel
+ * console.log(toCamel('diy-imageSingle')); //diyImageSingle
+ * @param {*} str
  */
 function toCamel2 (str) {
     let ret = getKebabCase(str).toLowerCase();
@@ -167,14 +250,14 @@ function sleep (numberMillis) {
 
 
 /**
- * 提取template里参数里所包含的变量   
- * 如下，仅试举几例：   
- * {{styleS==1}}  -->  {"styleS":true}   
- * {{ item.is_buy ? '砍价成功' : '已结束' }}  -->  {"item.is_buy":true}   
- * "swiper-tab-item {{options.scoreType == -1 ? 'on' : ''}}"  -->  {"options.scoreType":true}   
- * 例外：   
- * {{abc.styleS['a.b.c']==3}}  //'a.b.c'这种暂时处理不到   
- * @param {*} str 
+ * 提取template里参数里所包含的变量
+ * 如下，仅试举几例：
+ * {{styleS==1}}  -->  {"styleS":true}
+ * {{ item.is_buy ? '砍价成功' : '已结束' }}  -->  {"item.is_buy":true}
+ * "swiper-tab-item {{options.scoreType == -1 ? 'on' : ''}}"  -->  {"options.scoreType":true}
+ * 例外：
+ * {{abc.styleS['a.b.c']==3}}  //'a.b.c'这种暂时处理不到
+ * @param {*} str
  */
 function getTemplateParams (str) {
     let reg_tag = /{{.*?}}/;
@@ -193,9 +276,9 @@ function getTemplateParams (str) {
 }
 
 /**
- * 切割字符串，提取str里符合“变量”特征的字符串，并返回object   
+ * 切割字符串，提取str里符合“变量”特征的字符串，并返回object
  * 与getTemplateParams配合使用
- * @param {*} str 
+ * @param {*} str
  */
 function splitStr (str) {
     //可能在引号对里面有这些切割标记，这里当场干掉
@@ -269,7 +352,7 @@ var isUniAppTag = makeMap(
 )
 
 /**
- * 是否为javascript保留关键字，不能用作变量或函数名 * 
+ * 是否为javascript保留关键字，不能用作变量或函数名 *
  */
 var isJavascriptKeyWord = makeMap(
     "abstract,arguments,boolean,break,byte," +
@@ -291,7 +374,7 @@ var isJavascriptKeyWord = makeMap(
 
 /**
  * 判断指定参数是否含有特定关键字，比如id、data和default等
- * @param {*} params 
+ * @param {*} params
  */
 function hasReserverdPorps (params) {
     return /\b(data)\b/.test(params) || /\b(id)\b/.test(params) || /\b(default)\b/.test(params);
@@ -307,7 +390,7 @@ function isVueMethod (tag) {
 
 /**
  * 判断tag是否为预置的名字
- * @param {*} tag 
+ * @param {*} tag
  */
 function isReservedTag (tag) {
     return isHTMLTag(tag) || isSVG(tag) || isUniAppTag(tag) || isVueMethod(tag);
@@ -321,8 +404,8 @@ function getComponentAlias (name) {
 }
 
 /**
- * 判断name是否为预置的名字    
- * @param {*} tag 
+ * 判断name是否为预置的名字
+ * @param {*} tag
  */
 function isReservedName (name) {
     return isJavascriptKeyWord(name) || isVueMethod(name);
@@ -330,7 +413,7 @@ function isReservedName (name) {
 
 
 /**
- * 获取props别名   
+ * 获取props别名
  */
 function getPropsAlias (name) {
     var result = name;
@@ -359,7 +442,7 @@ function getFunctionAlias (name) {
 
 /**
  * 解析 key:value形式的字符串，如"abc:"xx""解析为{abc:"xxx"}
- * @param {*} str 
+ * @param {*} str
  */
 function stringToObject (str) {
     let index = str.indexOf(":");
@@ -386,10 +469,10 @@ function stringToObject (str) {
 // "...stdInfo[index],...{index:index,name:item.name}"
 
 /**
- * 解析template标签的data参数，将返回需要进行替换的参数   
+ * 解析template标签的data参数，将返回需要进行替换的参数
  * 如{setting:setting}，那就不需要替换
  * 如{"title:'open/get/Setting'"}，那就视为需要替换
- * @param {*} attr 
+ * @param {*} attr
  */
 function parseTemplateAttrParams (attr) {
     let str = attr.replace(/{{\s*(.*?)\s*}}/, '$1');
@@ -547,7 +630,7 @@ function getAttrPrefixExtname (exname) {
 
 /**
  * 根据后缀名判断小程序项目类型
- * @param {} extname 
+ * @param {} extname
  */
 function getMPType (extname) {
     var mpType = "";
@@ -601,6 +684,28 @@ const mpInfo = {
     },
 }
 
+let extnameArr = [
+    'js',
+    'wxml',
+    'wxss',
+    //qq小程序
+    'qs',
+    'qml',
+    'qss',
+    //头条小程序
+    'ttml',
+    'ttss',
+    //支付宝/钉钉小程序
+    'axml',
+    'acss',
+    //百度小程序
+    'swan',
+]
+/**
+ * 扩展名正则
+ */
+const extnameReg = new RegExp('\\.(' + extnameArr.join('|') + ')');
+
 module.exports = {
     log,
 
@@ -640,5 +745,7 @@ module.exports = {
 
     getAttrPrefixExtname,
     getMPType,
-    mpInfo
+    mpInfo,
+
+    extnameReg
 }

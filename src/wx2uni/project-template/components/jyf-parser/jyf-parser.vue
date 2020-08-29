@@ -2,15 +2,15 @@
 	<view>
 		<slot v-if="!nodes.length" />
 		<!--#ifdef APP-PLUS-NVUE-->
-		<web-view id="top" ref="web" :style="'margin-top:-2px;height:'+height+'px'" @onPostMessage="_message" />
+		<web-view id="_top" ref="web" :style="'margin-top:-2px;height:'+height+'px'" @onPostMessage="_message" />
 		<!--#endif-->
 		<!--#ifndef APP-PLUS-NVUE-->
-		<view id="top" :style="showAm+(selectable?';user-select:text;-webkit-user-select:text':'')">
-			<!--#ifdef H5-->
+		<view id="_top" :style="showAm+(selectable?';user-select:text;-webkit-user-select:text':'')">
+			<!--#ifdef H5 || MP-360-->
 			<div :id="'rtf'+uid"></div>
 			<!--#endif-->
-			<!--#ifndef H5-->
-			<trees :nodes="nodes" :lazy-load="lazyLoad" />
+			<!--#ifndef H5 || MP-360-->
+			<trees :nodes="nodes" :lazyLoad="lazyLoad" :loading="loadingImg" />
 			<!--#endif-->
 		</view>
 		<!--#endif-->
@@ -18,7 +18,7 @@
 </template>
 
 <script>
-	// #ifndef H5 || APP-PLUS-NVUE
+	// #ifndef H5 || APP-PLUS-NVUE || MP-360
 	import trees from './libs/trees';
 	var cache = {},
 		// #ifdef MP-WEIXIN || MP-TOUTIAO
@@ -33,8 +33,8 @@
 		return val;
 	}
 	// #endif
-	// #ifdef H5 || APP-PLUS-NVUE
-	var rpx = uni.getSystemInfoSync().screenWidth / 750,
+	// #ifdef H5 || APP-PLUS-NVUE || MP-360
+	var windowWidth = uni.getSystemInfoSync().windowWidth,
 		cfg = require('./libs/config.js');
 	// #endif
 	// #ifdef APP-PLUS-NVUE
@@ -43,13 +43,14 @@
 	/**
 	 * Parser 富文本组件
 	 * @tutorial https://github.com/jin-yufeng/Parser
-	 * @property {String|Array} html 富文本数据
+	 * @property {String} html 富文本数据
 	 * @property {Boolean} autopause 是否在播放一个视频时自动暂停其他视频
 	 * @property {Boolean} autoscroll 是否自动给所有表格添加一个滚动层
 	 * @property {Boolean} autosetTitle 是否自动将 title 标签中的内容设置到页面标题
 	 * @property {Number} compress 压缩等级
 	 * @property {String} domain 图片、视频等链接的主域名
 	 * @property {Boolean} lazyLoad 是否开启图片懒加载
+	 * @property {String} loadingImg 图片加载完成前的占位图
 	 * @property {Boolean} selectable 是否开启长按复制
 	 * @property {Object} tagStyle 标签的默认样式
 	 * @property {Boolean} showWithAnimation 是否使用渐显动画
@@ -61,16 +62,15 @@
 	 * @event {Function} error 错误事件
 	 * @event {Function} imgtap 图片点击事件
 	 * @event {Function} linkpress 链接点击事件
-	 * @example <jyf-parser :html="html"></jyf-parser>
 	 * @author JinYufeng
-	 * @version 20200513
+	 * @version 20200728
 	 * @listens MIT
 	 */
 	export default {
 		name: 'parser',
 		data() {
 			return {
-				// #ifdef H5
+				// #ifdef H5 || MP-360
 				uid: this._uid,
 				// #endif
 				// #ifdef APP-PLUS-NVUE
@@ -78,44 +78,44 @@
 				// #endif
 				// #ifndef APP-PLUS-NVUE
 				showAm: '',
-				imgs: [],
 				// #endif
 				nodes: []
 			}
 		},
-		// #ifndef H5 || APP-PLUS-NVUE
+		// #ifndef H5 || APP-PLUS-NVUE || MP-360
 		components: {
 			trees
 		},
 		// #endif
 		props: {
-			'html': null,
-			'autopause': {
+			html: String,
+			autopause: {
 				type: Boolean,
 				default: true
 			},
-			'autoscroll': Boolean,
-			'autosetTitle': {
+			autoscroll: Boolean,
+			autosetTitle: {
 				type: Boolean,
 				default: true
 			},
-			// #ifndef H5 || APP-PLUS-NVUE
-			'compress': Number,
-			'useCache': Boolean,
+			// #ifndef H5 || APP-PLUS-NVUE || MP-360
+			compress: Number,
+			loadingImg: String,
+			useCache: Boolean,
 			// #endif
-			'domain': String,
-			'lazyLoad': Boolean,
-			'selectable': Boolean,
-			'tagStyle': Object,
-			'showWithAnimation': Boolean,
-			'useAnchor': Boolean
+			domain: String,
+			lazyLoad: Boolean,
+			selectable: Boolean,
+			tagStyle: Object,
+			showWithAnimation: Boolean,
+			useAnchor: Boolean
 		},
 		watch: {
 			html(html) {
 				this.setContent(html);
 			}
 		},
-		mounted() {
+		created() {
 			// 图片数组
 			this.imgList = [];
 			this.imgList.each = function(f) {
@@ -127,8 +127,8 @@
 				// #ifndef MP-ALIPAY || APP-PLUS
 				// 去重
 				if (src.indexOf('http') == 0 && this.includes(src)) {
-					var newSrc = '';
-					for (var j = 0, c; c = src[j]; j++) {
+					var newSrc = src.split('://')[0];
+					for (var j = newSrc.length, c; c = src[j]; j++) {
 						if (c == '/' && src[j - 1] != '/' && src[j + 1] != '/') break;
 						newSrc += Math.random() > 0.5 ? c.toUpperCase() : c;
 					}
@@ -162,23 +162,25 @@
 					// #endif
 				}
 			}
-			// #ifdef H5
+		},
+		mounted() {
+			// #ifdef H5 || MP-360
 			this.document = document.getElementById('rtf' + this._uid);
 			// #endif
-			// #ifndef H5 || APP-PLUS-NVUE
+			// #ifndef H5 || APP-PLUS-NVUE || MP-360
 			if (dom) this.document = new dom(this);
 			// #endif
 			// #ifdef APP-PLUS-NVUE
 			this.document = this.$refs.web;
-			this.$nextTick(() => {
+			setTimeout(() => {
 				// #endif
 				if (this.html) this.setContent(this.html);
 				// #ifdef APP-PLUS-NVUE
-			})
+			}, 30)
 			// #endif
 		},
 		beforeDestroy() {
-			// #ifdef H5
+			// #ifdef H5 || MP-360
 			if (this._observer) this._observer.disconnect();
 			// #endif
 			this.imgList.each(src => {
@@ -199,69 +201,35 @@
 			clearInterval(this._timer);
 		},
 		methods: {
-			// #ifdef H5 || APP-PLUS-NVUE
-			_Dom2Str(nodes) {
-				var str = '';
-				for (var node of nodes) {
-					if (node.type == 'text')
-						str += node.text;
-					else {
-						str += ('<' + node.name);
-						for (var attr in node.attrs || {})
-							str += (' ' + attr + '="' + node.attrs[attr] + '"');
-						if (!node.children || !node.children.length) str += '>';
-						else str += ('>' + this._Dom2Str(node.children) + '</' + node.name + '>');
-					}
-				}
-				return str;
-			},
-			_handleHtml(html, append) {
-				if (typeof html != 'string') html = this._Dom2Str(html.nodes || html);
-				if (!append) {
-					// 处理 tag-style 和 userAgentStyles
-					var style = '<style>@keyframes show{0%{opacity:0}100%{opacity:1}}img{max-width:100%}';
-					for (var item in cfg.userAgentStyles)
-						style += `${item}{${cfg.userAgentStyles[item]}}`;
-					for (item in this.tagStyle)
-						style += `${item}{${this.tagStyle[item]}}`;
-					style += '</style>';
-					html = style + html;
-				}
-				// 处理 rpx
-				if (html.includes('rpx'))
-					html = html.replace(/[0-9.]+\s*rpx/g, $ => parseFloat($) * rpx + 'px');
-				return html;
-			},
-			// #endif
+			// 设置富文本内容
 			setContent(html, append) {
 				// #ifdef APP-PLUS-NVUE
 				if (!html)
 					return this.height = 1;
 				if (append)
-					this.$refs.web.evalJs("var d=document.createElement('div');d.innerHTML='" + html.replace(/'/g, "\\'") +
-						"';document.getElementById('parser').appendChild(d)");
+					this.$refs.web.evalJs("var b=document.createElement('div');b.innerHTML='" + html.replace(/'/g, "\\'") +
+						"';document.getElementById('parser').appendChild(b)");
 				else {
 					html =
-						'<meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1' +
-						(this.selectable ? '' : ',user-scalable=no') + '"><base href="' + this.domain + '"><div id="parser">' + this._handleHtml(
-							html) +
-						'</div><script>"use strict";function post(n){if(window.__dcloud_weex_postMessage||window.__dcloud_weex_){var t={data:[n]};window.__dcloud_weex_postMessage?window.__dcloud_weex_postMessage(t):window.__dcloud_weex_.postMessage(JSON.stringify(t))}}function waitReady(){return new Promise(function(e){var t=document.getElementById("parser"),r=t.scrollHeight,n=setInterval(function(){r==t.scrollHeight?(clearInterval(n),e(r)):r=t.scrollHeight},500)})}' +
-						(this.showWithAnimation ? 'document.body.style.animation="show .5s",' : '') +
-						'setTimeout(function(){post({action:"load",text:document.body.innerText,height:document.getElementById("parser").scrollHeight+16})},50);</' +
-						'script>';
+						'<meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"><style>html,body{width:100%;height:100%;overflow:hidden}body{margin:0}</style><base href="' +
+						this.domain + '"><div id="parser"' + (this.selectable ? '>' : ' style="user-select:none">') + this._handleHtml(html).replace(/\n/g, '\\n') +
+						'</div><script>"use strict";function e(e){if(window.__dcloud_weex_postMessage||window.__dcloud_weex_){var t={data:[e]};window.__dcloud_weex_postMessage?window.__dcloud_weex_postMessage(t):window.__dcloud_weex_.postMessage(JSON.stringify(t))}}document.body.onclick=function(){e({action:"click"})},' +
+						(this.showWithAnimation ? 'document.body.style.animation="_show .5s",' : '') +
+						'setTimeout(function(){e({action:"load",text:document.body.innerText,height:document.getElementById("parser").scrollHeight})},50);\x3c/script>';
 					this.$refs.web.evalJs("document.write('" + html.replace(/'/g, "\\'") + "');document.close()");
 				}
 				this.$refs.web.evalJs(
-					'var e=document.getElementsByTagName("title");e.length&&post({action:"getTitle",title:e[0].innerText});for(var t,o=document.getElementsByTagName("style"),r=0;t=o[r];r++)t.innerHTML=t.innerHTML.replace(/body/g,"#parser");for(var n,i=document.getElementsByTagName("img"),a=[],s=0,c=0;n=i[s];s++)n.onerror=function(){post({action:"error",source:"img",target:this})},n.hasAttribute("ignore")||"A"==n.parentElement.nodeName||(n.i=c++,a.push(n.src),n.onclick=function(){post({action:"preview",img:{i:this.i,src:this.src}})});post({action:"getImgList",imgList:a});for(var m,g=document.getElementsByTagName("a"),l=0;m=g[l];l++)m.onclick=function(){var e,t=this.getAttribute("href");if("#"==t[0]){var o=document.getElementById(t.substr(1));o&&(e=o.offsetTop)}return post({action:"linkpress",href:t,offset:e}),!1};for(var u,d=document.getElementsByTagName("video"),f=0;u=d[f];f++)u.style.maxWidth="100%",u.onerror=function(){post({action:"error",source:"video",target:this})}' +
-					(this.autopause ? ',u.onplay=function(){for(var e,t=0;e=d[t];t++)e!=this&&e.pause()}' : '') +
-					';for(var p,h=document.getElementsByTagName("audio"),v=0;p=h[v];v++)p.onerror=function(){post({action:"error",source:"audio",target:this})};' +
-					(this.autoscroll ?
-						'for(var y,T=document.getElementsByTagName("table"),E=0;y=T[E];E++){var N=document.createElement("div");N.style.overflow="scroll",y.parentNode.replaceChild(N,y),N.appendChild(y)}' :
-						'') + ';waitReady().then(function(e){post({action:"ready",height:e+16})})'
+					'var t=document.getElementsByTagName("title");t.length&&e({action:"getTitle",title:t[0].innerText});for(var o,n=document.getElementsByTagName("style"),r=1;o=n[r++];)o.innerHTML=o.innerHTML.replace(/body/g,"#parser");for(var a,c=document.getElementsByTagName("img"),s=[],i=0==c.length,d=0,l=0,g=0;a=c[l];l++)parseInt(a.style.width||a.getAttribute("width"))>' +
+					windowWidth + '&&(a.style.height="auto"),a.onload=function(){++d==c.length&&(i=!0)},a.onerror=function(){++d==c.length&&(i=!0),' + (cfg.errorImg ? 'this.src="' + cfg.errorImg + '",' : '') +
+					'e({action:"error",source:"img",target:this})},a.hasAttribute("ignore")||"A"==a.parentElement.nodeName||(a.i=g++,s.push(a.src),a.onclick=function(){e({action:"preview",img:{i:this.i,src:this.src}})});e({action:"getImgList",imgList:s});for(var u,m=document.getElementsByTagName("a"),f=0;u=m[f];f++)u.onclick=function(){var t,o=this.getAttribute("href");if("#"==o[0]){var n=document.getElementById(o.substr(1));n&&(t=n.offsetTop)}return e({action:"linkpress",href:o,offset:t}),!1};for(var h,y=document.getElementsByTagName("video"),v=0;h=y[v];v++)h.style.maxWidth="100%",h.onerror=function(){e({action:"error",source:"video",target:this})}' +
+					(this.autopause ? ',h.onplay=function(){for(var e,t=0;e=y[t];t++)e!=this&&e.pause()}' : '') +
+					';for(var _,p=document.getElementsByTagName("audio"),w=0;_=p[w];w++)_.onerror=function(){e({action:"error",source:"audio",target:this})};' +
+					(this.autoscroll ? 'for(var T,E=document.getElementsByTagName("table"),B=0;T=E[B];B++){var N=document.createElement("div");N.style.overflow="scroll",T.parentNode.replaceChild(N,T),N.appendChild(T)}' : '') +
+					'var x=document.getElementById("parser");clearInterval(window.timer),window.timer=setInterval(function(){i&&clearInterval(window.timer),e({action:"ready",ready:i,height:x.scrollHeight})},350)'
 				)
 				this.nodes = [1];
 				// #endif
-				// #ifdef H5
+				// #ifdef H5 || MP-360
 				if (!html) {
 					if (this.rtf && !append) this.rtf.parentNode.removeChild(this.rtf);
 					return;
@@ -304,6 +272,8 @@
 				this.imgList.length = 0;
 				var imgs = this.rtf.getElementsByTagName('img');
 				for (let i = 0, j = 0, img; img = imgs[i]; i++) {
+					if (parseInt(img.style.width || img.getAttribute('width')) > windowWidth)
+						img.style.height = 'auto';
 					var src = img.getAttribute('src');
 					if (this.domain && src) {
 						if (src[0] == '/') {
@@ -328,12 +298,11 @@
 						}
 					}
 					img.onerror = function() {
+						if (cfg.errorImg)
+							_ts.imgList[this.i] = this.src = cfg.errorImg;
 						_ts.$emit('error', {
 							source: 'img',
-							target: this,
-							context: {
-								setSrc: src => this.src = src
-							}
+							target: this
 						});
 					}
 					if (_ts.lazyLoad && this._observer && img.src && img.i != 0) {
@@ -361,11 +330,10 @@
 								}
 							} else if (href.indexOf('http') == 0 || href.indexOf('//') == 0)
 								return true;
-							else {
+							else
 								uni.navigateTo({
 									url: href
 								})
-							}
 						}
 						return false;
 					}
@@ -378,8 +346,7 @@
 					video.onerror = function() {
 						_ts.$emit('error', {
 							source: 'video',
-							target: this,
-							context: this
+							target: this
 						});
 					}
 					video.onplay = function() {
@@ -394,15 +361,14 @@
 					audio.onerror = function() {
 						_ts.$emit('error', {
 							source: 'audio',
-							target: this,
-							context: this
+							target: this
 						});
 					}
 				// 表格处理
 				if (this.autoscroll) {
 					var tables = this.rtf.getElementsByTagName('table');
 					for (var table of tables) {
-						var div = document.createElement('div');
+						let div = document.createElement('div');
 						div.style.overflow = 'scroll';
 						table.parentNode.replaceChild(div, table);
 						div.appendChild(table);
@@ -416,74 +382,52 @@
 				setTimeout(() => this.showAm = '', 500);
 				// #endif
 				// #ifndef APP-PLUS-NVUE
-				// #ifndef H5
+				// #ifndef H5 || MP-360
 				var nodes;
-				if (!html)
-					return this.nodes = [];
-				else if (typeof html == 'string') {
-					let parser = new Parser(html, this);
-					// 缓存读取
-					if (this.useCache) {
-						var hashVal = hash(html);
-						if (cache[hashVal])
-							nodes = cache[hashVal];
-						else {
-							nodes = parser.parse();
-							cache[hashVal] = nodes;
-						}
-					} else nodes = parser.parse();
-					this.$emit('parse', nodes);
-				} else if (Object.prototype.toString.call(html) == '[object Array]') {
-					// 非本插件产生的 array 需要进行一些转换
-					if (html.length && html[0].PoweredBy != 'Parser') {
-						let parser = new Parser(html, this);
-						(function f(ns) {
-							for (var i = 0, n; n = ns[i]; i++) {
-								if (n.type == 'text') continue;
-								n.attrs = n.attrs || {};
-								for (var item in n.attrs)
-									if (typeof n.attrs[item] != 'string') n.attrs[item] = n.attrs[item].toString();
-								parser.matchAttr(n, parser);
-								if (n.children && n.children.length) {
-									parser.STACK.push(n);
-									f(n.children);
-									parser.popNode(parser.STACK.pop());
-								} else n.children = void 0;
-							}
-						})(html);
+				if (!html) return this.nodes = [];
+				var parser = new Parser(html, this);
+				// 缓存读取
+				if (this.useCache) {
+					var hashVal = hash(html);
+					if (cache[hashVal])
+						nodes = cache[hashVal];
+					else {
+						nodes = parser.parse();
+						cache[hashVal] = nodes;
 					}
-					nodes = html;
-				} else if (typeof html == 'object' && html.nodes) {
-					nodes = html.nodes;
-					console.warn('错误的 html 类型：object 类型已废弃');
-				} else
-					return console.warn('错误的 html 类型：' + typeof html);
+				} else nodes = parser.parse();
+				this.$emit('parse', nodes);
 				if (append) this.nodes = this.nodes.concat(nodes);
 				else this.nodes = nodes;
-				if (nodes.length && nodes[0].title && this.autosetTitle)
+				if (nodes.length && nodes.title && this.autosetTitle)
 					uni.setNavigationBarTitle({
-						title: nodes[0].title
+						title: nodes.title
 					})
+				if (this.imgList) this.imgList.length = 0;
+				this.videoContexts = [];
 				this.$nextTick(() => {
-					this.imgList.length = 0;
-					this.videoContexts = [];
+					(function f(cs) {
+						for (var i = cs.length; i--;) {
+							if (cs[i].top) {
+								cs[i].controls = [];
+								cs[i].init();
+								f(cs[i].$children);
+							}
+						}
+					})(this.$children)
 					this.$emit('load');
 				})
 				// #endif
 				var height;
 				clearInterval(this._timer);
 				this._timer = setInterval(() => {
-					// #ifdef H5
+					// #ifdef H5 || MP-360
 					this.rect = this.rtf.getBoundingClientRect();
 					// #endif
-					// #ifndef H5
-					// #ifdef APP-PLUS
+					// #ifndef H5 || MP-360
 					uni.createSelectorQuery().in(this)
-					// #endif
-					// #ifndef APP-PLUS
-					this.createSelectorQuery()
-						// #endif
-						.select('#top').boundingClientRect().exec(res => {
+						.select('#_top').boundingClientRect().exec(res => {
+							if (!res) return;
 							this.rect = res[0];
 							// #endif
 							if (this.rect.height == height) {
@@ -491,22 +435,23 @@
 								clearInterval(this._timer);
 							}
 							height = this.rect.height;
-							// #ifndef H5
+							// #ifndef H5 || MP-360
 						});
 					// #endif
 				}, 350);
-				if (this.showWithAnimation && !append) this.showAm = 'animation:show .5s';
+				if (this.showWithAnimation && !append) this.showAm = 'animation:_show .5s';
 				// #endif
 			},
+			// 获取文本内容
 			getText(ns = this.nodes) {
 				var txt = '';
 				// #ifdef APP-PLUS-NVUE
 				txt = this._text;
 				// #endif
-				// #ifdef H5
+				// #ifdef H5 || MP-360
 				txt = this.rtf.innerText;
 				// #endif
-				// #ifndef H5 || APP-PLUS-NVUE
+				// #ifndef H5 || APP-PLUS-NVUE || MP-360
 				for (var i = 0, n; n = ns[i++];) {
 					if (n.type == 'text') txt += n.text.replace(/&nbsp;/g, '\u00A0').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 						.replace(/&amp;/g, '&');
@@ -524,61 +469,42 @@
 				// #endif
 				return txt;
 			},
+			// 锚点跳转
+			in (obj) {
+				if (obj.page && obj.selector && obj.scrollTop) this._in = obj;
+			},
 			navigateTo(obj) {
-				if (!this.useAnchor)
-					return obj.fail && obj.fail({
-						errMsg: 'Anchor is disabled'
-					})
+				if (!this.useAnchor) return obj.fail && obj.fail('Anchor is disabled');
 				// #ifdef APP-PLUS-NVUE
 				if (!obj.id)
 					weexDom.scrollToElement(this.$refs.web);
 				else
 					this.$refs.web.evalJs('var pos=document.getElementById("' + obj.id +
 						'");if(pos)post({action:"linkpress",href:"#",offset:pos.offsetTop+' + (obj.offset || 0) + '})');
-				obj.success && obj.success({
-					errMsg: 'pageScrollTo:ok'
-				});
+				obj.success && obj.success();
 				// #endif
-				// #ifdef H5
-				if (!obj.id) {
-					window.scrollTo(0, this.rtf.offsetTop);
-					return obj.success && obj.success({
-						errMsg: 'pageScrollTo:ok'
-					});
-				}
-				var target = document.getElementById(obj.id);
-				if (!target) return obj.fail && obj.fail({
-					errMsg: 'Label not found'
-				});
-				obj.scrollTop = this.rtf.offsetTop + target.offsetTop + (obj.offset || 0);
-				uni.pageScrollTo(obj);
+				// #ifndef APP-PLUS-NVUE
+				var d = ' ';
+				// #ifdef MP-WEIXIN || MP-QQ || MP-TOUTIAO
+				d = '>>>';
 				// #endif
-				// #ifndef H5 || APP-PLUS-NVUE
-				var Scroll = (selector, component) => {
-					uni.createSelectorQuery().in(component ? component : this).select(selector).boundingClientRect().selectViewport()
-						.scrollOffset()
-						.exec(res => {
-							if (!res || !res[0])
-								return obj.fail && obj.fail({
-									errMsg: 'Label not found'
-								});
-							obj.scrollTop = res[1].scrollTop + res[0].top + (obj.offset || 0);
-							uni.pageScrollTo(obj);
-						})
-				}
-				if (!obj.id) Scroll('#top');
-				else {
-					// #ifndef MP-BAIDU || MP-ALIPAY || APP-PLUS
-					Scroll('#top >>> #' + obj.id + ', #top >>> .' + obj.id);
-					// #endif
-					// #ifdef MP-BAIDU || MP-ALIPAY || APP-PLUS
-					for (var anchor of this.anchors)
-						if (anchor.id == obj.id)
-							Scroll('#' + obj.id + ', .' + obj.id, anchor.node);
-					// #endif
-				}
+				var selector = uni.createSelectorQuery().in(this._in ? this._in.page : this).select((this._in ? this._in.selector :
+					'#_top') + (obj.id ? `${d}#${obj.id},${this._in?this._in.selector:'#_top'}${d}.${obj.id}` : '')).boundingClientRect();
+				if (this._in) selector.select(this._in.selector).scrollOffset().select(this._in.selector).boundingClientRect();
+				else selector.selectViewport().scrollOffset();
+				selector.exec(res => {
+					if (!res[0]) return obj.fail && obj.fail('Label not found')
+					var scrollTop = res[1].scrollTop + res[0].top - (res[2] ? res[2].top : 0) + (obj.offset || 0);
+					if (this._in) this._in.page[this._in.scrollTop] = scrollTop;
+					else uni.pageScrollTo({
+						scrollTop,
+						duration: 300
+					})
+					obj.success && obj.success();
+				})
 				// #endif
 			},
+			// 获取视频对象
 			getVideoContext(id) {
 				// #ifndef APP-PLUS-NVUE
 				if (!id) return this.videoContexts;
@@ -587,65 +513,94 @@
 						if (this.videoContexts[i].id == id) return this.videoContexts[i];
 				// #endif
 			},
+			// #ifdef H5 || APP-PLUS-NVUE || MP-360
+			_handleHtml(html, append) {
+				if (!append) {
+					// 处理 tag-style 和 userAgentStyles
+					var style = '<style>@keyframes _show{0%{opacity:0}100%{opacity:1}}img{max-width:100%}';
+					for (var item in cfg.userAgentStyles)
+						style += `${item}{${cfg.userAgentStyles[item]}}`;
+					for (item in this.tagStyle)
+						style += `${item}{${this.tagStyle[item]}}`;
+					style += '</style>';
+					html = style + html;
+				}
+				// 处理 rpx
+				if (html.includes('rpx'))
+					html = html.replace(/[0-9.]+\s*rpx/g, $ => (parseFloat($) * windowWidth / 750) + 'px');
+				return html;
+			},
+			// #endif
 			// #ifdef APP-PLUS-NVUE
 			_message(e) {
 				// 接收 web-view 消息
-				var data = e.detail.data[0];
-				if (data.action == 'load') {
-					this.$emit('load');
-					this.height = data.height;
-					this._text = data.text;
-				} else if (data.action == 'getTitle') {
-					if (this.autosetTitle)
-						uni.setNavigationBarTitle({
-							title: data.title
-						})
-				} else if (data.action == 'getImgList') {
-					this.imgList.length = 0;
-					for (var i = data.imgList.length; i--;)
-						this.imgList.setItem(i, data.imgList[i]);
-				} else if (data.action == 'preview') {
-					var preview = true;
-					data.img.ignore = () => preview = false;
-					this.$emit('imgtap', data.img);
-					if (preview)
-						uni.previewImage({
-							current: data.img.i,
-							urls: this.imgList
-						})
-				} else if (data.action == 'linkpress') {
-					var jump = true,
-						href = data.href;
-					this.$emit('linkpress', {
-						href,
-						ignore: () => jump = false
-					})
-					if (jump && href) {
-						if (href[0] == '#') {
-							if (this.useAnchor)
-								weexDom.scrollToElement(this.$refs.web, {
-									offset: data.offset
-								})
-						} else if (href.includes('://'))
-							plus.runtime.openWeb(href);
-						else
-							uni.navigateTo({
-								url: href
+				var d = e.detail.data[0];
+				switch (d.action) {
+					case 'load':
+						this.$emit('load');
+						this.height = d.height;
+						this._text = d.text;
+						break;
+					case 'getTitle':
+						if (this.autosetTitle)
+							uni.setNavigationBarTitle({
+								title: d.title
 							})
-					}
-				} else if (data.action == 'error')
-					this.$emit('error', {
-						source: data.source,
-						target: data.target
-					})
-				else if (data.action == 'ready') {
-					this.height = data.height;
-					this.$nextTick(() => {
-						uni.createSelectorQuery().in(this).select('#top').boundingClientRect().exec(res => {
+						break;
+					case 'getImgList':
+						this.imgList.length = 0;
+						for (var i = d.imgList.length; i--;)
+							this.imgList.setItem(i, d.imgList[i]);
+						break;
+					case 'preview':
+						var preview = true;
+						d.img.ignore = () => preview = false;
+						this.$emit('imgtap', d.img);
+						if (preview)
+							uni.previewImage({
+								current: d.img.i,
+								urls: this.imgList
+							})
+						break;
+					case 'linkpress':
+						var jump = true,
+							href = d.href;
+						this.$emit('linkpress', {
+							href,
+							ignore: () => jump = false
+						})
+						if (jump && href) {
+							if (href[0] == '#') {
+								if (this.useAnchor)
+									weexDom.scrollToElement(this.$refs.web, {
+										offset: d.offset
+									})
+							} else if (href.includes('://'))
+								plus.runtime.openWeb(href);
+							else
+								uni.navigateTo({
+									url: href
+								})
+						}
+						break;
+					case 'error':
+						if (d.source == 'img' && cfg.errorImg)
+							this.imgList.setItem(d.target.i, cfg.errorImg);
+						this.$emit('error', {
+							source: d.source,
+							target: d.target
+						})
+						break;
+					case 'ready':
+						this.height = d.height;
+						if (d.ready) uni.createSelectorQuery().in(this).select('#_top').boundingClientRect().exec(res => {
 							this.rect = res[0];
 							this.$emit('ready', res[0]);
 						})
-					})
+						break;
+					case 'click':
+						this.$emit('click');
+						this.$emit('tap');
 				}
 			},
 			// #endif
@@ -654,7 +609,7 @@
 </script>
 
 <style>
-	@keyframes show {
+	@keyframes _show {
 		0% {
 			opacity: 0;
 		}

@@ -13,7 +13,7 @@ const clone = require('clone');
 
 /**
  * 将小程序subPackages节点处理为uni-app所需要的节点
- * @param {*} subPackages 
+ * @param {*} subPackages
  */
 function subPackagesHandle (subPackages, routerData) {
     let reuslt = [];
@@ -179,9 +179,8 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
 
             //写入pages.json
             let file_pages = path.join(targetFolder, "pages.json");
-            fs.writeFile(file_pages, JSON.stringify(appJson, null, '\t'), () => {
-                console.log(`write ${path.relative(global.targetFolder, file_pages)} success!`);
-            });
+            fs.writeFileSync(file_pages, JSON.stringify(appJson, null, '\t'));
+            console.log(`write ${path.relative(global.targetFolder, file_pages)} success!`);
 
             ////////////////////////////write manifest.json/////////////////////////////
 
@@ -204,14 +203,18 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
 
             //manifest.json
             file_manifest = path.join(targetFolder, "manifest.json");
-            fs.writeFile(file_manifest, JSON.stringify(manifestJson, null, '\t'), () => {
-                console.log(`write ${path.relative(global.targetFolder, file_manifest)} success!`);
-            });
+            fs.writeFileSync(file_manifest, JSON.stringify(manifestJson, null, '\t'));
+            console.log(`write ${path.relative(global.targetFolder, file_manifest)} success!`);
 
 
             ////////////////////////////write main.js/////////////////////////////
             let mainContent = "import Vue from 'vue';\r\n";
             mainContent += "import App from './App';\r\n\r\n";
+
+            //store
+            if (global.isCompiledProject && global.compiledData.store) {
+                mainContent += "import store from './store/store.js';\r\n\r\n";
+            }
 
             //全局引入自定义组件
             //import firstcompoent from '../firstcompoent/firstcompoent'
@@ -294,14 +297,18 @@ Vue.mixin({
 
             mainContent += "App.mpType = 'app';\r\n\r\n";
             mainContent += "const app = new Vue({\r\n";
+            //store
+            if (global.isCompiledProject && global.compiledData.store) {
+                mainContent += "    store,\r\n";
+            }
+
             mainContent += "    ...App\r\n";
             mainContent += "});\r\n";
             mainContent += "app.$mount();\r\n";
             //
             let file_main = path.join(targetFolder, "main.js");
-            fs.writeFile(file_main, mainContent, () => {
-                console.log(`write ${path.relative(global.targetFolder, file_main)} success!`);
-            });
+            fs.writeFileSync(file_main, mainContent)
+            console.log(`write ${path.relative(global.targetFolder, file_main)} success!`);
 
             //////////////////////////////////////////////////////////////////////
             resolve();
