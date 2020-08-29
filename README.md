@@ -126,11 +126,12 @@ $ wtu -i ./miniprogram-project -w
 
 ## 更新记录
 
-### v1.0.69(20200829)
+### v1.0.70(20200829)
 
 -   [更新] jyf-parser 的版本为 2.15.3（2020-07-29）
 -   [修复] 试解决转换后只剩下 css 的问题
 -   [修复] properties 里面的 value 为函数时的处理
+-   [优化] npm 包引用和体积
 -   [优化] writeFile-->writeFileSync
 -   [优化] 解析 js 的体积上限调为 500kb
 -   [优化] npm 包优化以支持 hbuilder x 插件

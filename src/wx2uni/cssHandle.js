@@ -24,6 +24,9 @@ async function cssHandle (fileContent, file_wxss) {
             //"../../wxParse/icon/css"
             //@import "./wxParse/suui/suui.css";
 
+            //删除掉import app.wxss的代码
+            fileContent = fileContent.replace(/@import\s?["'].*?\/?app[\/\.](.*?)["'];?/g, "");
+
             //删除掉import wxParse.wxss的代码
             fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse[\/\.](.*?)["'];?/g, "");
 
@@ -111,9 +114,9 @@ async function cssHandle (fileContent, file_wxss) {
                         //当前处理文件所在目录
                         let wxssFolder = path.dirname(file_wxss);
                         var pFolderName = pathUtil.getParentFolderName(src);
-                        // console.log("pFolderName ", pFolderName)
+                        // utils.log("pFolderName ", pFolderName)
                         var fileName = path.basename(src);
-                        // console.log("fileName ", fileName)
+                        // utils.log("fileName ", fileName)
                         //
                         let filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
                         src = path.relative(wxssFolder, filePath);
@@ -131,7 +134,7 @@ async function cssHandle (fileContent, file_wxss) {
             resolve(fileContent);
         });
     } catch (err) {
-        console.log(err);
+        utils.log(err);
     }
     return content;
 }

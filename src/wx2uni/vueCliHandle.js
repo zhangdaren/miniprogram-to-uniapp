@@ -84,7 +84,7 @@ async function vueCliHandle (configData, outputFolder, assetsFolderObject, isVue
                         let fileContent = fs.readFileSync(file_source, 'utf-8');
                         for (const key2 in raplaceArray) {
                             const flag = raplaceArray[key2];
-                            // console.log(flag);
+                            // utils.log(flag);
                             switch (flag) {
                                 case "<%= PROJECT_NAME %>":
                                     //package.json里的name字段，有时会有中文，将导致npm i时报错，这里转换为拼音
@@ -100,10 +100,10 @@ async function vueCliHandle (configData, outputFolder, assetsFolderObject, isVue
                         }
 
                         fs.writeFileSync(file_target, fileContent);
-                        console.log(`write ${target} success!`);
+                        utils.log(`write ${target} success!`);
                     } else {
                         fs.copySync(file_source, file_target);
-                        console.log(`copy ${target} success!`);
+                        utils.log(`copy ${target} success!`);
                     }
                 }
             }
@@ -112,7 +112,7 @@ async function vueCliHandle (configData, outputFolder, assetsFolderObject, isVue
             resolve();
         });
     } catch (err) {
-        console.log(err);
+        utils.log(err);
     }
 }
 

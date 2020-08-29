@@ -74,7 +74,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
                 appJson = fs.readJsonSync(json_app);
             } else {
                 let str = "Error： 找不到app.json文件(不影响转换)";
-                console.log(str);
+                utils.log(str);
                 global.log.push("\r\n" + str + "\r\n");
             }
             //app.json里面引用的全局组件
@@ -180,7 +180,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             //写入pages.json
             let file_pages = path.join(targetFolder, "pages.json");
             fs.writeFileSync(file_pages, JSON.stringify(appJson, null, '\t'));
-            console.log(`write ${path.relative(global.targetFolder, file_pages)} success!`);
+            utils.log(`write ${path.relative(global.targetFolder, file_pages)} success!`);
 
             ////////////////////////////write manifest.json/////////////////////////////
 
@@ -204,7 +204,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             //manifest.json
             file_manifest = path.join(targetFolder, "manifest.json");
             fs.writeFileSync(file_manifest, JSON.stringify(manifestJson, null, '\t'));
-            console.log(`write ${path.relative(global.targetFolder, file_manifest)} success!`);
+            utils.log(`write ${path.relative(global.targetFolder, file_manifest)} success!`);
 
 
             ////////////////////////////write main.js/////////////////////////////
@@ -308,13 +308,13 @@ Vue.mixin({
             //
             let file_main = path.join(targetFolder, "main.js");
             fs.writeFileSync(file_main, mainContent)
-            console.log(`write ${path.relative(global.targetFolder, file_main)} success!`);
+            utils.log(`write ${path.relative(global.targetFolder, file_main)} success!`);
 
             //////////////////////////////////////////////////////////////////////
             resolve();
         });
     } catch (err) {
-        console.log(err);
+        utils.log(err);
     }
 }
 

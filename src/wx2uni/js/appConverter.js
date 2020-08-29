@@ -163,7 +163,7 @@ const vistor = {
     const parent = path.parentPath.parent;
     const value = parent.value;
     const name = path.node.key.name;
-    // console.log("add methods： ", name);
+    // utils.log("add methods： ", name);
     if (value) {
       //async函数
       //app.js里面的函数，除生命周期外全部放入到gloabalData里
@@ -185,8 +185,8 @@ const vistor = {
 
   ObjectProperty (path) {
     const name = path.node.key.name;
-    // console.log("name", path.node.key.name)
-    // console.log("name", path.node.key.name)
+    // utils.log("name", path.node.key.name)
+    // utils.log("name", path.node.key.name)
     switch (name) {
       case "data":
         initGlobalData();
@@ -219,7 +219,7 @@ const vistor = {
       default:
         const parent = path.parentPath.parent;
         const value = parent.value;
-        // console.log("name", path.node.key.name)
+        // utils.log("name", path.node.key.name)
         //如果父级不为data时，那么就加入生命周期，比如app.js下面的全局变量
         if (value && value == dataValue) {
           vistors.data.handle(path.node);
@@ -236,7 +236,7 @@ const vistor = {
           ) {
             //这里function
             if (babelUtil.lifeCycleFunction[name]) {
-              // console.log("add lifeCycle： ", name);
+              // utils.log("add lifeCycle： ", name);
               vistors.lifeCycle.handle(path.node);
               //跳过生命周期下面的子级，不然会把里面的也给遍历出来
             } else {

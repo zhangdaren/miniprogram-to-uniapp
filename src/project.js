@@ -26,7 +26,7 @@ function getProjectConfig (folder, sourceFolder) {
     try {
       data = fs.readJsonSync(file_projectConfigJson);
     } catch (error) {
-      console.log(`Error： 解析project.config.json报错：` + error);
+      utils.log(`Error： 解析project.config.json报错：` + error);
     }
 
     if (data.cloudfunctionRoot) {
@@ -51,7 +51,7 @@ function getProjectConfig (folder, sourceFolder) {
     projectConfig.name = decodeURIComponent(data.projectname || '');
   } else {
     projectConfig.miniprogramRoot = sourceFolder;
-    // console.log(`Warning： 找不到project.config.json文件(不影响转换，无视这条)`);
+    // utils.log(`Warning： 找不到project.config.json文件(不影响转换，无视这条)`);
     global.log.push("\r\nWarning： 找不到project.config.json文件(不影响转换，无视这条)\r\n");
     // throw (`error： 这个目录${sourceFolder}应该不是小程序的目录，找不到project.config.json文件`)
   }
@@ -63,7 +63,7 @@ function getProjectConfig (folder, sourceFolder) {
     try {
       packageJson = fs.readJsonSync(file_package);
     } catch (error) {
-      console.log(`Error： 解析package.json报错：` + error);
+      utils.log(`Error： 解析package.json报错：` + error);
     }
     //
     if (packageJson) {
@@ -80,7 +80,7 @@ function getProjectConfig (folder, sourceFolder) {
       // }) || global.hasVant;
     }
   } else {
-    // console.log(`Warning： 找不到package.json文件(不影响转换，无视这条)`);
+    // utils.log(`Warning： 找不到package.json文件(不影响转换，无视这条)`);
     global.log.push("\r\nWarning： 找不到package.json文件(不影响转换，无视这条)\r\n");
   }
   return projectConfig;

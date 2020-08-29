@@ -22,8 +22,6 @@
         "commander": "^2.15.1",
         "fs-extra": "^8.0.1",
         "htmlparser2": "^3.10.1",
-        "mocha": "^6.2.2",
-        "moment": "^2.24.0",
         "node-pinyin": "^0.2.3",
         "object-string-to-object": "^1.0.2"
     },
@@ -49,6 +47,7 @@
         "@babel/plugin-transform-object-assign": "^7.0.0",
         "@babel/preset-env": "^7.0.0",
         "babel-loader": "^8.0.6",
+        "mocha": "^6.2.2",
         "chai": "^4.2.0",
         "lodash": "^4.17.19"
     },
@@ -73,5 +72,5 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "version": "1.0.69"
+    "version": "1.0.70"
 }

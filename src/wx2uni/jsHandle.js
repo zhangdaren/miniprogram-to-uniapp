@@ -27,7 +27,7 @@ let compiledProjectHandle = null;
 try {
     compiledProjectHandle = require('./plugins/compiledProjectHandle');
 } catch (error) {
-    console.log("加载失败，", error)
+    // utils.log("加载失败，", error)
 }
 
 
@@ -223,7 +223,7 @@ function defineValueHandle (ast, vistors, file_js) {
                                     !propsJson.hasOwnProperty(name)
                                 ) {
                                     // const logStr = "data里没有的变量:    " + name + " -- " + value.type + "    file: " + nodePath.relative(global.miniprogramRoot, file_js);
-                                    // console.log(logStr);
+                                    // utils.log(logStr);
 
                                     //设置默认值
                                     let initialValue;
@@ -321,7 +321,7 @@ function applifeCycleFunHandle (
         MemberExpression (path) {
             let object = path.get("object");
             let property = path.get("property");
-            // console.log(object.node.name, property.node.name);
+            // utils.log(object.node.name, property.node.name);
             //app.js里非生命周期函数里引用globalData里变量的引用关系修改
             if (
                 babelUtil.isThisExpression(
@@ -579,7 +579,7 @@ const componentTemplateBuilder = function (
         //     }
         // },
         ObjectMethod (path) {
-            // console.log("--------", path.node.key.name);
+            // utils.log("--------", path.node.key.name);
             if (path.node.key.name === "data") {
                 //存储data引用
                 if (!astDataPath) astDataPath = path;
@@ -923,7 +923,7 @@ function handleJSImage (ast, file_js) {
                 let newImagePath = nodePath.relative(jsFolder, filePath);
 
                 path.node = t.stringLiteral(newImagePath);
-                // console.log("newImagePath ", newImagePath);
+                // utils.log("newImagePath ", newImagePath);
             }
         }
     });
@@ -1033,7 +1033,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
             case "Webpack":
                 break;
             default:
-                // console.log("其他类型： [", astType + " ]");
+                // utils.log("其他类型： [", astType + " ]");
                 astType = "";
                 break;
         }
@@ -1113,7 +1113,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
                 astInfoObject
             );
         }
-        // console.log(`${generate(convertedJavascript).code}`);
+        // utils.log(`${generate(convertedJavascript).code}`);
 
         //生成文本并写入到文件
         if (astType === "Behavior" || astType === "Behavior2") {
@@ -1144,7 +1144,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
                 codeText = await compiledProjectHandle.jsHandle(fileData, newFile);
                 codeText = `<script>\r\n${codeText}\r\n</script>\r\n`;
             } else {
-                codeText = `<script>\r\n${generate(javascriptAst).code}\r\n</script>\r\n`;
+                codeText = `<script>\r\n${fileData}\r\n</script>\r\n`;;
             }
         } else {
             let cloneAst = clone(javascriptAst);
