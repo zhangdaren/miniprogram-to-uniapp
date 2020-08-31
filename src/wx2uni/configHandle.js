@@ -185,7 +185,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             ////////////////////////////write manifest.json/////////////////////////////
 
             //注：因json里不能含有注释，因些project-template/manifest.json文件里的注释已经被删除。
-            let file_manifest = path.join(__dirname, "/project-template/manifest.json");
+            let file_manifest = path.join(__dirname, "/project-template/mani_fest.json");
             let manifestJson = fs.readJsonSync(file_manifest);
             //
             let name = pinyin(configData.name, {

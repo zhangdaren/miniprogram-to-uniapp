@@ -91,7 +91,7 @@ $ wtu -i ./miniprogram-project -w
 
 ## 已完成
 
--   支持转换微信、QQ、头条/抖音、支付宝/钉钉和百度等小程序转换到 uni-app 项目
+-   支持微信、QQ、头条/抖音、支付宝/钉钉和百度等小程序转换到 uni-app 项目
 -   支持有/无云开发的小程序项目转换为 uni-app 项目(cloudfunctions 目录将被忽略，uni-app 结合小程序云开发见：[使用 uni-app 进行微信小程序云开发经验分享](https://ask.dcloud.net.cn/article/35933))
 -   支持解析 TypeScript 小程序项目
 -   支持解析使用 npm 模块的小程序项目
@@ -126,7 +126,7 @@ $ wtu -i ./miniprogram-project -w
 
 ## 更新记录
 
-### v1.0.70(20200829)
+### v1.0.71(20200829)
 
 -   [更新] jyf-parser 的版本为 2.15.3（2020-07-29）
 -   [修复] 试解决转换后只剩下 css 的问题

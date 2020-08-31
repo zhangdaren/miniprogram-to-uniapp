@@ -65,7 +65,7 @@ async function vueCliHandle (configData, outputFolder, assetsFolderObject, isVue
                         ],
                     },
                     {
-                        source: "vue-cli/vue.config.js",
+                        source: "vue-cli/vue_config.js",
                         target: "vue.config.js",
                         raplaceArray: [
                             "<%= COPY_WEBPACK_PLUGIN %>"
