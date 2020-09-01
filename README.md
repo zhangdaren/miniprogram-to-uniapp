@@ -102,6 +102,7 @@ $ wtu -i ./miniprogram-project -w
 -   支持识别 App、Page、Component、VantComponent、Behavior 和纯 Javascript 文件的转换
 -   修复变量名与函数重名的情况
 -   合并使用 require 导入的 wxs 文件
+-   setData() polyfill
 -   搜索未在 data 声明，而直接在 setData()里使用的变量，并修复
 -   使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换 wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)
 -   因 uni-app 会将所有非 static 目录的资源文件删除，因此将所有资源文件移入 static 目录，并修复所有能修复到的路径(目前 uni 编译时会将非 static 目录的文件复制一份到 static 目录，但并不完全，因此本功能仍保留)
@@ -125,6 +126,10 @@ $ wtu -i ./miniprogram-project -w
 -   更多，请参照[miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 ## 更新记录
+
+### v1.0.72(20200901)
+
+-   [修复] 可能导致转换后只剩 css 的问题
 
 ### v1.0.71(20200829)
 
