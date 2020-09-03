@@ -967,7 +967,7 @@ function preHandle (folder, hbxOutputChannel) {
  * @param {*} isTransformWXS   是否需要转换wxs文件，默认为false，目前uni-app已支持wxs文件，仅支持app和小程序
  * @param {*} isVantProject    是否为vant项目，默认为false
  * @param {*} isRenameWxToUni  是否转换wx为uni，默认为true
- * @param {*} isMergeWxssToVue 是否合并wxss到vue文件，默认为true
+ * @param {*} isMergeWxssToVue 是否合并wxss到vue文件，默认为false
  * @param {*} callback         回调函数
  */
 async function transform (
@@ -977,7 +977,7 @@ async function transform (
     isTransformWXS,
     isVantProject,
     isRenameWxToUni = true,
-    isMergeWxssToVue = true,
+    isMergeWxssToVue = false,
     callback = null
 ) {
     fileData = {};

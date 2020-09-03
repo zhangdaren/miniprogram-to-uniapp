@@ -19,7 +19,7 @@ program
     .option('-w, --wxs [type]', 'transform wxs file to js file, which default value is false', false)
     .option('-z, --vant [type]', 'transform vant-weapp project to uni-app, automatic check', false)
     .option('-r, --rename [type]', 'rename wx.xxx() to uni.xxx(), which default value is true', true)
-    .option('-m, --merge [type]', 'merge wxss file into vue file, which default value is true', true)
+    .option('-m, --merge [type]', 'merge wxss file into vue file, which default value is false', false)
     .parse(process.argv);
 
 program.on('--help', function () {

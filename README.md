@@ -30,7 +30,7 @@ Options:
   -w, --wxs               transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
   -z, --vant              transform vant-weapp project to uni-app, automatic check [是否支持转换vant项目，默认为false]
   -r, --rename            rename wx.xxx() to uni.xxx(), which default value is true [是否转换wx.xxx()为uni.xxx()，默认true]
-  -m, --merge             merge wxss file into vue file, which default value is true [是否合并wxss到vue文件，默认true]
+  -m, --merge             merge wxss file into vue file, which default value is false [是否合并wxss到vue文件，默认false]
 
 ```
 
@@ -50,7 +50,7 @@ $ wtu -i ./miniprogram-project -z
 
 ```sh
 $ wtu -i ./miniprogram-project -r
-```
+```-->
 
 #### 将 wxss 合并入 vue 文件:
 
@@ -58,7 +58,7 @@ $ wtu -i ./miniprogram-project -r
 $ wtu -i ./miniprogram-project -m
 ```
 
-#### 既转换 vant 小程序，又转换 wx 关键字，还将 wxss 合并入 vue 文件:
+<!-- #### 既转换 vant 小程序，又转换 wx 关键字，还将 wxss 合并入 vue 文件:
 
 ```sh
 $ wtu -i ./miniprogram-project -z -r -m
@@ -126,6 +126,10 @@ $ wtu -i ./miniprogram-project -w
 -   更多，请参照[miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 ## 更新记录
+
+### v1.0.73(20200903)
+
+-   [修复] 默认不合并 css 进 vue 文件，需此功能，请在正常命令行后添加-m
 
 ### v1.0.72(20200901)
 

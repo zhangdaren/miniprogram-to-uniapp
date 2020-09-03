@@ -51,6 +51,7 @@ function saveAllFile () {
             global.log.push("\r\Error: targetFilePath: " + targetFilePath + " 内容为空！！！ r\n");
             //可能会有某种情况（暂未复现是何种情况出现），会报错
             //因此当文件内容为空时，给它一个空格(有时文件为空，但引用还在，所以不能直接删除)
+            //有种情况：一组页面，只有js文件时，会报错，但没复现
             fileContent = " ";
         }
 
