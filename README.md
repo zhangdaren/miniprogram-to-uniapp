@@ -85,11 +85,17 @@ $ wtu -i ./miniprogram-project -w
 
 使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑.md](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
-对于使用有疑问或建议，欢迎加入 QQ 群：780359397 进行讨论。
+对于使用有疑问或建议，欢迎加入 QQ 群进行指导和反馈。
 
-<a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a>
+交流 QQ 群：
+1 群：780359397 <a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a> (已满)
+2 群：361784059 <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=vpt4K1r6Witx29ZsKcb_tqvinhcZzVhK&jump_from=webapi"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uniapp研究二群" title="小程序转uniapp研究二群"></a>
 
 ## 已完成
+
+<!-- | 微信小程序 | 支付宝小程序 | 百度小程序 | 字节跳动小程序 | QQ 小程序 | 360 小程序 |
+| :--------: | :----------: | :--------: | :------------: | :-------: | :--------: |
+|     √      |      √       |     √      |       √        |     √     |     x      | -->
 
 -   **支持微信、QQ、头条/抖音、支付宝/钉钉和百度等小程序转换到 uni-app 项目**
 -   支持有/无云开发的小程序项目转换为 uni-app 项目(cloudfunctions 目录将被忽略，uni-app 结合小程序云开发见：[使用 uni-app 进行微信小程序云开发经验分享](https://ask.dcloud.net.cn/article/35933))
