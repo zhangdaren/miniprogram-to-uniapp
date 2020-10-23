@@ -1,6 +1,8 @@
 // const Parser = require('./Parser') //基类
 const htmlparser = require('htmlparser2')   //html的AST类库
 
+const utils = require('../../utils/utils.js');
+
 //为啥见一些转换器都用这个来转换，而且这个库的star数还是0
 // const {
 //   Parser,

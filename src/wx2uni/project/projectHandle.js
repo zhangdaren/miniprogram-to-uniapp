@@ -10,7 +10,7 @@ const templateTagHandle = require('./templateTagHandle');
 /**
  * 保存所有未保存的文件
  */
-function saveAllFile () {
+function saveAllFile() {
     let pagesData = global.pagesData;
 
     //判断类型，然后操作一把 app main 对调处理一下
@@ -48,7 +48,7 @@ function saveAllFile () {
         }
         if (!fileContent) {
             // the data argument must be of type string or an instance of buffer typeArray or dataView receive type Number(NaN)
-            global.log.push("\r\Error: targetFilePath: " + targetFilePath + " 内容为空！！！ r\n");
+            global.log.push("\r\[Error] targetFilePath: " + targetFilePath + " 内容为空！！！ r\n");
             //可能会有某种情况（暂未复现是何种情况出现），会报错
             //因此当文件内容为空时，给它一个空格(有时文件为空，但引用还在，所以不能直接删除)
             //有种情况：一组页面，只有js文件时，会报错，但没复现
@@ -66,7 +66,7 @@ function saveAllFile () {
  * @param {*} folder        小程序主体所在目录
  * @param {*} sourceFolder  输入目录
  */
-function getProjectConfig (folder, sourceFolder) {
+function getProjectConfig(folder, sourceFolder) {
     let file_projectConfigJson = path.join(folder, 'project.config.json');
     let projectConfig = {
         name: '',
@@ -85,7 +85,7 @@ function getProjectConfig (folder, sourceFolder) {
         try {
             data = fs.readJsonSync(file_projectConfigJson);
         } catch (error) {
-            utils.log(`Error： 解析project.config.json报错：` + error);
+            utils.log(`[Error] 解析project.config.json报错：` + error);
         }
 
         if (data.cloudfunctionRoot) {
@@ -149,7 +149,7 @@ function getProjectConfig (folder, sourceFolder) {
 /**
  * 项目处理
  */
-function projectHandle () {
+function projectHandle() {
     includeTagHandle();
     templateTagHandle();
     saveAllFile();

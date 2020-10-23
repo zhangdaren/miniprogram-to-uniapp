@@ -103,7 +103,7 @@ export default {
  * @param {*} left
  * @param {*} right
  */
-function buildAssignment (left, right) {
+function buildAssignment(left, right) {
     return t.assignmentExpression("=", left, right);
 }
 
@@ -112,7 +112,7 @@ function buildAssignment (left, right) {
  * @param {*} left
  * @param {*} right
  */
-function buildAssignmentWidthThis (left, right) {
+function buildAssignmentWidthThis(left, right) {
     return t.assignmentExpression(
         "=",
         t.memberExpression(t.thisExpression(), left),
@@ -125,7 +125,7 @@ function buildAssignmentWidthThis (left, right) {
  * @param {*} left
  * @param {*} right
  */
-function buildAssignmentWidthThat (left, right, name) {
+function buildAssignmentWidthThat(left, right, name) {
     return t.assignmentExpression(
         "=",
         t.memberExpression(t.identifier(name), left),
@@ -139,7 +139,7 @@ function buildAssignmentWidthThat (left, right, name) {
  * @param {*} key           用于查找当前编辑的文件组所对应的key
  * @param {*} funName       函数名："onLoad" or "beforeMount"
  */
-function handleOnLoadFun (liftCycleArr, key, funName) {
+function handleOnLoadFun(liftCycleArr, key, funName) {
     var node = null;
     for (let i = 0; i < liftCycleArr.length; i++) {
         const obj = liftCycleArr[i];
@@ -184,7 +184,7 @@ function handleOnLoadFun (liftCycleArr, key, funName) {
  * @param {*} vistors
  * @param {*} file_js
  */
-function defineValueHandle (ast, vistors, file_js) {
+function defineValueHandle(ast, vistors, file_js) {
     //处理没有在data里面声明的变量
     var dataArr = vistors.data.getData();
     var propsArr = vistors.props.getData();
@@ -199,7 +199,7 @@ function defineValueHandle (ast, vistors, file_js) {
     });
     traverse(ast, {
         noScope: true,
-        CallExpression (path) {
+        CallExpression(path) {
             let callee = path.node.callee;
             if (t.isMemberExpression(callee)) {
                 let object = callee.object;
@@ -268,10 +268,10 @@ function defineValueHandle (ast, vistors, file_js) {
  * 修复app.js，globalData对象里的this.globalData引用关系
  * 转换this.globalData.xxx --> this.xxx
  */
-function appGlobalDataFunHandle (ast) {
+function appGlobalDataFunHandle(ast) {
     traverse(ast, {
         noScope: true,
-        MemberExpression (path) {
+        MemberExpression(path) {
             let object = path.get("object");
             let property = path.get("property");
             if (
@@ -293,14 +293,14 @@ function appGlobalDataFunHandle (ast) {
 /**
  * 修复app.js里生命周期函数里调用的非生命周期函数的引用关系
  */
-function applifeCycleFunHandle (
+function applifeCycleFunHandle(
     ast,
     appGlobalDataFunNameList,
     appGlobalDataValueNameList
 ) {
     traverse(ast, {
         noScope: true,
-        CallExpression (path) {
+        CallExpression(path) {
             let callee = path.get("callee");
             if (t.isMemberExpression(callee)) {
                 //clearInterval(position_timer); 是没有callee.node.property.name的
@@ -318,7 +318,7 @@ function applifeCycleFunHandle (
                 }
             }
         },
-        MemberExpression (path) {
+        MemberExpression(path) {
             let object = path.get("object");
             let property = path.get("property");
             // utils.log(object.node.name, property.node.name);
@@ -346,7 +346,7 @@ function applifeCycleFunHandle (
  * @param {*} props
  * @returns
  */
-function getPropsNameList (props) {
+function getPropsNameList(props) {
     let list = [];
     for (const item of props) {
         if (t.isObjectProperty(item)) {
@@ -412,20 +412,24 @@ const componentTemplateBuilder = function (
         let appGlobalDataValueNameList = {};
 
         //提取globalData里面变量名和函数名
+        console.log("file_js - ", file_js)
         for (const item of lifeCycleArr) {
             if (item.key.name === "globalData") {
-                let globalDataArr = item.value.properties;
-                for (const subItem of globalDataArr) {
-                    const isFun =
-                        t.isObjectMethod(subItem) ||
-                        (t.isObjectProperty(subItem) &&
-                            (t.isFunctionExpression(subItem.value) ||
-                                t.isArrowFunctionExpression(subItem.value)));
-                    if (isFun) {
-                        appGlobalDataFunNameList[subItem.key.name] = true;
-                    } else if (subItem.key) {
-                        //这里需要判断一下，因为可能会有...utils这样的属性存在，它是SpreadElement没有key的。
-                        appGlobalDataValueNameList[subItem.key.name] = true;
+                let value = item.value;
+                if (t.isObjectExpression(value)) {
+                    let globalDataArr = value.properties;
+                    for (const subItem of globalDataArr) {
+                        const isFun =
+                            t.isObjectMethod(subItem) ||
+                            (t.isObjectProperty(subItem) &&
+                                (t.isFunctionExpression(subItem.value) ||
+                                    t.isArrowFunctionExpression(subItem.value)));
+                        if (isFun) {
+                            appGlobalDataFunNameList[subItem.key.name] = true;
+                        } else if (subItem.key) {
+                            //这里需要判断一下，因为可能会有...utils这样的属性存在，它是SpreadElement没有key的。
+                            appGlobalDataValueNameList[subItem.key.name] = true;
+                        }
                     }
                 }
             }
@@ -436,9 +440,12 @@ const componentTemplateBuilder = function (
          */
         for (const item of lifeCycleArr) {
             if (item.key.name === "globalData") {
-                let globalDataArr = item.value.properties;
-                for (const subItem of globalDataArr) {
-                    appGlobalDataFunHandle(subItem);
+                let value = item.value;
+                if (t.isObjectExpression(value)) {
+                    let globalDataArr = value.properties;
+                    for (const subItem of globalDataArr) {
+                        appGlobalDataFunHandle(subItem);
+                    }
                 }
             } else {
                 applifeCycleFunHandle(
@@ -550,7 +557,7 @@ const componentTemplateBuilder = function (
     //ps:也可以直接ast.traverse();
     traverse(ast, {
         noScope: true,
-        StringLiteral (path) {
+        StringLiteral(path) {
             if (global.isTransformAssetsPath) {
                 //尽可能的转换路径
                 let val = path.node.value;
@@ -578,7 +585,7 @@ const componentTemplateBuilder = function (
         //         }
         //     }
         // },
-        ObjectMethod (path) {
+        ObjectMethod(path) {
             // utils.log("--------", path.node.key.name);
             if (path.node.key.name === "data") {
                 //存储data引用
@@ -587,7 +594,7 @@ const componentTemplateBuilder = function (
                 //将require()里的地址都处理一遍
                 traverse(path.node, {
                     noScope: true,
-                    CallExpression (path2) {
+                    CallExpression(path2) {
                         babelUtil.requirePathHandle(path2, fileDir);
                     }
                 });
@@ -610,7 +617,7 @@ const componentTemplateBuilder = function (
                 // path.skip();
             }
         },
-        ObjectProperty (path) {
+        ObjectProperty(path) {
             const name = path.node.key.name;
             if (name === "components") {
                 //import firstcompoent from '../firstcompoent/firstcompoent'
@@ -622,18 +629,23 @@ const componentTemplateBuilder = function (
                 // 	  ComponentC
                 // 	},
                 // }
+
                 for (const key in usingComponents) {
                     //中划线转驼峰
                     let componentName = utils.toCamel2(key);
 
-                    path.node.value.properties.push(
-                        t.objectProperty(
-                            t.identifier(componentName),
-                            t.identifier(componentName),
-                            false,
-                            true //属性名与变量名相同是否可以合并为一个
-                        )
-                    );
+                    //判断一下：
+                    //connot read property 'push' of undefined
+                    if (path.node.value && path.node.value.properties) {
+                        path.node.value.properties.push(
+                            t.objectProperty(
+                                t.identifier(componentName),
+                                t.identifier(componentName),
+                                false,
+                                true //属性名与变量名相同是否可以合并为一个
+                            )
+                        );
+                    }
                 }
             } else if (name === "computed" || name === "watch") {
                 //这两个为空的话，会报错，所以删除，其他的不管先
@@ -654,7 +666,7 @@ const componentTemplateBuilder = function (
                 // path.skip();
             }
         },
-        CallExpression (path) {
+        CallExpression(path) {
             let callee = path.get("callee");
             if (t.isMemberExpression(callee)) {
                 let object = callee.get("object");
@@ -791,7 +803,7 @@ const componentTemplateBuilder = function (
                             properties.push(op);
                         } catch (error) {
                             const logStr =
-                                "Error:    " +
+                                "[Error]    " +
                                 error +
                                 '   source: astDataPath.get("body.body.0.argument.properties")' +
                                 "    file: " +
@@ -806,7 +818,7 @@ const componentTemplateBuilder = function (
                 babelUtil.requirePathHandle(path, fileDir);
             }
         },
-        MemberExpression (path) {
+        MemberExpression(path) {
             let object = path.get("object");
             let property = path.get("property");
 
@@ -892,10 +904,10 @@ const componentTemplateBuilder = function (
  * @param {*} ast
  * @param {*} file_js
  */
-function handleJSImage (ast, file_js) {
+function handleJSImage(ast, file_js) {
     traverse(ast, {
         noScope: true,
-        StringLiteral (path) {
+        StringLiteral(path) {
             let reg = /\.(jpg|jpeg|gif|svg|png)$/; //test时不能加/g
 
             //image标签，处理src路径
@@ -929,7 +941,7 @@ function handleJSImage (ast, file_js) {
     });
 }
 
-function isOther (val) {
+function isOther(val) {
     return /then|fail|args|name|once|emit|type|data|hide|show|push|sort|from|page|slot|init|Ctor|hook|lazy|bind|warn|trim|type|bugs|dist|main|sign|uuid|path|POST|load|size|lang|loog|left|/i.test(val) || utils.isJavascriptKeyWord(val);
 }
 
@@ -941,7 +953,7 @@ function isOther (val) {
  * @param {*} onlyJSFile        是否仅单单一个js文件(即没有配套的wxml和wxss文件)
  * @param {*} isAppFile         是否为app.js文件
  */
-async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFile) {
+async function jsHandle(fileData, usingComponents, file_js, onlyJSFile, isAppFile) {
     //初始化一个解析器
     const javascriptParser = new JavascriptParser();
 
@@ -988,7 +1000,7 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
         javascriptAst = javascriptParser.parse(javascriptContent);
     } catch (error) {
         isParseError = true;
-        const logStr = "Error: 解析文件出错: " + error + "      file: " + file_js;
+        const logStr = "[Error] 解析文件出错: " + error + "      file: " + file_js;
         utils.log(logStr);
         global.log.push(logStr);
     }
@@ -1048,7 +1060,8 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
 
         let declareNodeList = astInfoObject.declareNodeList;
         let declareStr = declareNodeList.reduce((preValue, currentValue) => {
-            return preValue + `${generate(currentValue.node).code}\r\n`;
+            //添加参数retainFunctionParens，以便解析代码：(function (t) { })()，默认会输出function(t){ }()，这是不对的。
+            return preValue + `${generate(currentValue.node, { retainFunctionParens: true }).code}\r\n`;
         }, "");
 
         if (!global.isVueAppCliMode) {
@@ -1119,12 +1132,10 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
         if (astType === "Behavior" || astType === "Behavior2") {
             codeText = `${declareStr}\r\n${generate(convertedJavascript).code}`;
         } else if (onlyJSFile) {
-            codeText = `${declareStr}\r\n${
-                generate(convertedJavascript).code
+            codeText = `${declareStr}\r\n${generate(convertedJavascript).code
                 }`;
         } else {
-            codeText = `<script>\r\n${declareStr}\r\n${
-                generate(convertedJavascript).code
+            codeText = `<script>\r\n${declareStr}\r\n${generate(convertedJavascript).code
                 }\r\n</script>\r\n`;
         }
     } else {

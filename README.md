@@ -1,6 +1,6 @@
 # 转换各种小程序为 uni-app 项目
 
-支持转换微信、QQ、头条/抖音、支付宝/钉钉和百度等小程序转换到 uni-app 项目
+支持转换**微信、QQ、头条/抖音、支付宝/钉钉和百度等小程序**转换到 uni-app 项目
 
 输入小程序项目路径，即可输出 uni-app 项目。
 
@@ -10,11 +10,11 @@
 $ npm install miniprogram-to-uniapp -g
 ```
 
-## 升级版本
+<!-- ## 升级版本
 
 ```sh
 $ npm update miniprogram-to-uniapp -g
-```
+``` -->
 
 ## 使用方法
 
@@ -23,14 +23,14 @@ Usage: wtu [options]
 
 Options:
 
-  -V, --version           output the version number [版本信息]
-  -i, --input <target>    the input path for weixin miniprogram project [输入目录]
-  -h, --help              output usage information [帮助信息]
-  -c, --cli               the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
-  -w, --wxs               transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
-  -z, --vant              transform vant-weapp project to uni-app, automatic check [是否支持转换vant项目，默认为false]
-  -r, --rename            rename wx.xxx() to uni.xxx(), which default value is true [是否转换wx.xxx()为uni.xxx()，默认true]
-  -m, --merge             merge wxss file into vue file, which default value is false [是否合并wxss到vue文件，默认false]
+  -V, --version          output the version number [版本信息]
+  -i, --input <target>   the input path for weixin miniprogram project [输入目录]
+  -h, --help             output usage information [帮助信息]
+  -c, --cli              the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
+  -w, --wxs              transform wxs file to js file, which default value is false [是否将wxs文件转换为js文件，默认false]
+  -z, --vant             transform vant-weapp project to uni-app, automatic check [是否支持转换vant项目，默认为false]
+  -r, --rename           rename wx.xxx() to uni.xxx(), which default value is true [是否转换wx.xxx()为uni.xxx()，默认true]
+  -m, --merge            merge wxss file into vue file, which default value is false [是否合并wxss到vue文件，默认false]
 
 ```
 
@@ -83,7 +83,7 @@ $ wtu -i ./miniprogram-project -w
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp 使用指南](http://ask.dcloud.net.cn/article/36037)。
 
-使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
+使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑.md](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 对于使用有疑问或建议，欢迎加入 QQ 群：780359397 进行讨论。
 
@@ -91,25 +91,20 @@ $ wtu -i ./miniprogram-project -w
 
 ## 已完成
 
--   支持微信、QQ、头条/抖音、支付宝/钉钉和百度等小程序转换到 uni-app 项目
+-   **支持微信、QQ、头条/抖音、支付宝/钉钉和百度等小程序转换到 uni-app 项目**
 -   支持有/无云开发的小程序项目转换为 uni-app 项目(cloudfunctions 目录将被忽略，uni-app 结合小程序云开发见：[使用 uni-app 进行微信小程序云开发经验分享](https://ask.dcloud.net.cn/article/35933))
 -   支持解析 TypeScript 小程序项目
 -   支持解析使用 npm 模块的小程序项目
 -   支持解析 include 标签
 -   支持解析 template 标签
 -   支持解析 Behavior 文件为 mixins 文件
--   支持*.js', *.wxml 和\*.wxss 文件进行相应转换，并做了大量的优化
--   支持识别 App、Page、Component、VantComponent、Behavior 和纯 Javascript 文件的转换
--   修复变量名与函数重名的情况
 -   合并使用 require 导入的 wxs 文件
--   setData() polyfill
+-   setData() polyfill， setData 函数无须另外处理！
 -   搜索未在 data 声明，而直接在 setData()里使用的变量，并修复
+-   支持识别 App、Page、Component、VantComponent、Behavior 和纯 Javascript 文件的转换
 -   使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换 wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)
--   因 uni-app 会将所有非 static 目录的资源文件删除，因此将所有资源文件移入 static 目录，并修复所有能修复到的路径(目前 uni 编译时会将非 static 目录的文件复制一份到 static 目录，但并不完全，因此本功能仍保留)
--   支持 wxs 文件转换，可以通过参数配置(-w)，默认为 false(目前 uni-app 已支持 wxs，不再推荐转换 wxs)
--   支持 vue-cli 模式，可以通过参数配置(-c)，默认为 false，即生成为 vue-cli 项目，转换完成需运行 npm -i 安装包，然后再导入 hbuilder x 里开发(建议爱折腾人士使用)
--   支持 vant 转换，可以通过参数配置(-z)，默认为 false：（转换后的项目，目前仅支持 app 和 h5 两个平台）
--   支持 wx.xxx()转换为 uni.xxx()，可以通过参数配置(-r)，默认为 false（虽然 uni 已经对 wx 相关函数做了兼容，但仍有很多朋友有此需求，特作为可配置项，按需自取）
+-   将所有非 static 目录下资源文件移入 static 目录，并修复所有能修复到的路径
+-   对代码语法做了大量的兼容，如修复变量名与函数重名的情况等
 
 ## 不支持转换的功能及组件
 
@@ -127,33 +122,16 @@ $ wtu -i ./miniprogram-project -w
 
 ## 更新记录
 
-### v1.0.73(20200903)
+### v1.0.75(20201023)
 
--   [修复] 默认不合并 css 进 vue 文件，需此功能，请在正常命令行后添加-m
-
-### v1.0.72(20200901)
-
--   [修复] 可能导致转换后只剩 css 的问题
-
-### v1.0.71(20200829)
-
--   [更新] jyf-parser 的版本为 2.15.3（2020-07-29）
--   [修复] 试解决转换后只剩下 css 的问题
--   [修复] properties 里面的 value 为函数时的处理
--   [优化] npm 包引用和体积
--   [优化] writeFile-->writeFileSync
--   [优化] 解析 js 的体积上限调为 500kb
--   [优化] npm 包优化以支持 hbuilder x 插件
--   [优化] 项目目录位在输入目录的子目录的情况
--   [优化] 默认 wxss 合并入 vue 文件，即不需要加命令参数-m
--   [优化] 不再对 iconfont 里面可能失效的字体文件进行注释，需手动修复
--   [优化] 默认将 wx/qq/tt/my/swan 等关键字重名为 uni，即不需要再加命令参数-r
--   [优化] 支持解析混淆过变量名的 wxParse(如`t.wxParse('article', 'html', article, that, 5)`)
-
-### v1.0.68(20200707)
-
--   [新增] 支持转换 qq 小程序、头条小程序、支付宝/钉钉小程序和百度小程序转换到 uni-app 项目(基于语法转换)
--   [优化] 对齐微信，开启 watch 首次赋值监听
+-   [更新] 增加 wtu 版本更新提示
+-   [更新] jyf-parser 的版本为 2.16.0（2020-10-14)
+-   [修复] 代码`(function (t) { })()`被转换为`function (t) { }()`的 bug
+-   [修复] 代码`var app = getApp()`被替换为`var app = getApp().globalData`的 bug
+-   [修复] app.js 里 globalData 的值为`globalData: require("../abc.js")`时解析出错的 bug
+-   [修复] 代码`import {SymbolIterator} from "./methods/symbol.iterator";`被删除".iterator"的 bug
+-   [提示] 检测到 wx-cropper 时，输出错误提示及日志
+-   [提示] 遇到代码 in 作为 wx:for-index 时，输出错误提示及日志(示例代码：`<block wx:for="{{adds}}" wx:for-index="in"></bloc>`)
 
 ## [历史更新记录](ReleaseNote.md)
 

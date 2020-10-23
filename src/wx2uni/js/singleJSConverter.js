@@ -17,7 +17,7 @@ let fileKey = "";
  *
  */
 const singleJSVistor = {
-    StringLiteral (path) {
+    StringLiteral(path) {
         if (global.isTransformAssetsPath) {
             //尽可能的转换路径
             let val = path.node.value;
@@ -34,14 +34,14 @@ const singleJSVistor = {
             }
         }
     },
-    CallExpression (path) {
+    CallExpression(path) {
         //处理require()里面的路径
         babelUtil.requirePathHandle(path, fileDir);
 
-        //
+        //仅类似于var cc = getApp().globalData.xx;才会进行替换
+        //var app = getApp()则不会进行替换
         let callee = path.get("callee");
-        let property = path.get("property");
-        if (t.isIdentifier(callee.node, { name: "getApp" })) {
+        if (t.isIdentifier(callee.node, { name: "getApp" }) && t.isMemberExpression(path.parentPath)) {
             /**
              * getApp() -- >  getApp().globalData
              * getApp().xxx -- >  getApp().globalData.xx
@@ -68,7 +68,7 @@ const singleJSVistor = {
             }
         }
     },
-    ImportDeclaration (path) {
+    ImportDeclaration(path) {
         let specifiers = path.get("specifiers");
         let local = "";
         if (specifiers.length) {
@@ -80,10 +80,16 @@ const singleJSVistor = {
             //定义的导入的模块
             //处理import模板的路径，转换当前路径以及根路径为相对路径
             let filePath = path.node.source.value;
-            filePath = nodePath.join(
-                nodePath.dirname(filePath),
-                pathUtil.getFileNameNoExt(filePath)
-            ); //去掉扩展名
+
+            //判断后缀名长度是否是4位以内
+            //排除例外：import {SymbolIterator} from "./methods/symbol.iterator";
+            let extname = nodePath.extname(filePath);
+            if (extname.length < 6 || extname == ".js") {
+                filePath = nodePath.join(
+                    nodePath.dirname(filePath),
+                    pathUtil.getFileNameNoExt(filePath)
+                ); //去掉扩展名
+            }
             filePath = pathUtil.relativePath(
                 filePath,
                 global.miniprogramRoot,
@@ -92,9 +98,14 @@ const singleJSVistor = {
             path.node.source.value = filePath;
         }
     },
-    VariableDeclarator (path) {
-        babelUtil.globalDataHandle2(path);
-    },
+    VariableDeclaration(path) {
+        traverse(path.node, {
+            noScope: true,
+            VariableDeclarator(path2) {
+                babelUtil.globalDataHandle2(path2);
+            }
+        });
+    }
 };
 
 /**

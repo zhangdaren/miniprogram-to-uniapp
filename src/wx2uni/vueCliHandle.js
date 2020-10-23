@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const pinyin = require("node-pinyin");
-
+const utils = require('../utils/utils.js');
 
 /**
  * 生成CopyWebpackPlugin所需要的数组的字符串

@@ -23,7 +23,8 @@
         "fs-extra": "^8.0.1",
         "htmlparser2": "^3.10.1",
         "node-pinyin": "^0.2.3",
-        "object-string-to-object": "^1.0.2"
+        "object-string-to-object": "^1.0.2",
+        "pkg-updater": "^1.0.4"
     },
     "deprecated": false,
     "description": "Try to transform Weixin miniprogram project to Uni-app project",
@@ -72,5 +73,5 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "version": "1.0.73"
+    "version": "1.0.75"
 }

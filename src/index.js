@@ -47,7 +47,7 @@ let workersFolder = '';
  * @param {*} targetFolder     生成目录
  * @param {*} callback         回调函数
  */
-function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
+function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
     fs.readdir(folder, function (err, files) {
         var count = 0;
         var checkEnd = function () {
@@ -72,12 +72,12 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                         global.hasWxParse ||
                         fileName.toLowerCase() === 'wxparse';
                     if (global.isVueAppCliMode) {
-						/**
-						 * 规则
-						 * 1.保持原目录不变
-						 * 2.找到资源时，保存路径（相对路径）
-						 * 3.
-						 */
+                        /**
+                         * 规则
+                         * 1.保持原目录不变
+                         * 2.找到资源时，保存路径（相对路径）
+                         * 3.
+                         */
                         if (isWorkersFolder) {
                             //处理workers目录，复制到static目录里
                             fs.copySync(
@@ -320,7 +320,7 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
  * @param {*} fileData         一组文件数据(即同名的js/wxml/wxss为一组数据)
  * @param {*} miniprogramRoot  小程序主体所在目录
  */
-async function filesHandle (fileData, miniprogramRoot) {
+async function filesHandle(fileData, miniprogramRoot) {
     // utils.log("--------------", tFolder);
     try {
         return await new Promise((resolve, reject) => {
@@ -342,6 +342,12 @@ async function filesHandle (fileData, miniprogramRoot) {
                     //
                     if (!fs.existsSync(tFolder)) {
                         fs.mkdirSync(tFolder);
+                    }
+
+                    if (file_js.indexOf("we-cropper.js") > -1) {
+                        let logStr = "[Error] 检测项目中可能引用wx-cropper，请转换后自动到DCloud插件市场，选择中意的“图片裁剪插件”进行替换   file-> " + path.relative(global.miniprogramRoot, file_js);
+                        global.log.push(logStr);
+                        utils.log(logStr);
                     }
 
                     // * 单个情况：
@@ -466,7 +472,7 @@ async function filesHandle (fileData, miniprogramRoot) {
                                     data['component'];
                         } catch (error) {
                             utils.log(error);
-                            global.log.push('Error: ' + error);
+                            global.log.push('[Error] ' + error);
                         }
                     }
 
@@ -811,7 +817,7 @@ async function filesHandle (fileData, miniprogramRoot) {
  * @param {*} fileContentWxml 转换后的template内容
  * @param {*} key 当前文件的key，替换为去掉后缀名的绝对路径
  */
-function replaceFunName (fileContentWxml, key) {
+function replaceFunName(fileContentWxml, key) {
     //这里使用正则替换先，精确的弄要改动的太多了。
     //根据与data变量重名的函数名，将wxml里引用的地方进行替换
     let result = fileContentWxml;
@@ -843,7 +849,7 @@ function replaceFunName (fileContentWxml, key) {
  * @param {*} tFolder   目录目录
  * @param {*} file_wxml 当前处理的wxml文件
  */
-function wxsInfoHandle (tFolder, file_wxml) {
+function wxsInfoHandle(tFolder, file_wxml) {
     let wxmlFolder = path.dirname(file_wxml);
     let key = path.join(wxmlFolder, pathUtil.getFileNameNoExt(file_wxml));
 
@@ -903,7 +909,7 @@ function wxsInfoHandle (tFolder, file_wxml) {
  * 处理小程序引用的npm包
  * 大概思路，将miniprogram_npm目录清空，然后再将node_modules下面的包内容，根据有无src目录进行移动
  */
-function npmHandle () {
+function npmHandle() {
     if (global.miniprogram_npm_output && global.node_modules_output) {
         let folder = global.miniprogram_npm_output;
         fs.readdir(folder, function (err, files) {
@@ -939,7 +945,7 @@ function npmHandle () {
 /**
  * 写入日志到生成目录时，再次转换将会被删除
  */
-function writeLog (folder) {
+function writeLog(folder) {
     let logArr = global.log;
     var logStr = logArr.join('\r\n');
 
@@ -952,7 +958,7 @@ function writeLog (folder) {
 /**
  * 预处理
  */
-function preHandle (folder, hbxOutputChannel) {
+function preHandle(folder, hbxOutputChannel) {
 
     //检查是否为vant项目
     //检查什么小程序，就后面再展示
@@ -970,7 +976,7 @@ function preHandle (folder, hbxOutputChannel) {
  * @param {*} isMergeWxssToVue 是否合并wxss到vue文件，默认为false
  * @param {*} callback         回调函数
  */
-async function transform (
+async function transform(
     sourceFolder,
     targetFolder,
     isVueAppCliMode,
@@ -1219,7 +1225,7 @@ async function transform (
             fs.mkdirSync(global.outputFolder);
         }
     } catch (error) {
-        utils.log(`Error: ${global.outputFolder}可能被其他文件占用，请手动删除再试`);
+        utils.log(`[Error] ${global.outputFolder}可能被其他文件占用，请手动删除再试`);
         return;
     }
 

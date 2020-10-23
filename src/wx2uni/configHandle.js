@@ -15,7 +15,7 @@ const clone = require('clone');
  * 将小程序subPackages节点处理为uni-app所需要的节点
  * @param {*} subPackages
  */
-function subPackagesHandle (subPackages, routerData) {
+function subPackagesHandle(subPackages, routerData) {
     let reuslt = [];
     for (const key in subPackages) {
         const obj = subPackages[key];
@@ -57,7 +57,7 @@ function subPackagesHandle (subPackages, routerData) {
  * @param {*} miniprogramRoot   小程序主体所在目录
  * @param {*} targetFolder      最终要生成的目录
  */
-async function configHandle (configData, routerData, miniprogramRoot, targetFolder) {
+async function configHandle(configData, routerData, miniprogramRoot, targetFolder) {
     try {
         await new Promise((resolve, reject) => {
             ////////////////////////////write pages.json/////////////////////////////
@@ -73,7 +73,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             if (fs.existsSync(json_app)) {
                 appJson = fs.readJsonSync(json_app);
             } else {
-                let str = "Error： 找不到app.json文件(不影响转换)";
+                let str = "[Error] 找不到app.json文件(不影响转换)";
                 utils.log(str);
                 global.log.push("\r\n" + str + "\r\n");
             }
