@@ -171,9 +171,10 @@ function traverseFolder(folder, miniprogramRoot, targetFolder, callback) {
                             obj['folder'] = tFolder;
                             obj['fileName'] = fileNameNoExt;
                             //标识是否为app.js入口文件
+                            //为兼容hbuilder插件，去除路径斜杠再进行对比
                             const isAppFile =
-                                path.dirname(fileDir) ==
-                                global.miniprogramRoot &&
+                                path.dirname(fileDir).replace(/\\|\//g, '') ==
+                                global.miniprogramRoot.replace(/\\|\//g, '') &&
                                 fileName == 'app.js';
                             obj['isAppFile'] = isAppFile || obj['isAppFile'];
                             if (extname === '.js') {
@@ -1010,7 +1011,7 @@ async function transform(
         }
     }
 
-    utils.log("sourceFolder ", sourceFolder)
+    utils.log("sourceFolder " + sourceFolder)
     let miniprogramRoot = sourceFolder;
 
     //因后面会清空输出目录，为防止误删除其他目录/文件，所以这里不给自定义!!!
@@ -1325,7 +1326,7 @@ async function transform(
                     str +=
                         '当前转换模式：【Hbuilder X】，生成HbuilderX项目。\r\n优点：上手快，项目结构较简单；\r\n缺点：资源路径会因为表达式而无法全部被修复(“可能”需手动修复)\r\n\r\n';
                     str +=
-                        '注意：\r\n1.当看到"image漏网之鱼"，意味着您"可能"需要手动调整对应代码(以实际编译运行为准)，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径\r\n';
+                        '注意：\r\n1.当看到"image漏网之鱼"，意味着您"可能"，“可能”，记住是“可能”，但不一定需要手动调整对应代码(以实际编译运行为准)，当image标签的src属性是含变量或表达式，工具还无法做到100%转换，需要手动修改为相对/static目录的路径\r\n';
                 }
                 // if (isVantProject && global.hasVant !== isVantProject) {
                 //     str +=

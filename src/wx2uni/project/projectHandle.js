@@ -46,6 +46,9 @@ function saveAllFile() {
                 msg = `Convert ${path.relative(global.targetFolder, targetFilePath)}.wxss success!`;
                 break;
         }
+        utils.log(msg);
+        global.log.push(msg);
+        //
         if (!fileContent) {
             // the data argument must be of type string or an instance of buffer typeArray or dataView receive type Number(NaN)
             global.log.push("\r\[Error] targetFilePath: " + targetFilePath + " 内容为空！！！ r\n");

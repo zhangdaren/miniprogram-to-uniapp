@@ -412,7 +412,6 @@ const componentTemplateBuilder = function (
         let appGlobalDataValueNameList = {};
 
         //提取globalData里面变量名和函数名
-        console.log("file_js - ", file_js)
         for (const item of lifeCycleArr) {
             if (item.key.name === "globalData") {
                 let value = item.value;

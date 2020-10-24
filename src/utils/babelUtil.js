@@ -83,7 +83,7 @@ function globalDataHandle2(path) {
              * var app = getApp();
              * app.test();
              */
-            console.log("scope.uid", scope.uid)
+            // console.log("scope.uid", scope.uid)
             if (useScopeList[scope.uid] === true) {
                 //已经遍历过
                 path.remove();
