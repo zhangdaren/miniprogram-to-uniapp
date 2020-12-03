@@ -200,6 +200,20 @@ function isInFolder(folderArr, filePath) {
  */
 function relativePath(filePath, root, fileDir) {
     if (!filePath) return filePath;
+    /**
+     * cache缓存目的是为了避免node的path处理之后，会默认将相对路径去除，导致后续解析拿到的filePath不正确
+     */
+    const cache = filePath;
+
+    //判断后缀名长度是否是4位以内
+    //排除例外：import {SymbolIterator} from "./methods/symbol.iterator";
+    let extname = path.extname(filePath);
+    if (extname.length < 6 || extname == ".js") {
+        filePath = path.join(
+            path.dirname(filePath),
+            getFileNameNoExt(filePath)
+        ); //去掉扩展名
+    }
     if (/^\//.test(filePath)) {
         //如果是以/开头的，表示根目录
         filePath = path.join(root, filePath);
@@ -208,7 +222,10 @@ function relativePath(filePath, root, fileDir) {
     }
 
     filePath = path.relative(fileDir, filePath);
-    if (!/^[\.\/]/.test(filePath)) {
+    /**
+     * 相比原始的全部添加 ./ ，会导致正常的从 node_modules中读取的文件，被改造成从当前目录读取，存在异常
+    */
+    if (/^[\.\/]/.test(cache)) {
         filePath = './' + filePath;
     }
     return utils.normalizePath(filePath);

@@ -82,15 +82,6 @@ const componentVistor = {
             //定义的导入的模块
             //处理import模板的路径，转换当前路径以及根路径为相对路径
             let filePath = path.node.source.value;
-            //判断后缀名长度是否是4位以内
-            //排除例外：import {SymbolIterator} from "./methods/symbol.iterator";
-            let extname = nodePath.extname(filePath);
-            if (extname.length < 6 || extname == ".js") {
-                filePath = nodePath.join(
-                    nodePath.dirname(filePath),
-                    pathUtil.getFileNameNoExt(filePath)
-                ); //去掉扩展名
-            }
             filePath = pathUtil.relativePath(
                 filePath,
                 global.miniprogramRoot,
