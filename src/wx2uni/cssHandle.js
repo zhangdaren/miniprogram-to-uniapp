@@ -1,9 +1,9 @@
-const fs = require('fs-extra');
-const path = require('path');
+const fs = require('fs-extra')
+const path = require('path')
 
-const utils = require('../utils/utils.js');
-const pathUtil = require('../utils/pathUtil.js');
-
+const utils = require('../utils/utils.js')
+const pathUtil = require('../utils/pathUtil.js')
+const postcss = require('postcss')
 
 
 /**
@@ -15,7 +15,7 @@ const pathUtil = require('../utils/pathUtil.js');
  * @param {*} file_wxss         当前处理的文件路径
  */
 async function cssHandle (fileContent, file_wxss) {
-    let content = "";
+    let content = ""
     try {
         content = await new Promise((resolve, reject) => {
             //rpx不再转换
@@ -25,67 +25,22 @@ async function cssHandle (fileContent, file_wxss) {
             //@import "./wxParse/suui/suui.css";
 
             //删除掉import app.wxss的代码
-            fileContent = fileContent.replace(/@import\s?["'].*?\/?app[\/\.](.*?)["'];?/g, "");
+            fileContent = fileContent.replace(/@import\s?["'].*?\/?app[\/\.](.*?)["'];?/g, "")
 
             //删除掉import wxParse.wxss的代码
-            fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse[\/\.](.*?)["'];?/g, "");
-
-            // const testReg = /url\(['"]?data:\s*application\/(x-)?font-woff(2)?;\s*charset=utf-8;\s*base64,/i;
-            // //清除css里失效的iconfont字体文件引用
-            // if (testReg.test(fileContent)) {
-            //     const eotReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).eot.*?['"]?\)[,;]/gi;
-            //     const eotReg2 = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).eot.*?['"]?\)\s*format\(['"]?embedded-opentype['"]?\)[,;]/gi;
-            //     const ttfReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).ttf.*?['"]?\)\s*format\(['"]?truetype['"]?\)[,;]/gi;
-            //     const svgReg = /(src:\s*)?url\(['"]?(iconfont|GuildfordPro|DINCond-Medium).svg.*?['"]?\)\s*format\(['"]?svg['"]?\)[,;]/gi;
-            //     const woffReg = /(src:\s*url\(['"]?data:\s*application\/font-woff2;.*?\)\s*format\(['"]?woff2['"]?\),[\w\W]*url\(data:\s*application\/font-woff;.*?\)\s*format\(['"]woff['"]\))[,;]/gi;
-            //     const woffReg2 = /(url\(['"]?data:\s*application\/(x-)?font-woff2?;.*?\)\s*format\(['"]?woff2?['"]?\)),/gi;
-
-            //     const woffReg3 = /url\(['"]?iconfont.woff\?.*?\)\s*format\(['"]?woff['"]?\)[,;]/gi;
-
-            //     //可能会有误替换的情况，这里修复一下
-            //     const fixReg = /(format\(['"]embedded-opentype['"]\),[\w\W]*?)src:(\s*url\(.*?format\(['"]woff2['"]\));/gi;
-
-            //     //可能替换后会有src重复的问题
-            //     const fixReg2 = /src:\s*(src:\s*url\(data:application)/gi;
-
-            //     //可以误替换，导致语法错误的问题
-            //     const fixReg3 = /(\)\s*format\(['"]woff['"]\));([\w\W]*url\('\/\/)/gi;
-
-            //     const fixReg4 = /(\),[\w\W]*)src:\s*(url\()/gi;
-
-            //     fileContent = fileContent
-            //         .replace(eotReg, "/* $& */\n")
-            //         .replace(eotReg2, "/* $& */\n")
-            //         .replace(ttfReg, "/* $& */\n")
-            //         .replace(svgReg, "/* $& */\n")
-            //         .replace(woffReg, "$1;\n")
-            //         .replace(woffReg2, "src: $1;")
-            //         .replace(woffReg3, "/* $& */\n")
-            //         .replace(fixReg, "$1$2")
-            //         .replace(fixReg2, "$1")
-            //         .replace(fixReg3, "$1,$2")
-            //         .replace(fixReg4, "$1$2")
-            //         ;
-            // }
-
-            var iconfontReg = /["'\/]iconfont\.(eot|woff|ttf|svg)/;
-            if (iconfontReg.test(fileContent)) {
-                let logStr = "Tip: " + file_wxss + "包含字体文件，可能需要手工进行修复";
-                global.log.push(logStr);
-                utils.log(logStr);
-            }
+            fileContent = fileContent.replace(/@import\s?["'].*?\/?wxParse[\/\.](.*?)["'];?/g, "")
 
             //wxss文件所在目录
-            let fileDir = path.dirname(file_wxss);
-            let reg_import = /@import\s*['"](.*?)\.wxss['"];*/g;  //应该没有写单引号的呗？(服输，还真可能有单引号)
+            let fileDir = path.dirname(file_wxss)
+            let reg_import = /@import\s*['"](.*?)\.wxss['"];*/g  //应该没有写单引号的呗？(服输，还真可能有单引号)
             fileContent = fileContent.replace(reg_import, function (match, $1) {
                 //先转绝对路径，再转相对路径
-                let filePath = $1;
-                filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
+                let filePath = $1
+                filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir)
 
                 //虽可用path.posix.前缀来固定为斜杠，然而改动有点小多，这里只单纯替换一下
-                return '@import "' + filePath + '.css";';
-            });
+                return '@import "' + filePath + '.css";'
+            })
 
             //修复图片路径
             // background-image: url('../../images/bg_myaccount_top.png');
@@ -93,14 +48,14 @@ async function cssHandle (fileContent, file_wxss) {
 
             //低版本node不支持零宽断言这种写法，只能换成下面的写法(已测v10+是支持的)
             // let reg_url = /url\(['"](?<filePath>.*?)\.(?<extname>jpg|jpeg|gif|svg|png)['"]\)/gi;
-            let reg_url = /url\(['"]?(.*?)\.(jpg|jpeg|gif|svg|png)['"]?\)/gi;
+            let reg_url = /url\(['"]?(.*?)\.(jpg|jpeg|gif|svg|png)['"]?\)/gi
             fileContent = fileContent.replace(reg_url, function (...args) {
                 //const groups = args.slice(-1)[0];
                 //let src = groups.filePath + "." + groups.extname;
 
-                let src = args[1] + "." + args[2];
+                let src = args[1] + "." + args[2]
 
-                let reg = /\.(jpg|jpeg|gif|svg|png)$/;  //test时不能加/g
+                let reg = /\.(jpg|jpeg|gif|svg|png)$/  //test时不能加/g
 
                 // //image标签，处理src路径
                 //忽略网络素材地址，不然会转换出错
@@ -109,34 +64,123 @@ async function cssHandle (fileContent, file_wxss) {
                         //
                     } else {
                         //static路径
-                        let staticPath = path.join(global.miniprogramRoot, "static");
+                        let staticPath = path.join(global.miniprogramRoot, "static")
 
                         //当前处理文件所在目录
-                        let wxssFolder = path.dirname(file_wxss);
-                        var pFolderName = pathUtil.getParentFolderName(src);
+                        let wxssFolder = path.dirname(file_wxss)
+                        var pFolderName = pathUtil.getParentFolderName(src)
                         // utils.log("pFolderName ", pFolderName)
-                        var fileName = path.basename(src);
+                        var fileName = path.basename(src)
                         // utils.log("fileName ", fileName)
                         //
-                        let filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName);
-                        src = path.relative(wxssFolder, filePath);
+                        let filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName)
+                        src = path.relative(wxssFolder, filePath)
                         // 修复路径
-                        src = utils.normalizePath(src);
+                        src = utils.normalizePath(src)
                     }
                     if (!/^[\.\/]/.test(src)) {
-                        src = "./" + src;
+                        src = "./" + src
                     }
                 }
-                return 'url("' + src + '")';
-            });
+                return 'url("' + src + '")'
+            })
 
-            // fileContent = fileContent.replace(/@import +"\//g, '@import "./');
-            resolve(fileContent);
-        });
+            // parse CSS to AST
+            const ast = postcss.parse(fileContent)
+            const styleRules = ast.nodes
+
+            styleRules.forEach((node) => {
+                if (node.type === "atrule" && node.name === "font-face") {
+                    let nodes = node.nodes
+                    nodes.find(function (decl, i) {
+                        //
+                        if (!decl) return
+
+                        var prop = decl.prop
+                        var value = decl.value
+                        if (prop == "src") {
+                            if (value.indexOf("base64") > -1) {
+                                var arr = value.replace(/\r\n/g, "").split("),")
+                                //为了方便下面的join，在这里这样那样处理一下。
+                                arr = arr.join(")^_^").split("^_^")
+                                if (arr) {
+                                    //清除css里失效的iconfont字体文件引用
+                                    var newArr = arr.filter(function (src) {
+                                        return src.indexOf(";base64") > -1
+                                    })
+                                    decl.value = newArr.join(",").trim()
+                                }
+                            } else {
+                                nodes.splice(i, 1)
+                            }
+                        }
+                    })
+                } else if (node.type === "rule") {
+
+                    //转换前：
+                    // .nav{
+                    //     position: fixed;
+                    //     top:0rpx;
+                    // }
+
+                    //转换后：
+                    // .nav{
+                    //     position: fixed;
+                    //     top:0rpx;
+                    //     /*   #ifdef  H5   */
+                    //     top: calc(88rpx + constant(safe-area-inset-top);
+                    //     top: calc(88rpx + env(safe-area-inset-top);
+                    //     /*   #endif   */
+                    // }
+
+                    let nodes = node.nodes
+                    var hasFixed = nodes.some(function (decl) {
+                        return decl.prop === "position" && decl.value === "fixed"
+                    })
+
+                    if (hasFixed) {
+                        var decl = nodes.find(function (decl, i) {
+                            return decl.prop === "top" && parseInt(decl.value) === 0
+                        })
+                        if (decl) {
+                            let commentStart = postcss.comment({
+                                text: "  #ifdef  H5  "
+                            })
+                            const constantDecl = postcss.decl({
+                                prop: 'top',
+                                value: "calc(88rpx + constant(safe-area-inset-top)"
+                            })
+                            const envDecl = postcss.decl({
+                                prop: 'top',
+                                value: "calc(88rpx + env(safe-area-inset-top)"
+                            })
+                            let commentEnd = postcss.comment({
+                                text: "  #endif  "
+                            })
+
+                            decl.after(commentEnd)
+                            decl.after(envDecl)
+                            decl.after(constantDecl)
+                            decl.after(commentStart)
+                            // decl.before("top: calc(88rpx + constant(safe-area-inset-top));")
+                            // decl.before("top: calc(88rpx + env(safe-area-inset-top));")
+                        }
+                    }
+                }
+            })
+
+
+            //使用toString方法可以把语法树转换为字符串
+            fileContent = ast.toResult({ map: true }).css
+
+
+            // fileContent = fileContent.replacess(/@import +"\//g, '@import "./');
+            resolve(fileContent)
+        })
     } catch (err) {
-        utils.log(err);
+        utils.log(err)
     }
-    return content;
+    return content
 }
 
-module.exports = cssHandle;
+module.exports = cssHandle

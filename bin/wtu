@@ -21,10 +21,10 @@ updater({ 'pkg': pkg }).then(() => {
         .usage('[options]')
         .option('-i, --input', 'the input path for miniprogram project')
         .option('-c, --cli', 'the type of output project is vue-cli, which default value is false', false)
-        .option('-w, --wxs', 'transform wxs file to js file, which default value is false', false)
         .option('-z, --vant', 'transform vant-weapp project to uni-app, automatic check', false)
         .option('-r, --rename', 'rename wx.xxx() to uni.xxx(), which default value is true', true)
         .option('-m, --merge', 'merge wxss file into vue file, which default value is false', false)
+        .option('-f, --repair', 'repair javascript, which default value is false', false)
         .parse(process.argv);
 
     program.on('--help', function () {
@@ -52,6 +52,17 @@ updater({ 'pkg': pkg }).then(() => {
     let isVantProject = program.vant;
     let isRenameWxToUni = program.rename;
     let isMergeWxssToVue = program.merge;
+    let isRepair = program.repair;
+
+    let options = {
+        dist,
+        isVueAppCliMode,
+        isTransformWXS,
+        isVantProject,
+        isRenameWxToUni,
+        isMergeWxssToVue,
+        isRepair
+    }
 
     src = path.resolve(process.cwd(), src);
 
@@ -60,5 +71,5 @@ updater({ 'pkg': pkg }).then(() => {
         process.exit();
     }
 
-    transform(src, dist, isVueAppCliMode, isTransformWXS, isVantProject, isRenameWxToUni, isMergeWxssToVue);
+    transform(src, options);
 });

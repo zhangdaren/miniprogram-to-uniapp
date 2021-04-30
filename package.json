@@ -14,6 +14,7 @@
         "@babel/parser": "^7.7.3",
         "@babel/traverse": "^7.7.2",
         "@babel/types": "^7.7.2",
+        "@vant/weapp": "^1.6.8",
         "acorn": "^7.3.1",
         "acorn-walk": "^7.2.0",
         "babylon": "^6.18.0",
@@ -24,7 +25,8 @@
         "htmlparser2": "^3.10.1",
         "node-pinyin": "^0.2.3",
         "object-string-to-object": "^1.0.2",
-        "pkg-updater": "^1.0.4"
+        "pkg-updater": "^1.0.4",
+        "postcss": "^8.2.13"
     },
     "deprecated": false,
     "description": "Try to transform Weixin miniprogram project to Uni-app project",
@@ -48,9 +50,8 @@
         "@babel/plugin-transform-object-assign": "^7.0.0",
         "@babel/preset-env": "^7.0.0",
         "babel-loader": "^8.0.6",
-        "mocha": "^6.2.2",
         "chai": "^4.2.0",
-        "lodash": "^4.17.19"
+        "mocha": "^6.2.2"
     },
     "homepage": "https://github.com/zhangdaren/miniprogram-to-uniapp#readme",
     "keywords": [
@@ -73,5 +74,5 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "version": "1.0.76"
+    "version": "1.1.1"
 }

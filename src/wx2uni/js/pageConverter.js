@@ -1,283 +1,318 @@
-const t = require("@babel/types");
-const nodePath = require("path");
-const generate = require("@babel/generator").default;
-const traverse = require("@babel/traverse").default;
-const Vistor = require("./Vistor");
-const clone = require("clone");
-const pathUtil = require("../../utils/pathUtil");
-const babelUtil = require("../../utils/babelUtil");
+const t = require("@babel/types")
+const nodePath = require("path")
+const generate = require("@babel/generator").default
+const traverse = require("@babel/traverse").default
+const Vistor = require("./Vistor")
+const clone = require("clone")
+const utils = require("../../utils/utils.js")
+const pathUtil = require("../../utils/pathUtil")
+const babelUtil = require("../../utils/babelUtil")
 //
-let vistors = {};
+let vistors = {}
 
 //外部定义的变量
-let declareNodeList = [];
+let declareNodeList = []
 
 //data对象
-let dataValue = {};
+let dataValue = {}
 
 //computed对象
-let computedValue = {};
+let computedValue = {}
 
 //wacth对象
-let watchValue = {};
+let watchValue = {}
 
 //当前处理的js文件路径
-let file_js = "";
+let file_js = ""
 
 //当前文件所在目录
-let fileDir = "";
+let fileDir = ""
 
 //key
-let fileKey = "";
+let fileKey = ""
 
 /*
  * 注：为防止深层遍历，将直接路过子级遍历，所以使用enter进行全遍历时，孙级节点将跳过
  *
  */
 const componentVistor = {
-    IfStatement(path) {
-        babelUtil.getAppFunHandle(path);
+    IfStatement (path) {
+        babelUtil.getAppFunHandle(path)
     },
-    ExpressionStatement(path) {
-        const parent = path.parentPath.parent;
-        if (t.isCallExpression(path.node.expression)) {
-            const calleeName = t.isIdentifier(path.node.expression.callee)
-                ? path.node.expression.callee.name.toLowerCase()
-                : "";
-            if (
-                t.isFile(parent) &&
-                calleeName != "app" &&
-                calleeName != "page" &&
-                calleeName != "component" &&
-                calleeName != "vantcomponent"
-            ) {
-                //定义的外部函数
+    ExpressionStatement (path) {
+        const parent = path.parentPath.parent
 
-                declareNodeList.push(path);;
+        babelUtil.otherRequirePathHandle(path, fileDir)
 
-                path.skip();
-            }
-            // } else if (t.isAssignmentExpression(path.node.expression)) {
-        } else {
-            //有可能app.js里是这种结构，exports.default = App({});
-            //path.node 为AssignmentExpression类型，所以这里区分一下
-            if (t.isFile(parent)) {
-                //定义的外部函数
+        if (path.node) {
+            if (t.isCallExpression(path.node.expression)) {
+                const calleeName = t.isIdentifier(path.node.expression.callee)
+                    ? path.node.expression.callee.name.toLowerCase()
+                    : ""
+                if (
+                    t.isFile(parent) &&
+                    calleeName != "app" &&
+                    calleeName != "page" &&
+                    calleeName != "component" &&
+                    calleeName != "vantcomponent"
+                ) {
+                    //定义的外部函数
+                    declareNodeList.push(path);;
 
-                declareNodeList.push(path);;
+                    path.skip()
+                }
+                // } else if (t.isAssignmentExpression(path.node.expression)) {
+            } else {
+                //有可能app.js里是这种结构，exports.default = App({});
+                //path.node 为AssignmentExpression类型，所以这里区分一下
+                if (t.isFile(parent)) {
+                    //定义的外部函数
+
+                    declareNodeList.push(path);;
+                }
             }
         }
     },
-    ImportDeclaration(path) {
-        let specifiers = path.get("specifiers");
-        let local = "";
+    ClassDeclaration (path) {
+        const parent = path.parentPath.parent
+        if (t.isFile(parent)) {
+            //定义的外部Class
+            declareNodeList.push(path);;
+        }
+    },
+    ImportDeclaration (path) {
+        let specifiers = path.get("specifiers")
+        let local = ""
         if (specifiers.length) {
-            local = path.get("specifiers.0.local");
+            local = path.get("specifiers.0.local")
         }
         if (local && t.isIdentifier(local) && /wxparse/i.test(local.node.name)) {
             //判断是import wxParse from '../../../wxParse/wxParse.js';
         } else {
             //定义的导入的模块
             //处理import模板的路径，转换当前路径以及根路径为相对路径
-            let filePath = path.node.source.value;
+            let filePath = path.node.source.value
+
+            //去掉js后缀名
+            //排除例外：import {SymbolIterator} from "./methods/symbol.iterator";
+            //import Im from '../../lib/socket.io';
+            // let extname = nodePath.extname(filePath);
+            // if (extname == ".js") {
+            //     filePath = nodePath.join(
+            //         nodePath.dirname(filePath),
+            //         pathUtil.getFileNameNoExt(filePath)
+            //     ); //去掉扩展名
+            // }
 
             filePath = pathUtil.relativePath(
                 filePath,
                 global.miniprogramRoot,
                 fileDir
-            );
-            path.node.source.value = filePath;
+            )
+            path.node.source.value = filePath
 
             //定义的外部函数
-
+            babelUtil.otherRequirePathHandle(path, fileDir)
             declareNodeList.push(path);;
 
-            path.skip();
+            path.skip()
         }
     },
-    VariableDeclaration(path) {
-        const parent = path.parentPath.parent;
+    VariableDeclaration (path) {
+        const parent = path.parentPath.parent
         if (t.isFile(parent)) {
-            //将require()里的地址都处理一遍
-            path.traverse({
-                CallExpression(path2) {
-                    let callee = path2.get("callee");
-                    let property = path2.get("property");
-                    if (t.isIdentifier(callee.node, { name: "require" })) {
-                        let arguments = path2.node.arguments;
-                        if (arguments && arguments.length) {
-                            if (t.isStringLiteral(arguments[0])) {
-                                let filePath = arguments[0].value;
-                                filePath = pathUtil.relativePath(
-                                    filePath,
-                                    global.miniprogramRoot,
-                                    fileDir
-                                );
-                                path2.node.arguments[0] = t.stringLiteral(filePath);
-                            }
-                        }
-                    }
 
-                    // else if (t.isIdentifier(callee.node, { name: "getApp" })) {
-                    //     /**
-                    //      * getApp().xxx;
-                    //      * 替换为:
-                    //      * getApp().globalData.xxx;
-                    //      *
-                    //      * 虽然var app = getApp()已替换，还是会有漏网之鱼，如var t = getApp();
-                    //      */
-                    //     const parent2 = path2.parentPath;
-                    //     if (
-                    //         t.isMemberExpression(parent2.node) &&
-                    //         parent2.node.property &&
-                    //         parent2.node.property.name !== "globalData"
-                    //     ) {
-                    //         const me = t.memberExpression(
-                    //             t.callExpression(t.identifier("getApp"), []),
-                    //             t.identifier("globalData")
-                    //         );
-                    //         path2.replaceWith(me);
-                    //         path2.skip();
-                    //     }
-                    // }
-                },
-                VariableDeclarator(path2) {
-                    babelUtil.globalDataHandle2(path2);
+            //定义的外部函数
+            babelUtil.otherRequirePathHandle(path, fileDir)
+            declareNodeList.push(path)
 
-                    if (t.isCallExpression(path2.node && path2.node.init)) {
-                        //处理外部声明的require，如var md5 = require("md5.js");
-                        const initPath = path2.node.init;
-                        let callee = initPath.callee;
-                        if (t.isIdentifier(callee, { name: "require" })) {
-                            let arguments = initPath.arguments;
-                            if (arguments && arguments.length) {
-                                if (t.isStringLiteral(arguments[0])) {
-                                    let filePath = arguments[0].value;
-                                    filePath = pathUtil.relativePath(
-                                        filePath,
-                                        global.miniprogramRoot,
-                                        fileDir
-                                    );
-                                    initPath.arguments[0] = t.stringLiteral(filePath);
-                                }
-                            }
-                        }
-                        //删除var wxParse = require("../../../wxParse/wxParse.js");
-                        if (
-                            path2.node &&
-                            path2.node.id &&
-                            path2.node.id.name &&
-                            path2.node.id.name.toLowerCase() === "wxparse"
-                        ) {
-                            // babelUtil.addComment(path.parentPath, `${generate(path.node).code}`);  //没法改成注释，只能删除
-                            try {
-                                path.remove();  //这里居然会报错：报cannot read property buildError of undefined
-                            } catch (err) {
-                                console.log("-------err ", err);
-                            }
-                        }
-                    }
+            path.skip()
+        }
+    },
+    NewExpression (path) {
+        babelUtil.getAppHandleByNewExpression(path)
+    },
+    FunctionDeclaration (path) {
+        const parent = path.parentPath.parent
+        if (t.isFile(parent)) {
+            babelUtil.getAppFunHandle(path)
+
+            //定义的外部函数
+            babelUtil.otherRequirePathHandle(path, fileDir)
+            declareNodeList.push(path)
+
+            path.skip()
+        }
+    },
+    CallExpression (path) {
+
+        /**
+         * 处理异常函数写法：
+         * t(e, "checkAuth", function() {
+         *        var t = this;
+         *        wx.getSetting({
+         *           success: function(e) {
+         *               e.authSetting["scope.userInfo"] && "" != wx.getStorageSync("setInfo") || t.setData({
+         *                   wxlogin: !0
+         *               }), 0 != t.data.sendPacket && void 0 !== t.data.sendPacket && wx.navigateTo({
+         *                   url: "/pages/send-packet/send-packet?id=" + t.data.sendPacket
+         *               });
+         *           }
+         *       });
+         *   })
+         */
+        var callExp = path.get("callee")
+        var arguments = path.node.arguments
+        var reg = /[a-z]/i
+        if (reg.test(callExp.node.name) && arguments.length === 3) {
+            var idExp = arguments[0]
+            var stringLiteral = arguments[1]
+            var exp = arguments[2]
+
+            if (t.isIdentifier(idExp) && reg.test(idExp.name) &&
+                t.isStringLiteral(stringLiteral)) {
+                if (t.isFunctionExpression(exp)) {
+                    var newFunExp = t.ObjectProperty(stringLiteral, exp)
+                    vistors.methods.handle(newFunExp)
+                    path.skip()
+                } else {
+                    //if (t.isObjectExpression(exp))  或其他类型a(t, "userinfo", null)
+                    var newObjExp = t.ObjectProperty(stringLiteral, exp)
+                    vistors.data.handle(newObjExp)
+                    path.skip()
                 }
-            });
-            //定义的外部函数
-
-            declareNodeList.push(path);
-
-            path.skip();
+            }
         }
     },
-    FunctionDeclaration(path) {
-        const parent = path.parentPath.parent;
-        if (t.isFile(parent)) {
-            babelUtil.getAppFunHandle(path);
-
-            //定义的外部函数
-
-            declareNodeList.push(path);
-
-            path.skip();
+    ObjectMethod (path) {
+        const parent = path.parentPath.parent
+        const value = parent.value
+        var name = ""
+        var keyNode = path.node.key
+        if (t.isIdentifier(keyNode)) {
+            name = keyNode.name
+        } else if (t.isStringLiteral(keyNode)) {
+            name = keyNode.value
         }
-    },
-    ObjectMethod(path) {
-        const parent = path.parentPath.parent;
-        const value = parent.value;
-        const name = path.node.key.name;
         // utils.log("add methods： ", name);
         if (value == computedValue) {
-            vistors.computed.handle(path.node);
+            vistors.computed.handle(path.node)
         } else if (value == watchValue) {
-            vistors.watch.handle(path.node);
+            vistors.watch.handle(path.node)
         } else {
             if (value) {
                 //async函数
-                vistors.methods.handle(path.node);
+                if (vistors.methods.check(name)) {
+                    const logStr = `[Error] methods 里函数：${ name }() 有重复，请手动删除其中一个！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                    utils.log(logStr)
+                    global.log.push(logStr)
+                }
+                vistors.methods.handle(path.node)
             } else {
                 //这里function
                 if (babelUtil.lifeCycleFunction[name]) {
                     //value为空的，可能是app.js里的生命周期函数
-                    vistors.lifeCycle.handle(path.node);
+                    vistors.lifeCycle.handle(path.node)
                 } else {
                     //类似这种函数 fun(){}
-                    vistors.methods.handle(path.node);
+                    if (vistors.methods.check(name)) {
+                        const logStr = `[Error] methods 里函数：${ name }() 有重复，请手动删除其中一个！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                        utils.log(logStr)
+                        global.log.push(logStr)
+                    }
+                    vistors.methods.handle(path.node)
                 }
             }
         }
-        path.skip();
+        path.skip()
     },
 
-    ObjectProperty(path) {
-        const name = path.node.key.name;
+    ObjectProperty (path) {
+        var name = ""
+        var keyNode = path.node.key
+        if (t.isIdentifier(keyNode)) {
+            name = keyNode.name
+        } else if (t.isStringLiteral(keyNode)) {
+            name = keyNode.value
+        }
         // utils.log("name", path.node.key.name)
         // utils.log("name", path.node.key.name)
+
+        var dataValueReg = /^\$/
         switch (name) {
             case "data":
                 //只让第一个data进来，暂时不考虑其他奇葩情况
                 if (JSON.stringify(dataValue) == "{}") {
                     //第一个data，存储起来
-                    dataValue = path.node.value;
+                    if (t.isSequenceExpression(path.node.value)) {
+                        specialDataHandle(path)
+                        path.skip()
+                    } else {
+                        dataValue = path.node.value
+                    }
                 } else {
                     //这里是data里面的data同名属性
                     // utils.log("add data", name);
-                    vistors.data.handle(path.node);
-                    path.skip();
+                    if (vistors.data.check(name)) {
+                        let logStr = `[Error] data 里变量：${ name } 有重复，请手动删除其中一个！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                        utils.log(logStr)
+                        global.log.push(logStr)
+                    }
+                    if (dataValueReg.test(name)) {
+                        let logStr = `[Error] data 里变量：${ name } 为$开头，与uniapp内部变量名冲突，请转换后手动重命名！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                        utils.log(logStr)
+                        global.log.push(logStr)
+                    }
+
+                    vistors.data.handle(path.node)
+                    path.skip()
                 }
-                break;
+                break
+            case "mixins":
+                //mixins仍然放入生命周期
+                vistors.lifeCycle.handle(path.node)
+                break
             case "computed":
                 //只让第一个computed进来，暂时不考虑其他奇葩情况
                 if (JSON.stringify(computedValue) == "{}") {
                     //第一个computed，存储起来
-                    computedValue = path.node.value;
+                    computedValue = path.node.value
                 }
-                break;
+                break
             case "watch":
                 //只让第一个watch进来，暂时不考虑其他奇葩情况
                 if (JSON.stringify(watchValue) == "{}") {
                     //第一个watch，存储起来
-                    watchValue = path.node.value;
+                    watchValue = path.node.value
                 }
-                break;
+                break
             case "observers":
                 //observers移入到watch
-                var properties = path.node.value.properties;
+                var properties = path.node.value.properties
                 if (properties) {
                     properties.forEach(function (item) {
-                        vistors.watch.handle(item);
-                    });
+                        vistors.watch.handle(item)
+                    })
                 }
-                path.skip();
-                break;
+                path.skip()
+                break
             default:
-                const parent = path.parentPath.parent;
-                const value = parent.value;
+
+                const parent = path.parentPath.parent
+                const value = parent.value
                 // utils.log("name", path.node.key.name)
                 //如果父级不为data时，那么就加入生命周期，比如app.js下面的全局变量
                 if (value && value == dataValue) {
-                    vistors.data.handle(path.node);
-                    //如果data下面的变量为数组时，不遍历下面的内容，否则将会一一列出来
-                    if (path.node.value && t.isArrayExpression(path.node.value))
-                        path.skip();
+                    if (vistors.data.check(name)) {
+                        const logStr = `[Error] data 里变量：${ name } 有重复，请手动删除其中一个！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                        utils.log(logStr)
+                        global.log.push(logStr)
+                    }
+                    vistors.data.handle(path.node)
+                    //data下面的变量不再遍历
+                    path.skip()
                 } else {
-                    const node = path.node.value;
+                    const node = path.node.value
                     if (
                         t.isFunctionExpression(node) ||
                         t.isArrowFunctionExpression(node) ||
@@ -287,21 +322,37 @@ const componentVistor = {
                         //这里function
                         if (babelUtil.lifeCycleFunction[name]) {
                             // utils.log("add lifeCycle： ", name);
-                            vistors.lifeCycle.handle(path.node);
+                            vistors.lifeCycle.handle(path.node)
                             //跳过生命周期下面的子级，不然会把里面的也给遍历出来
                         } else if (value == computedValue) {
-                            vistors.computed.handle(path.node);
+                            vistors.computed.handle(path.node)
                         } else if (value == watchValue) {
-                            vistors.watch.handle(path.node);
+                            vistors.watch.handle(path.node)
                         } else {
                             if (node.properties) {
                                 //如果是对象，就放入data
-                                vistors.data.handle(path.node);
+                                if (vistors.data.check(name)) {
+                                    const logStr = `[Error] data 里变量：${ name } 有重复，请手动删除其中一个！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                                    utils.log(logStr)
+                                    global.log.push(logStr)
+                                }
+                                vistors.data.handle(path.node)
                             } else {
-                                vistors.methods.handle(path.node);
+                                if (vistors.methods.check(path.node.key.name)) {
+                                    const logStr = `[Error] methods 里函数：${ name }() 有重复，请手动删除其中一个！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                                    utils.log(logStr)
+                                    global.log.push(logStr)
+                                }
+
+                                if (t.isFunctionExpression(path.node.value)) {
+                                    //试运行：可能有未知异常
+                                    //fix --> lookck: function name(params) {}
+                                    path.node.value.id = null
+                                }
+                                vistors.methods.handle(path.node)
                             }
                         }
-                        path.skip();
+                        path.skip()
                     } else {
                         //这里判断一下，有些非常规写法，还真没什么好方法来区分，如下代码写法：
                         //下面不判断的话，list:e.result.data会被加入到data里，而报错
@@ -318,24 +369,109 @@ const componentVistor = {
                         // 		});
                         // 	});
                         // }),_Page));
+
                         if (t.isObjectProperty(path.node)) {
-                            const value = path.node.value;
-                            if (
-                                value.object &&
-                                t.isMemberExpression(value.object) &&
-                                value.object.object.name != "e"
-                            ) {
-                                vistors.data.handle(path.node);
+                            const value = path.node.value
+                            // if (
+                            //     value.object &&
+                            //     t.isMemberExpression(value.object) &&
+                            //     value.object.object.name != "e"
+                            // ) {
+                            if (vistors.data.check(name)) {
+                                const logStr = `[Error] data 里变量：${ name } 有重复，请手动删除其中一个！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                                utils.log(logStr)
+                                global.log.push(logStr)
                             }
+                            vistors.data.handle(path.node)
+                            // }
+
+                            /**
+                             * 将qqmapsdk和timer也放到data里（因此注释了上面的判断）
+                             * Page({
+                                    'data': {
+                                    },
+                                    qqmapsdk: null,
+                                    timer: null,
+                                });
+                             */
                         } else {
-                            vistors.data.handle(path.node);
+                            if (vistors.data.check(name)) {
+                                const logStr = `[Error]  data 里变量：${ name } 有重复，请手动删除其中一个！     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                                utils.log(logStr)
+                                global.log.push(logStr)
+                            }
+                            vistors.data.handle(path.node)
                         }
                     }
                 }
-                break;
+                break
         }
     }
-};
+}
+
+/**
+ * 处理异常data
+ * data: (t = {
+ *    buyed: [{
+ *        head: "/hyb_o2o/resource/images/img/yindao1.png",
+ *        nick: "喔喔"
+ *    }, {
+ *        head: "/hyb_o2o/resource/images/img/yindao1.png",
+ *        nick: "打开就花"
+ *    }],
+ *    over_type: 1,
+ *    show_price: {
+ *        gprice: "10"
+ *    }
+ * }, a(t, "params", {
+ *    authbg: "/images/pop-login.png",
+ *    cardname: "思创粉丝卡",
+ * }), a(t, "shop", {
+ *    address: "麒麟北路美佳华购物广场3楼",
+ *    id: "63",
+ *    name: "乐悠游儿童乐园",
+ *    tel: "12345678580"
+ * }), a(t, "userinfo", null), t),
+ * @param {*} dataPath
+ */
+function specialDataHandle (dataPath) {
+    if (t.isSequenceExpression(dataPath.node.value)) {
+        var value = dataPath.node.value
+        dataPath.traverse({
+            AssignmentExpression (path) {
+                var right = path.node.right
+                if (t.isObjectExpression(right)) {
+                    var properties = right.properties
+                    properties.forEach(function (item) {
+                        vistors.data.handle(item)
+                    })
+                }
+            },
+            CallExpression (path) {
+                /**
+                 * 处理异常data写法：
+                 */
+                var callExp = path.get("callee")
+                var arguments = path.node.arguments
+                var reg = /[a-z]/i
+                if (reg.test(callExp.node.name) && arguments.length === 3) {
+                    var idExp = arguments[0]
+                    var stringLiteral = arguments[1]
+                    var exp = arguments[2]
+                    if (t.isIdentifier(idExp) && reg.test(idExp.name) &&
+                        t.isStringLiteral(stringLiteral)) {
+                        var newObjExp = t.ObjectProperty(stringLiteral, exp)
+                        vistors.data.handle(newObjExp)
+                        path.skip()
+                    }
+                }
+            },
+        })
+    }
+}
+
+
+
 
 /**
  * 转换
@@ -345,17 +481,17 @@ const componentVistor = {
  */
 const pageConverter = function (ast, _file_js, isVueFile) {
     //清空上次的缓存
-    declareNodeList = [];
+    declareNodeList = []
     //data对象
-    dataValue = {};
+    dataValue = {}
     //computed对象
-    computedValue = {};
+    computedValue = {}
     //wacth对象
-    watchValue = {};
+    watchValue = {}
     //
-    file_js = _file_js;
-    fileDir = nodePath.dirname(file_js);
-    fileKey = pathUtil.getFileKey(_file_js);
+    file_js = _file_js
+    fileDir = nodePath.dirname(file_js)
+    fileKey = pathUtil.getFileKey(_file_js)
 
     //
     vistors = {
@@ -367,15 +503,15 @@ const pageConverter = function (ast, _file_js, isVueFile) {
         watch: new Vistor(),
         methods: new Vistor(),
         lifeCycle: new Vistor()
-    };
+    }
 
-    traverse(ast, componentVistor);
+    traverse(ast, componentVistor)
 
     return {
         convertedJavascript: ast,
         vistors: vistors,
         declareNodeList //定义的变量和导入的模块声明
-    };
-};
+    }
+}
 
-module.exports = pageConverter;
+module.exports = pageConverter

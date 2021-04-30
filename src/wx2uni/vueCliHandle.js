@@ -71,6 +71,10 @@ async function vueCliHandle (configData, outputFolder, assetsFolderObject, isVue
                             "<%= COPY_WEBPACK_PLUGIN %>"
                         ],
                     },
+                    {
+                        source: "vue-cli/tsconfig.json",
+                        target: "tsconfig.json",
+                    },
                 ]
 
                 for (const key in pathArray) {

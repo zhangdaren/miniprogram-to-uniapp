@@ -7,65 +7,17 @@
 -   [todo] 删除生成目录里的空白目录
 -   [todo] 转换前先格式化代码
 -   [todo] 变量没有在 data 里声明
-    <text class="col-7">{{order.address.region.province}} {{order.address.region.city}} {{order.address.region.region}} {{address.detail}}</text>
-    <text class="col-7">{{order.extract_shop.region.province}} {{order.extract_shop.region.city}} {{order.extract_shop.region.region}} {{order.extract_shop.address}}</text>
--   [todo] setData 时，data 里面没有的就不赋值(一般是接口返回的数据，都往 data 里填)
--   [todo] 导出目录检测，有文件是否覆盖，，是 否  
     ~~_ [todo] wx-charts 替换 ~~
     ~~_ [todo] `<form-id :id="item.id" ></form-id>`~~
-    ~~\* `:data = "content"`~~
 -   组件里：behaviors: ['wx://form-field']
 
-2020
-import 作为事件名
 
 include 　套娃
 
 抽象节点
 componentGenerics
 
-QQ 小程序
-qs 文件 qq 标签
-
-qq:if
-qq.login
-
 vue to uni
-
-使用 omix 框架的小程序
-
-增加导出目录存在后将覆盖的提示
-定义命令的回调函数 用法示例：.action(fn)
-
-program
-.command('rm <dest> [otherDirs...]')
-.alias('r')
-.option('-r, --recursive', 'Remove recursively')
-.option('-d --drink [drink]', 'Drink','Beer')
-.action(function (d, otherD,cmd) {
-utils.log('remove ' + d ,(cmd.drink ),(cmd.recursive ))
-if (otherD) {
-otherD.forEach(function (oDir) {
-utils.log('rmdir %s', oDir);
-});
-}
-
-    })
-
-#output
-✗ gp-cli rm ./aa bb cc -d -r
-remove ./aa Beer true
-rmdir bb
-rmdir cc
-
-getApp().page({
-data: (\_data = {
-
-////////////////////////////////////
-
--   存入 static 的资源进行全局存放，然后针对性的进行优化
-
--   分包/////////////////////////////////
 
 mmt
 似乎小程序和 uni 两个版本的数据字段不一样，不是太好替换。
@@ -76,11 +28,11 @@ mmt
 1.wxaSortPicker 目录忽略？，不忽略
 
 判断标签 class
-<template name="wxaSortPickerItem">  
+<template name="wxaSortPickerItem">
  <block wx:if='{{dataType == "object"}}'>
 <block wx:for="{{item.textArray}}" wx:for-item="child" wx:key="">
 <view class="wxaSortPickerItem" data-text="{{child.name}}" data-value="{{child.value}}"  catchtap= "wxaSortPickerItemTap">
-{{child.name}}  
+{{child.name}}
  </view>
 </block>
 </block>
@@ -88,7 +40,7 @@ mmt
 
 取出以下三组数据，放入全局变量
 data-text="{{child.name}}"
-data-value="{{child.value}}"  
+data-value="{{child.value}}"
 catchtap= "wxaSortPickerItemTap"
 
 2.替换掉 var wxaSortPicker = require('../../utils/wxaSortPicker/wxaSortPicker.js');
@@ -295,53 +247,17 @@ file.js: Error message here
 11 | "Hovering over a node highlights the \
  12 | corresponding part in the source code",
 
-VM2429:1 [Vue warn]: Avoid replacing instance root \$data. Use nested data properties instead.
-
-export default {
-data() {
-return {
-$data: {
-        stickyFlag: false,
-        scrollTop: 0,
-        overPageNum: 1,
-        loadOver: false,
-        hasOverGoods: false,
-        countDownMap: {},
-        actEndMap: {},
-        timer: {},
-        scrollHeight: 1300,
-        stickyTop: 0,
-        hasCommingGoods: true
-      },
-    }
-var that = this;
-      that.$data = { ...that.\$data,
-...{
-overPageNum: 1,
-loadOver: false,
-hasOverGoods: false,
-countDownMap: {},
-actEndMap: {},
-timer: {}
-}
-}
-
-key \$data is reserved 提示：
-
-$data 是vue的变量名。。。。
- that.$data.hasOverGoods = false;
-
 ---
-
-直接 scope.rename????????
-转换为 \$data --> dataBak
 
 https://ask.dcloud.net.cn/article/37086
 
-QQ 小程序
-qs 文件 qq 标签
-
-qq:if
-qq.login
 
 好像小程序转了 uniapp 之后 van-datetime-picker， van-area 这些都无法使用啊@No.3389 大佬
+
+
+
+----------------------------------------------------------------------------------------
+
+
+
+

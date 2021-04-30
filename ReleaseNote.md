@@ -1,6 +1,83 @@
 # Miniprogram to uni-app - Release Notes
 
 ======================================
+### v1.1.0(20210430)
+
+-   【重要】 [针对压缩代码]增加 -f 参数，默认为false，用于尽可能修复被混淆过的js代码，提升可读性！
+-   【重要】 [针对压缩代码]三元表达式转换为if表达式(需增加-f参数)
+-   【重要】 [针对压缩代码]getApp及this的变量名语义化(`var n = this;` ==> `var that = this;`)
+-   【重要】 增加小程序大部分API函数的Polyfill，尽量避免调试报错，让项目先跑起来！(实验阶段)
+-   【重要】 增加uni.navigateTo、uni.redirectTo不能跳转tabBar页面的Polyfill(不得已而为之)
+-   【重要】 搜索template里未声明的变量，智能识别变量类型，并在data里面进行声明！
+-   【重要】 升级 jyf-parse 为 mp-html v2.1.2（2021-04-24）
+-   【重要】 增加getCurrentPages的处理
+<!-- -   [新增] 组件picker的mode属性为region的检测(App和H5未实现region) -->
+-   【重要】 使用[全兼容官方 picker mode=region 城市选择器](https://ext.dcloud.net.cn/plugin?id=1536) v1.0.6（2020-06-16）替换 `<picker mode="region"></picker>`
+-   [新增] vue文件数量统计
+-   [新增] 增加$开头的变量名检测
+-   [新增] 组件间关系 relations 的检测
+-   [新增] 增加变量名和函数名重复的检测
+-   [新增] 对We UI组件的检测，并给出解决方案
+-   [新增] 对props里的变量进行setData赋值操作的检测
+-   [新增] 未定义函数的处理(增加空函数及console提示)
+-   [新增] 支持微信小程序云函数目录以及微信小程序的配置
+-   [新增] 当css里面含position:fixed且top:0，在H5平台对top增加header的高度
+-   [新增] 使用vue-cli模式时，输入路径后面会增加vue-cli标识，以便与hBuilderX模式区分
+-   [新增] 创建onLoad的副本refreshPage3389()，接管所有onLoad的调用(解决函数内直接调用onLoad而报错的问题)
+-   [新增] `wx:for-item="in"`的检测(`<view wx:for="{{goodlist}}" wx:for-item="in"></view>` 或 `<view wx:for="{{item.list}}" wx:for-index="in" wx:for-item="it" wx:key="{{in}}"></view>`)
+-   [优化] mixins移入生命周期
+-   [优化] 去掉input标签的结束标签
+-   [优化] template 里括号不匹配的检测
+-   [优化] iconfont.eot不存在而报错的情况
+-   [优化] 更新vue-cli模式配置文件及加载的包
+-   [优化] 支持正确解析`Page({'onLoad'() {}})`
+-   [优化] 弃用-w 参数（不再支持转换wxs为js文件）
+-   [优化] 忽略含 SDK 和含 min 字样的 js 文件的解析
+-   [优化] app.js里转换`getApp().fun()`为`this.fun()`
+-   [优化] 删除 `this.setData(this.data)` 这类不需要的代码
+-   [优化] 尝试对template里image标签src里的路径字符串进行处理
+-   [优化] 将 page 里面与生命周期和函数同级的变量移入到 data 里
+-   [优化] `uni.showNavigationBarLoading()`在App平台的展示(不显示)
+-   [优化] 去除代码`lookck: function name(params) {}`多余的name函数
+-   [优化] 为`<official-account>` 微信公众号关注组件条件编译并增加相关的提示
+-   [优化] 导入进来的模块不再去掉 js 后缀名(已忘记之前为啥将后缀名去掉的原因了)
+-   [优化] 删除多余的wxParse.js的引用(`var c = require("../js/wxParse.js");`)
+-   [优化] 删除无函数的事件，如`<image @error @load></image>`转换后`<image></image>`
+-   [优化] `var nowPage = getCurrentPages(); nowPage.__route__.xxx` 替换为 nowPage.route.xxx
+-   [优化] 替换小程序平台关键字时，忽略微信小程序云函数的转换(即`wx.cloud.xxx`不会受到影响而转换成`uni.cloud.xxx`)
+-   [修复] -r参数无效的 bug
+-   [修复] `this.data.xxx` 未转换的 bug
+-   [修复] 忽略转换的文件转换后内容为空的 bug
+-   [修复] 去掉 pages.json 里多余的 subpackages
+-   [修复] data 下面对象或数组的变量被重复添加的 bug
+-   [修复] 页面里定义的类`class Doomm {}` 未转换的 bug
+-   [修复] component里prop类型为Object并且为空对象{}时的处理
+-   [修复] getApp().globalData.skin被替换为getApp().skin的bug
+-   [修复] 代码`this.properties.itemId`未转换为`this.itemId`的问题
+-   [修复] `const {title, gids, gid} = this.properties;` 未转换的 bug
+-   [修复] 某些template节点引用wxParse.wxml里面的template而未转换的 bug
+-   [修复] 绑定 Boolean 值时，在 key 前面增加:号，如`<diy :flag="true"></diy>`
+-   [修复] 修复代码`import Im from '../../lib/socket.io'`转换后扩展名丢失的 bug
+-   [修复] 修复组件名`user-avatar--simple`解析为`userAvatar--simple`而报错的问题
+-   [修复] `<navigator openType="{{item.open_type}}"></navigator`>未转换正确的 bug
+-   [修复] 如果是单纯 js 文件，像 sdk、config 等文件，直接复制，修复二次转换出问题的 bug
+-   [修复] 修复在 app.js 里面声明了 this 的别名，然后再使用 this 进行操作导致转换报错的的 bug(`var that = this;this.globalData = {};`)
+
+## v1.0.76(20201024)
+
+-   [修复] 在 HBX 插件里对比路径异常，造成 App.vue 未生成的 bug
+
+## v1.0.75(20201023)
+
+-   [更新] 增加 wtu 版本更新提示
+-   [更新] jyf-parser 的版本为 2.16.0（2020-10-14)
+-   [修复] 代码`(function (t) { })()`被转换为`function (t) { }()`的 bug
+-   [修复] 代码`var app = getApp()`被替换为`var app = getApp().globalData`的 bug
+-   [修复] app.js 里 globalData 的值为`globalData: require("../abc.js")`时解析出错的 bug
+-   [修复] 代码`import {SymbolIterator} from "./methods/symbol.iterator";`被删除".iterator"的 bug
+-   [提示] 检测到 wx-cropper 时，输出错误提示及日志
+-   [提示] 遇到代码 in 作为 wx:for-index 时，输出错误提示及日志(示例代码：`<block wx:for="{{adds}}" wx:for-index="in"></block>`)
+
 
 ## v1.0.74(20200904)
 
@@ -347,19 +424,6 @@
 -   [优化] wxs 引入方式为 script 标签引用
 -   [优化] 替换 stringToObject()为[object-string-to-object](https://github.com/zhangdaren/object-string-to-object)
 
-## v1.0.26(20191013)
-
--   [修复] ` ` `wx:key="this"` ` `这种情况
--   [修复] 删除 vue.config.js 里的 css 节点
--   [修复] 识别含 VantComponent({})的 js 文件
--   [修复] 未知原因导致没有生成 main.js 的 bug
--   [修复] app.json 不存在导致没有生成 main.js 的 bug
--   [修复] app.js 里非生命周期函数没有放到 globalData 里的 bug
--   [修复] ` ` `style="{{bgImage?'background-image:url('+bgImage+')':''}}"` ` `这种情况
--   [修复] ` ` `wx:for="item in 12"` ` `识别出错的 bug(wx:for 里包含 in，第一次在小程序里见到这种写法)
--   [优化] wxs 引入方式为 script 标签引用
--   [优化] 替换 stringToObject()为[object-string-to-object](https://github.com/zhangdaren/object-string-to-object)
-
 ## v1.0.25(20190928)
 
 -   [新增] 处理一则代码非常规写法(没法描述……类似: Page((\_defineProperty(\_Page = {})))
@@ -387,11 +451,11 @@
 
 1. 删除 var app = getApp()或 const app = getApp()，作用：不让一加载就引用 getApp()
 
-2.app.globalData.xxx --> getApp().globalData.xxx  
-2.app.xxx --> getApp().globalData.xxx  
-4.getApp().xxx --> getApp().globalData.xxx  
+2.app.globalData.xxx --> getApp().globalData.xxx
+2.app.xxx --> getApp().globalData.xxx
+4.getApp().xxx --> getApp().globalData.xxx
 5.var icon_url = app.dataBase.iconURL; --> var icon_url = getApp().globalData.dataBase.iconURL;
-6.getApp().globalData.xxx 保持原样  
+6.getApp().globalData.xxx 保持原样
 注意：如外部定义的变量引用了 getApp()，仍会报错，需手动修复
 
 ## v1.0.24(20190918)
@@ -457,8 +521,8 @@
 
 -   [新增] 支持 wxs 语法转换，查阅文档仅看到正则和日期与 js 稍有不同，暂未发现其他
 
-wxs 语法转换规则：  
-1.getDate() --> new Date()  
+wxs 语法转换规则：
+1.getDate() --> new Date()
 2.getRegExp() --> new RegExp()
 
 ## v1.0.18(20190821)

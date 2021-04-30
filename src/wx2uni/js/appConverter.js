@@ -29,7 +29,7 @@ let fileKey = "";
 /**
  * 初始化globalData数据
  */
-function initGlobalData() {
+function initGlobalData () {
     if (globalData.value && globalData.value.properties) {
     } else {
         globalData = babelUtil.createObjectProperty("globalData");
@@ -42,8 +42,9 @@ function initGlobalData() {
  *
  */
 const vistor = {
-    ExpressionStatement(path) {
+    ExpressionStatement (path) {
         const parent = path.parentPath.parent;
+        babelUtil.otherRequirePathHandle(path, fileDir);
         if (t.isCallExpression(path.node.expression)) {
             const calleeName = t.isIdentifier(path.node.expression.callee)
                 ? path.node.expression.callee.name.toLowerCase()
@@ -73,29 +74,40 @@ const vistor = {
             }
         }
     },
-    ImportDeclaration(path) {
+    ImportDeclaration (path) {
         //定义的导入的模块
         // vistors.importDec.handle(path.node);
         //
         //处理import模板的路径，转换当前路径以及根路径为相对路径
         let filePath = path.node.source.value;
 
+        //去掉js后缀名
+        //排除例外：import {SymbolIterator} from "./methods/symbol.iterator";
+        //import Im from '../../lib/socket.io';
+        // let extname = nodePath.extname(filePath);
+        // if (extname == ".js") {
+        //     filePath = nodePath.join(
+        //         nodePath.dirname(filePath),
+        //         pathUtil.getFileNameNoExt(filePath)
+        //     ); //去掉扩展名
+        // }
+
         filePath = pathUtil.relativePath(filePath, global.miniprogramRoot, fileDir);
         path.node.source.value = filePath;
 
         //定义的外部函数
-
+        babelUtil.otherRequirePathHandle(path, fileDir);
         declareNodeList.push(path);;
 
         path.skip();
     },
-    VariableDeclaration(path) {
+    VariableDeclaration (path) {
         const parent = path.parentPath.parent;
         if (t.isFile(parent)) {
             //将require()里的地址都处理一遍
             traverse(path.node, {
                 noScope: true,
-                CallExpression(path2) {
+                CallExpression (path2) {
                     let callee = path2.get("callee");
                     let property = path2.get("property");
                     if (t.isIdentifier(callee.node, { name: "require" })) {
@@ -113,8 +125,7 @@ const vistor = {
                         }
                     }
                 },
-                VariableDeclarator(path2) {
-                    babelUtil.globalDataHandle2(path2);
+                VariableDeclarator (path2) {
                     if (t.isCallExpression(path2.node && path2.node.init)) {
                         //处理外部声明的require，如var md5 = require("md5.js");
                         const initPath = path2.node.init;
@@ -138,25 +149,26 @@ const vistor = {
             });
 
             //定义的外部函数
-
+            babelUtil.otherRequirePathHandle(path, fileDir);
             declareNodeList.push(path);;
 
             path.skip();
         }
     },
-    FunctionDeclaration(path) {
+    FunctionDeclaration (path) {
         const parent = path.parentPath.parent;
         if (t.isFile(parent)) {
             //定义的外部函数
+            babelUtil.otherRequirePathHandle(path, fileDir);
             declareNodeList.push(path);;
             path.skip();
         }
     },
-    SpreadElement(path) {
+    SpreadElement (path) {
         initGlobalData();
         globalData.value.properties.push(path.node);
     },
-    ObjectMethod(path) {
+    ObjectMethod (path) {
         const parent = path.parentPath.parent;
         const value = parent.value;
         const name = path.node.key.name;
@@ -180,7 +192,7 @@ const vistor = {
         path.skip();
     },
 
-    ObjectProperty(path) {
+    ObjectProperty (path) {
         const name = path.node.key.name;
         // utils.log("name", path.node.key.name)
         // utils.log("name", path.node.key.name)
@@ -288,19 +300,6 @@ const appConverter = function (ast, _file_js, isVueFile) {
         methods: new Vistor(),
         lifeCycle: new Vistor()
     };
-
-    //记录使用过的this别名，暂时使用这种办法先，或者正则提取也行，计划用正则
-    // traverse(ast, {
-    // 	noScope: true,
-    // 	VariableDeclarator(path) {
-    // 		if (t.isThisExpression(path.node.init)) {
-    // 			//记录当前文件里使用过的this别名
-    // 			if (!global.pagesData[fileKey]) global.pagesData[fileKey] = {};
-    // 			if (!global.pagesData[fileKey]["thisNameList"]) global.pagesData[fileKey]["thisNameList"] = [];
-    // 			global.pagesData[fileKey]["thisNameList"].push(path.node.id.name);
-    // 		}
-    // 	}
-    // });
 
     traverse(ast, vistor);
 

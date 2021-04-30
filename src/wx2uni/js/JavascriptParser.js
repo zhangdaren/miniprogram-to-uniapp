@@ -10,12 +10,12 @@ class JavascriptParser {
     }
 
     /**
-     * 解析前替换掉无用字符   
-     * 1.export default App; --> ""   
-     * // 2.(var|let|const) app = getApp; --> ""   
-     * 3.getApp().page({ --> ""   
-     * 4.exports.default = App({ --> ""   
-     * @param {*} code 
+     * 解析前替换掉无用字符
+     * 1.export default App; --> ""
+     * // 2.(var|let|const) app = getApp; --> ""
+     * 3.getApp().page({ --> ""
+     * 4.exports.default = App({ --> ""
+     * @param {*} code
      */
     beforeParse (code, isAppFile) {
         let newCode = code.replace(/export default App;?/img, '')
@@ -24,32 +24,16 @@ class JavascriptParser {
             .replace(/,\s*Page\(\s*\{/g, '; Page({');
 
         if (!isAppFile) {
-            newCode = newCode.replace(/\.globalData\./img, '.');
+            //适配：app.globalData.skin
+            //排除：getApp().globalData.skin
+            newCode = newCode.replace(/(\w+)\.globalData\./img, '$1.');
         }
         return newCode;
     }
 
-
-    /**
-     * 保存当前文件里，使用过的this别名
-     * * 仅仅可以过滤一半问题，毕竟有时候，压缩过的源码，this的别名还是会有混用的情况，与其他回调函数里的参数重名
-     * * 那时，就需要在遍历时，去动态向父级找，找到this的别名是什么，不过一般情况下够用了
-     * @param {*} code 
-     */
-    getAliasThisNameList (code) {
-        //test        const { computed } = this.$options();
-        const reg = /(var|let|const)\s*(\w+)\s*=\s*this\b(?![\.\[])/g;
-        let result = {};
-        code.replace(reg, function (match, $1, $2) {
-            result[$2] = true;
-            return match; //随意返回
-        });
-        return result;
-    }
-
     /**
      * 获取定义的getApp()别名
-     * @param {*} code 
+     * @param {*} code
      */
     getAliasGetAppNameList (code) {
         const reg = /(var|let|const)\s*(\w+)\s*=\s*getApp\(\)\s*,|(var|let|const)\s*(\w+)\s*=\s*getApp\(\)(?!\.)[;]?/gm;
@@ -63,7 +47,7 @@ class JavascriptParser {
 
     /**
      * 文本内容解析成AST
-     * @param {*} scriptText 
+     * @param {*} scriptText
      */
     parse (scriptText) {
         let ast = parse(scriptText, {
@@ -73,7 +57,7 @@ class JavascriptParser {
             plugins: [
                 "asyncGenerators",
                 "classProperties",
-                "decorators-legacy", //"decorators", 
+                "decorators-legacy", //"decorators",
                 "doExpressions",
                 "dynamicImport",
                 "exportExtensions",

@@ -4,7 +4,11 @@
 
 输入小程序项目路径，即可输出 uni-app 项目。
 
-## 安装(请在 CMD 或终端里直接输入即可安装，无须下载代码！！！)
+PS: 目前工具转换支持度最好的为：微信小程序和QQ小程序。
+
+同时支持 Npm 安装 和 HbuilderX 插件(不依赖环境) 两种形式安装，安装方式如下：
+
+## Npm 安装
 
 ```sh
 $ npm install miniprogram-to-uniapp -g
@@ -31,47 +35,48 @@ Options:
   -z, --vant             transform vant-weapp project to uni-app, automatic check [是否支持转换vant项目，默认为false]
   -r, --rename           rename wx.xxx() to uni.xxx(), which default value is true [是否转换wx.xxx()为uni.xxx()，默认true]
   -m, --merge            merge wxss file into vue file, which default value is false [是否合并wxss到vue文件，默认false]
+  -f, --repair           repair javascript, which default value is false [是否对混淆过的js进行尽可能还原，默认false]
 
 ```
-
 #### 示例:
+##### 默认转换:
 
 ```sh
 $ wtu -i ./miniprogram-project
 ```
 
-#### vant 小程序转换为 uni-app 项目:
+##### vant 小程序转换为 uni-app 项目:
 
 ```sh
 $ wtu -i ./miniprogram-project -z
 ```
 
-<!-- #### 将 wx.xxx 转换为 uni.xxx:
+<!-- ##### 将 wx.xxx 转换为 uni.xxx:
 
 ```sh
 $ wtu -i ./miniprogram-project -r
 ```-->
 
-#### 将 wxss 合并入 vue 文件:
+##### 将 wxss 合并入 vue 文件:
 
 ```sh
 $ wtu -i ./miniprogram-project -m
 ```
 
-<!-- #### 既转换 vant 小程序，又转换 wx 关键字，还将 wxss 合并入 vue 文件:
+<!-- ##### 既转换 vant 小程序，又转换 wx 关键字，还将 wxss 合并入 vue 文件:
 
 ```sh
 $ wtu -i ./miniprogram-project -z -r -m
 ``` -->
-
-<!-- #### vue-cli mode[vue-cli模式]
-转换项目为vue-cli项目(因vue-cli项目门槛较高，且该功能长时间未维护，不推荐使用):
+ ##### vue-cli模式
+转换项目为vue-cli项目:
 
 ``` sh
 $ wtu -i ./miniprogram-project -c
 ```
 
-#### Transform wxs file to js file
+<!--
+##### Transform wxs file to js file
 
 转换项目并将wxs文件转换为js文件(因uni-app已支持wxs，此功能未维护):
 
@@ -79,16 +84,28 @@ $ wtu -i ./miniprogram-project -c
 $ wtu -i ./miniprogram-project -w
 ``` -->
 
+##### 尽可能修复压缩混淆代码(实验阶段):
+
+```sh
+$ wtu -i ./miniprogram-project -f
+```
+
+### HbuilderX 插件安装
+
+请参考项目：[HBuilder X 插件] 转换各种小程序为 uni-app 项目](https://ext.dcloud.net.cn/plugin?id=2656)进行食用。
+
+目前这种方式，不支持转换 vant 项目，如需转换 vant 项目，请切换为 Npm 安装 方式。
+
 ## 使用指南
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp 使用指南](http://ask.dcloud.net.cn/article/36037)。
 
-使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑.md](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
+使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑文档.md](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 对于使用有疑问或建议，欢迎加入 QQ 群进行指导和反馈。
 
-交流 QQ 群：  
-1 群：780359397 <a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a> (已满)  
+交流 QQ 群：
+1 群：780359397 <a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a> (已满)
 2 群：361784059 <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=vpt4K1r6Witx29ZsKcb_tqvinhcZzVhK&jump_from=webapi"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uniapp研究二群" title="小程序转uniapp研究二群"></a>
 
 ## 已完成
@@ -98,7 +115,7 @@ $ wtu -i ./miniprogram-project -w
 |     √      |      √       |     √      |       √        |     √     |     x      | -->
 
 -   **支持微信、QQ、头条/抖音、支付宝/钉钉和百度等小程序转换到 uni-app 项目**
--   支持有/无云开发的小程序项目转换为 uni-app 项目(cloudfunctions 目录将被忽略，uni-app 结合小程序云开发见：[使用 uni-app 进行微信小程序云开发经验分享](https://ask.dcloud.net.cn/article/35933))
+-   支持有/无云开发的小程序项目转换为 uni-app 项目
 -   支持解析 TypeScript 小程序项目
 -   支持解析使用 npm 模块的小程序项目
 -   支持解析 include 标签
@@ -106,20 +123,22 @@ $ wtu -i ./miniprogram-project -w
 -   支持解析 Behavior 文件为 mixins 文件
 -   合并使用 require 导入的 wxs 文件
 -   setData() polyfill， setData 函数无须另外处理！
--   搜索未在 data 声明，而直接在 setData()里使用的变量，并修复
 -   支持识别 App、Page、Component、VantComponent、Behavior 和纯 Javascript 文件的转换
--   使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换 wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)
+-   使用[mp-html](https://ext.dcloud.net.cn/plugin?id=805)替换 wxParse(感谢网友 “爱瑞巴勒康忙北鼻” 的建议)
 -   将所有非 static 目录下资源文件移入 static 目录，并修复所有能修复到的路径
 -   对代码语法做了大量的兼容，如修复变量名与函数重名的情况等
+-   对混淆代码进行语义化分析，并作反混淆处理
+-   搜索template和setData里未声明的变量，智能识别变量类型，并在data里面进行声明！
 
 ## 不支持转换的功能及组件
 
--   不支持转换反编译后的小程序项目
 -   不支持转换使用 uni-app 编译的小程序项目
 -   不支持转换使用 redux 开发的小程序(代表为：网易云信小程序 DEMO)
 -   不支持转换使用 wxpage 开发的小程序(https://github.com/tvfe/wxpage)
 -   不支持转换使用腾讯 omi 开发的小程序(https://github.com/Tencent/omi)
 -   不支持转换小程序抽象节点 componentGenerics
+-   不支持转换组件间关系relations
+-   不支持转换 echarts 组件，需手动替换 echarts 为其他组件
 -   不支持 component 里的 pageLifetimes 生命周期，请手动绕过
 -   不支持使用 js 系统关键字作为函数或变量名(如 default、import、return、switch 等)
 -   不支持以\$开头的变量名称，如 `Page({data:{$data:{name:"hello"}}})` ，刚好\$data 是 vue 内置变量，so 不支持，需手动修复
@@ -128,20 +147,24 @@ $ wtu -i ./miniprogram-project -w
 
 ## 更新记录
 
-### v1.0.76(20201024)
+### v1.1.1(20210430)
 
--   [修复] 在 HBX 插件里对比路径异常，造成 App.vue 未生成的 bug
-
-### v1.0.75(20201023)
-
--   [更新] 增加 wtu 版本更新提示
--   [更新] jyf-parser 的版本为 2.16.0（2020-10-14)
--   [修复] 代码`(function (t) { })()`被转换为`function (t) { }()`的 bug
--   [修复] 代码`var app = getApp()`被替换为`var app = getApp().globalData`的 bug
--   [修复] app.js 里 globalData 的值为`globalData: require("../abc.js")`时解析出错的 bug
--   [修复] 代码`import {SymbolIterator} from "./methods/symbol.iterator";`被删除".iterator"的 bug
--   [提示] 检测到 wx-cropper 时，输出错误提示及日志
--   [提示] 遇到代码 in 作为 wx:for-index 时，输出错误提示及日志(示例代码：`<block wx:for="{{adds}}" wx:for-index="in"></bloc>`)
+-   【重要】 [针对压缩代码]增加 -f 参数，默认为false，用于尽可能修复被混淆过的js代码，提升可读性！
+-   【重要】 [针对压缩代码]三元表达式转换为if表达式(需增加-f参数)
+-   【重要】 [针对压缩代码]getApp及this的变量名语义化(`var n = this;` ==> `var that = this;`)
+-   【重要】 增加小程序大部分API函数的Polyfill，尽量避免调试报错，让项目先跑起来！(实验阶段)
+-   【重要】 增加uni.navigateTo、uni.redirectTo不能跳转tabBar页面的Polyfill(不得已而为之)
+-   【重要】 搜索template里未声明的变量，智能识别变量类型，并在data里面进行声明！
+-   【重要】 升级 jyf-parse 为 mp-html v2.1.2（2021-04-24）
+-   【重要】 增加getCurrentPages的处理
+<!-- -   [新增] 组件picker的mode属性为region的检测(App和H5未实现region) -->
+-   【重要】 使用[全兼容官方 picker mode=region 城市选择器](https://ext.dcloud.net.cn/plugin?id=1536) v1.0.6（2020-06-16）替换 `<picker mode="region"></picker>`
+-   [新增] 对We UI组件的检测，并给出解决方案
+-   [新增] 未定义函数的处理(增加空函数及console提示)
+-   [新增] 当css里面含position:fixed且top:0，在H5平台对top增加header的高度
+-   [新增] 使用vue-cli模式时，输入路径后面会增加vue-cli标识，以便与hBuilderX模式区分
+-   [新增] 创建onLoad的副本refreshPage3389()，接管所有onLoad的调用(解决函数内直接调用onLoad而报错的问题)
+……等等一些微小的工作
 
 ## [历史更新记录](ReleaseNote.md)
 
@@ -153,7 +176,8 @@ $ wtu -i ./miniprogram-project -w
 -   感谢网友[☆_☆]给予帮助。
 -   感谢网友[☆_☆]提供增强版 setData。
 -   感谢官方大佬 DCloud_heavensoft 的文章：[微信小程序转换 uni-app 详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。
--   工具使用[jyf-parser](https://ext.dcloud.net.cn/plugin?id=805)替换 wxParse，表示感谢~
+-   工具使用[mp-html](https://ext.dcloud.net.cn/plugin?id=805)替换 wxParse，表示感谢~
+-   工具使用[全兼容官方 picker mode=region 城市选择器](https://ext.dcloud.net.cn/plugin?id=1536)替换 `<picker mode="region"></picker>`，表示感谢~
 -   感谢为本项目提供建议以及帮助的热心网友们~~
 
 ## 参考资料
@@ -168,8 +192,8 @@ $ wtu -i ./miniprogram-project -w
 
 ## 最后
 
-如果觉得帮助到你的话，可以支持一下作者，请作者喝杯咖啡哈~  
-这样会更有动力更新哈~~  
+如果觉得帮助到你的话，可以支持一下作者，请作者喝杯咖啡哈~
+这样会更有动力更新哈~~
 非常感谢~~
 
 ![微信支付](https://zhangdaren.gitee.io/articles/img/WeChanQR.png)![支付宝支付](https://zhangdaren.gitee.io/articles/img/AliPayQR.png)

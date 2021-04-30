@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const nodeUtil = require('util');
-const utils = require('./utils');
+const fs = require('fs')
+const path = require('path')
+const nodeUtil = require('util')
+const utils = require('./utils')
 
 /**
  * 复制文件
@@ -10,27 +10,27 @@ const utils = require('./utils');
  * @param {*} cb      回调函数
  */
 var copyFile = function (srcPath, tarPath, cb) {
-    var rs = fs.createReadStream(srcPath);
+    var rs = fs.createReadStream(srcPath)
     rs.on('error', function (err) {
         if (err) {
-            utils.log('read error', srcPath);
+            utils.log('read error', srcPath)
         }
-        cb && cb(err);
-    });
+        cb && cb(err)
+    })
 
-    var ws = fs.createWriteStream(tarPath);
+    var ws = fs.createWriteStream(tarPath)
     ws.on('error', function (err) {
         if (err) {
-            utils.log('write error', tarPath);
+            utils.log('write error', tarPath)
         }
-        cb && cb(err);
-    });
+        cb && cb(err)
+    })
     ws.on('close', function (ex) {
-        cb && cb(ex);
-    });
+        cb && cb(ex)
+    })
 
-    rs.pipe(ws);
-};
+    rs.pipe(ws)
+}
 
 /**
  * 复制目录
@@ -40,59 +40,59 @@ var copyFile = function (srcPath, tarPath, cb) {
  */
 var copyFolder = function (srcDir, tarDir, cb) {
     fs.readdir(srcDir, function (err, files) {
-        var count = 0;
+        var count = 0
         var checkEnd = function () {
-            ++count == files.length && cb && cb();
-        };
+            ++count == files.length && cb && cb()
+        }
 
         if (err) {
-            checkEnd();
-            return;
+            checkEnd()
+            return
         }
 
         files.forEach(function (file) {
-            var srcPath = path.join(srcDir, file);
-            var tarPath = path.join(tarDir, file);
+            var srcPath = path.join(srcDir, file)
+            var tarPath = path.join(tarDir, file)
 
             fs.stat(srcPath, function (err, stats) {
                 if (stats.isDirectory()) {
-                    utils.log('mkdir', tarPath);
+                    utils.log('mkdir', tarPath)
                     fs.mkdir(tarPath, function (err) {
                         if (err) {
-                            utils.log(err);
+                            utils.log(err)
                             // return;  //创建目录报错也应复制
                         }
 
-                        copyFolder(srcPath, tarPath, checkEnd);
-                    });
+                        copyFolder(srcPath, tarPath, checkEnd)
+                    })
                 } else {
-                    copyFile(srcPath, tarPath, checkEnd);
+                    copyFile(srcPath, tarPath, checkEnd)
                 }
-            });
-        });
+            })
+        })
 
         //为空时直接回调
-        files.length === 0 && cb && cb();
-    });
-};
+        files.length === 0 && cb && cb()
+    })
+}
 
 /**
  * 删除文件夹
  * @param {*} path  文件夹路径
  */
-function delDir(path) {
-    let files = [];
+function delDir (path) {
+    let files = []
     if (fs.existsSync(path)) {
-        files = fs.readdirSync(path);
+        files = fs.readdirSync(path)
         files.forEach((file, index) => {
-            let curPath = path + '/' + file;
+            let curPath = path + '/' + file
             if (fs.statSync(curPath).isDirectory()) {
-                delDir(curPath); //递归删除文件夹
+                delDir(curPath) //递归删除文件夹
             } else {
-                fs.unlinkSync(curPath); //删除文件
+                fs.unlinkSync(curPath) //删除文件
             }
-        });
-        fs.rmdirSync(path);
+        })
+        fs.rmdirSync(path)
     } else {
     }
 }
@@ -102,78 +102,78 @@ function delDir(path) {
  * @param {*} path   要搜索的目录
  * @param {*} ignore 忽略的目录名或文件名，支持正则表达式
  */
-function emptyDirSyncEx(folder, ignore) {
+function emptyDirSyncEx (folder, ignore) {
     if (ignore) {
         if (!nodeUtil.isRegExp(ignore)) {
-            ignore = new RegExp(ignore);
+            ignore = new RegExp(ignore)
         }
     } else {
-        ignore = /unpackage|node_modules|\.git/i;
+        ignore = /unpackage|node_modules|\.git/i
     }
     fs.readdir(folder, function (err, files) {
         files.forEach(function (fileName) {
-            var fileDir = path.join(folder, fileName);
+            var fileDir = path.join(folder, fileName)
             fs.stat(fileDir, function (err, stats) {
                 if (stats && stats.isDirectory()) {
                     if (!ignore.test(fileName)) {
-                        delDir(fileDir);
+                        delDir(fileDir)
                     }
                 } else {
                     if (!ignore.test(fileName)) {
-                        fs.unlinkSync(fileDir);
+                        fs.unlinkSync(fileDir)
                     }
                 }
-            });
-        });
-    });
+            })
+        })
+    })
 }
 
 /**
  * 获取无后缀名的文件名
  * @param {*} filePath  文件路径
  */
-function getFileNameNoExt(filePath) {
-    let extname = path.extname(filePath);
-    return path.basename(filePath, extname);
+function getFileNameNoExt (filePath) {
+    let extname = path.extname(filePath)
+    return path.basename(filePath, extname)
 }
 
 /**
  * 粗暴获取父级目录的目录名
  * @param {*} filePath  文件路径
  */
-function getParentFolderName(filePath) {
+function getParentFolderName (filePath) {
     //当前文件上层目录
-    let pFolder = path.dirname(filePath);
+    let pFolder = path.dirname(filePath)
     //粗暴获取上层目录的名称~~~
-    return path.basename(pFolder);
+    return path.basename(pFolder)
 }
 
 /**
  * 同步创建多重目录
  * @param {*} dirname  目录路径
  */
-function mkdirsSync(dirname) {
-    if (fs.existsSync(dirname)) return true;
+function mkdirsSync (dirname) {
+    if (fs.existsSync(dirname)) return true
     if (mkdirsSync(path.dirname(dirname))) {
-        fs.mkdirSync(dirname);
-        return true;
+        fs.mkdirSync(dirname)
+        return true
     }
-    return false;
+    return false
 }
 
 /**
  * 同步删除目录下所有文件
  * @param {*} dirname  目录路径
  */
-function rmdirsSync(dirname) {
-    if (!fs.existsSync(dirname)) return true;
-    var files = fs.readdirSync(dirname);
-    if (!files) return true;
+function rmdirsSync (dirname) {
+    if (!fs.existsSync(dirname)) return true
+    var files = fs.readdirSync(dirname)
+    if (!files) return true
     files.forEach(function (file, index) {
-        var curPath = path.join(dirname, file);
-        if (fs.statSync(curPath).isFile()) fs.unlinkSync(curPath);
-    });
-    return true;
+        var curPath = path.join(dirname, file)
+        if (fs.statSync(curPath).isFile()) fs.unlinkSync(curPath)
+    })
+    return true
 }
 
 /**
@@ -181,16 +181,16 @@ function rmdirsSync(dirname) {
  * @param {*} folderArr  目录路径数组
  * @param {*} filePath   要查找的文件
  */
-function isInFolder(folderArr, filePath) {
-    var result = false;
-    for (let index = 0; index < folderArr.length; index++) {
-        const folder = folderArr[index];
+function isInFolder (folderArr, filePath) {
+    var result = false
+    for (let index = 0;index < folderArr.length;index++) {
+        const folder = folderArr[index]
         if (folder && filePath.indexOf(folder) > -1) {
-            result = true;
-            break;
+            result = true
+            break
         }
     }
-    return result;
+    return result
 }
 /**
  * 路径转换，转换根路径(路径前面为/)和当前路径(无/开头)为相对于当前目录的路径
@@ -198,37 +198,37 @@ function isInFolder(folderArr, filePath) {
  * @param {*} root      根目录
  * @param {*} fileDir   当前文件所在目录
  */
-function relativePath(filePath, root, fileDir) {
-    if (!filePath) return filePath;
-    /**
-     * cache缓存目的是为了避免node的path处理之后，会默认将相对路径去除，导致后续解析拿到的filePath不正确
-     */
-    const cache = filePath;
+function relativePath (filePath, root, fileDir) {
+    if (!filePath) return filePath
 
-    //判断后缀名长度是否是4位以内
+    //去掉js后缀名
     //排除例外：import {SymbolIterator} from "./methods/symbol.iterator";
-    let extname = path.extname(filePath);
-    if (extname.length < 6 || extname == ".js") {
-        filePath = path.join(
-            path.dirname(filePath),
-            getFileNameNoExt(filePath)
-        ); //去掉扩展名
-    }
+    //import Im from '../../lib/socket.io';
+    // let extname = path.extname(filePath);
+    // if (extname == ".js") {
+    //     filePath = path.join(
+    //         path.dirname(filePath),
+    //         getFileNameNoExt(filePath)
+    //     ); //去掉扩展名
+    // }
+
     if (/^\//.test(filePath)) {
         //如果是以/开头的，表示根目录
-        filePath = path.join(root, filePath);
+        filePath = path.join(root, filePath)
     } else {
-        filePath = path.join(fileDir, filePath);
+        filePath = path.join(fileDir, filePath)
     }
 
-    filePath = path.relative(fileDir, filePath);
-    /**
-     * 相比原始的全部添加 ./ ，会导致正常的从 node_modules中读取的文件，被改造成从当前目录读取，存在异常
-    */
-    if (/^[\.\/]/.test(cache)) {
-        filePath = './' + filePath;
+    //todo: test @
+    // var xx = path.relative(global.miniprogramRoot, filePath);
+    // console.log("xx", xx)
+
+    filePath = path.relative(fileDir, filePath)
+
+    if (!/^[\.\/]/.test(filePath)) {
+        filePath = './' + filePath
     }
-    return utils.normalizePath(filePath);
+    return utils.normalizePath(filePath)
 }
 
 /**
@@ -237,22 +237,22 @@ function relativePath(filePath, root, fileDir) {
  * @param {*} root      根目录
  * @param {*} fileDir   当前文件所在目录
  */
-function replaceAssetPath(filePath, root, fileDir) {
+function replaceAssetPath (filePath, root, fileDir) {
     // utils.log(filePath, fileDir);
-    if (!filePath || utils.isURL(filePath)) return filePath;
+    if (!filePath || utils.isURL(filePath)) return filePath
     if (!/^[\.\/]/.test(filePath)) {
-        filePath = './' + filePath;
+        filePath = './' + filePath
     }
-    let absPath = '';
+    let absPath = ''
     if (/^\//.test(filePath)) {
         //如果是以/开头的，表示根目录
-        absPath = path.join(root, filePath);
+        absPath = path.join(root, filePath)
     } else {
-        absPath = path.join(fileDir, filePath);
+        absPath = path.join(fileDir, filePath)
     }
-    let relPath = utils.normalizePath(path.relative(root, absPath));
-    relPath = getAssetsNewPath(relPath, global.targetFolder);
-    return utils.normalizePath(relPath);
+    let relPath = utils.normalizePath(path.relative(root, absPath))
+    relPath = getAssetsNewPath(relPath, global.targetFolder, fileDir)
+    return utils.normalizePath(relPath)
 }
 
 /**
@@ -261,46 +261,53 @@ function replaceAssetPath(filePath, root, fileDir) {
  * @param {*} filePath  //文件路径
  * @param {*} root      //根目录，默认为miniprogramRoot
  */
-function getFileKey(filePath, root) {
-    if (!filePath) return '';
-    if (!root) root = global.miniprogramRoot;
-    let fileFolder = path.dirname(filePath);
-    fileFolder = path.relative(root, fileFolder);
-    let fileNameNoExt = getFileNameNoExt(filePath);
-    let key = path.join(fileFolder, fileNameNoExt);
-    return utils.normalizePath(key);
+function getFileKey (filePath, root) {
+    if (!filePath) return ''
+    if (!root) root = global.miniprogramRoot
+    let fileFolder = path.dirname(filePath)
+    fileFolder = path.relative(root, fileFolder)
+    let fileNameNoExt = getFileNameNoExt(filePath)
+    let key = path.join(fileFolder, fileNameNoExt)
+    return utils.normalizePath(key)
 }
+
 
 /**
  * 从global.assetInfo这个对象里取出与当前路径相似的新路径
  * @param {*} filePath
+ * @param {*} rootFolder 根路径，即项目根目录
  */
-function getAssetsNewPath(filePath, parentFolder = '') {
-    if (!filePath || utils.isURL(filePath)) return filePath;
+function getAssetsNewPath (filePath, rootFolder = '') {
+    if (!filePath || utils.isURL(filePath)) return filePath
 
-    let result = utils.normalizePath(filePath);
+    let result = utils.normalizePath(filePath)
     for (const key in global.assetInfo) {
-        let obj = global.assetInfo[key];
+        let obj = global.assetInfo[key]
         if (result.indexOf(key) > -1) {
-            result = utils.normalizePath(obj.newPath);
+            result = utils.normalizePath(obj.newPath)
+            break
         }
     }
     //如果找不到文件：即文件路径不存在时
     if (result === filePath) {
-        result = path.join(global.targetFolder, "static", result);
+        result = path.join(global.targetFolder, "static", result)
     }
-    if (parentFolder) {
-        result = path.relative(parentFolder, result);
+    //获取相对于根路径的路径
+    if (rootFolder) {
+        result = path.relative(rootFolder, result)
     } else {
-        result = path.relative(global.targetFolder, result);
+        result = path.relative(global.targetFolder, result)
     }
 
     if (!/^[\.\/]/.test(result)) {
-        result = '/' + result;
+        //统一相对于根路径，使用/
+        result = '/' + result
     }
-    result = utils.normalizePath(result);
-    return result;
+    result = utils.normalizePath(result)
+    return result
 }
+
+
 
 module.exports = {
     copyFile,
@@ -315,5 +322,5 @@ module.exports = {
     emptyDirSyncEx,
     getFileKey,
     getAssetsNewPath,
-    replaceAssetPath
-};
+    replaceAssetPath,
+}

@@ -1,30 +1,30 @@
-const chalk = require('chalk');
-const { switchCase } = require('@babel/types');
+const chalk = require('chalk')
+const { switchCase } = require('@babel/types')
 
 function log (msg, type = '') {
-    var fullMsg = `[wx-to-uni-app]: ${msg}`;
+    var fullMsg = `[wx-to-uni-app]: ${ msg }`
     switch (type) {
         case "error":
         case "red":
-            console.log(chalk.red(fullMsg));
-            break;
+            console.log(chalk.red(fullMsg))
+            break
         case "green":
-            console.log(chalk.green(fullMsg));
-            break;
+            console.log(chalk.green(fullMsg))
+            break
         case "yellow":
-            console.log(chalk.yellow(fullMsg));
-            break;
+            console.log(chalk.yellow(fullMsg))
+            break
         default:
-            console.log(msg);
-            break;
+            console.log(msg)
+            break
     }
-    global.hbxOutputChannel && global.hbxOutputChannel.appendLine && global.hbxOutputChannel.appendLine(msg);
+    global.hbxOutputChannel && global.hbxOutputChannel.appendLine && global.hbxOutputChannel.appendLine(msg)
 };
 
 
 //借鉴：https://github.com/dcloudio/uni-app/blob/v3/packages/uni-migration/lib/mp-weixin/util.js
-const isWin = /^win/.test(process.platform);
-const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path);
+const isWin = /^win/.test(process.platform)
+const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path)
 
 
 // /**
@@ -46,32 +46,82 @@ const normalizePath = path => (isWin ? path.replace(/\\/g, '/') : path);
 
 
 function isString (arg) {
-    return arg && typeof (arg) == "string";
+    return arg && typeof (arg) == "string"
 }
 
 function isNumber (arg) {
-    return arg && typeof (arg) == "number" && !isNaN(arg);
+    return arg && typeof (arg) == "number" && !isNaN(arg)
 }
 
 function isBoolean (arg) {
-    return arg === !!arg;
+    return arg === !!arg
 }
 
 function isArray (arg) {
-    return Object.prototype.toString.call(arg) == '[object Array]';
+    return Object.prototype.toString.call(arg) == '[object Array]'
 }
 
 function isObject (arg) {
-    return Object.prototype.toString.call(arg) == '[object Object]';
+    return Object.prototype.toString.call(arg) == '[object Object]'
 }
 
 function isFunction (arg) {
-    return Object.prototype.toString.call(arg) == '[object Function]';
+    return Object.prototype.toString.call(arg) == '[object Function]'
 }
 
 function isEmpty (arg) {
-    return Object.keys(arg).length === 0;
+    return Object.keys(arg).length === 0
 }
+
+/**
+ * 数字正则
+ */
+const numberReg = /^\d+$/
+
+
+/**
+ * 是否为数字字符串
+ * @param {*} str
+ * @returns
+ */
+function isNumberString (str) {
+    return numberReg.test(str)
+}
+
+
+/**
+ * 单个单词正则
+ */
+const singleWordReg = /^\w+$/i
+
+/**
+ * 是否为单个单词
+ * @param {*} str
+ * @returns
+ */
+function isSingleWord (str) {
+    return singleWordReg.test(str)
+}
+
+
+/**
+ * 变量名正则
+ */
+const valueNameReg = /^[\w-_\.]+$/i
+
+/**
+ * 是否为变量名
+ * @param {*} str
+ * @returns
+ */
+function isValueName (str) {
+    return valueNameReg.test(str)
+}
+
+/**
+ * template里这些字符串变量将不会在data里定义
+ */
+const exceptNameReg = /^(index|items|idx)$|^item(\w+)?/
 
 
 // function isString (val) {
@@ -149,16 +199,16 @@ function isEmpty (arg) {
  */
 function isURL (str_url) {
     //TODO: 似乎//www.baidu.com/xx.png 不能通过校验？
-    var reg = /^((https|http|ftp|rtsp|mms)?:\/\/)?(([0-9a-z_!~*'().&amp;=+$%-]+: )?[0-9a-z_!~*'().&amp;=+$%-]+@)?((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5]$)|([0-9a-z_!~*'()-]+\.)*([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\.[a-z]{2,6})(:[0-9]{1,4})?((\/?)|(\/[0-9a-zA-Z_!~*'().;?:@&amp;=+$,%#-]+)+\/?)$/;
+    var reg = /^((https|http|ftp|rtsp|mms)?:\/\/)?(([0-9a-z_!~*'().&amp;=+$%-]+: )?[0-9a-z_!~*'().&amp;=+$%-]+@)?((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5]$)|([0-9a-z_!~*'()-]+\.)*([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\.[a-z]{2,6})(:[0-9]{1,4})?((\/?)|(\/[0-9a-zA-Z_!~*'().;?:@&amp;=+$,%#-]+)+\/?)$/
     if (reg.test(str_url)) {
-        return (true);
+        return (true)
     } else {
         //有些可能就是//开头的地址
-        let reg2 = /\/\//;
+        let reg2 = /\/\//
         if (reg2.test(str_url)) {
-            return (true);
+            return (true)
         } else {
-            return (false);
+            return (false)
         }
     }
 };
@@ -168,8 +218,8 @@ function isURL (str_url) {
  * @param {*} name
  */
 function isAssetsFolderName (name) {
-    const reg = /\b(images|img|image|static|asset|assets)\b/i;
-    return reg.test(name);
+    const reg = /\b(images|img|image|static|asset|assets)\b/i
+    return reg.test(name)
 }
 
 /**
@@ -177,7 +227,7 @@ function isAssetsFolderName (name) {
  * @param {*} str
  */
 function isHex (str) {
-    return /[0-9a-f]{4}/i.test("" + str);
+    return /[0-9a-f]{4}/i.test("" + str)
 }
 
 
@@ -188,12 +238,12 @@ function isHex (str) {
  */
 function toLowerLine (str) {
     var temp = str.replace(/[A-Z]/g, function (match) {
-        return "_" + match.toLowerCase();
-    });
+        return "_" + match.toLowerCase()
+    })
     if (temp.slice(0, 1) === '_') { //如果首字母是大写，执行replace时会多一个_，这里需要去掉
-        temp = temp.slice(1);
+        temp = temp.slice(1)
     }
-    return temp;
+    return temp
 };
 
 
@@ -205,8 +255,8 @@ function toLowerLine (str) {
  */
 function toCamel (str) {
     return str.replace(/([^_])(?:_+([^_]))/g, function ($0, $1, $2) {
-        return $1 + $2.toUpperCase();
-    });
+        return $1 + $2.toUpperCase()
+    })
 }
 
 /**
@@ -214,7 +264,7 @@ function toCamel (str) {
  */
 function getKebabCase (str) {
     return str.replace(/[A-Z]/g, function (i) {
-        return '-' + i.toLowerCase();
+        return '-' + i.toLowerCase()
     })
 }
 
@@ -225,11 +275,11 @@ function getKebabCase (str) {
  * @param {*} str
  */
 function toCamel2 (str) {
-    let ret = getKebabCase(str).toLowerCase();
-    ret = ret.replace(/[-]([\w+])/g, function (all, letter) {
-        return letter.toUpperCase();
-    });
-    return ret;
+    let ret = getKebabCase(str).toLowerCase()
+    ret = ret.replace(/-+([\w+])/g, function (all, letter) {
+        return letter.toUpperCase()
+    })
+    return ret
 }
 
 /**
@@ -237,12 +287,12 @@ function toCamel2 (str) {
  * @param {*} numberMillis  毫秒
  */
 function sleep (numberMillis) {
-    var now = new Date();
-    var exitTime = now.getTime() + numberMillis;
+    var now = new Date()
+    var exitTime = now.getTime() + numberMillis
     while (true) {
-        now = new Date();
+        now = new Date()
         if (now.getTime() > exitTime)
-            return;
+            return
     }
 }
 
@@ -258,19 +308,19 @@ function sleep (numberMillis) {
  * @param {*} str
  */
 function getTemplateParams (str) {
-    let reg_tag = /{{.*?}}/;
-    var result = {};
+    let reg_tag = /{{.*?}}/
+    var result = {}
     if (reg_tag.test(str)) {
-        str = str.replace(/url\(['"]{{(.*?)}}['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}");
+        str = str.replace(/url\(['"]{{(.*?)}}['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}")
         str.replace(/{{(.*?)}}/g, function (match, $1) {
-            var obj = splitStr($1);
+            var obj = splitStr($1)
             result = {
                 ...result,
                 ...obj
-            };
-        });
+            }
+        })
     }
-    return result;
+    return result
 }
 
 /**
@@ -280,39 +330,130 @@ function getTemplateParams (str) {
  */
 function splitStr (str) {
     //可能在引号对里面有这些切割标记，这里当场干掉
-    var newStr = str.replace(/\s|['"].*?['"]|,.*?:/g, "");
+    var newStr = str.replace(/\s|['"].*?['"]|,.*?:/g, "")
     //去掉引号
-    newStr = newStr.replace(/\(|\)|{|}|\[|\]/g, ":");
+    newStr = newStr.replace(/\(|\)|{|}|\[|\]/g, ":")
     //切割
-    var arr = newStr.trim().split(/\.\.\.|===|!==|==|\&\&|\|\||\?|:|<|>|\(|\)|\*|\/|\+|\-|!|<=|>=|%|,/);
-    var result = {};
+    var arr = newStr.trim().split(/\.\.\.|===|!==|==|\&\&|\|\||\?|:|<|>|\(|\)|\*|\/|\+|\-|!|<=|>=|%|,/)
+    var result = {}
     //去重， 去.length
     arr.forEach(function (item, i) {
         if (item && !isNumber(item)) {
-            result[item] = true;
+            result[item] = true
         }
     })
-    return result;
+    return result
+}
+
+/**
+ * 提取属性变量
+ * @param {*} str
+ */
+function getAttribValueList (str) {
+    //{{ utils.bem('switch', { on: value === activeValue, disabled }) }}
+    var vantReg = /\w+\.\w+\(/
+    if (vantReg.test(str)) return []
+
+    let reg_tag = /{{.*?}}/
+    var result = []
+    if (reg_tag.test(str)) {
+        str = str.replace(/url\(['"]{{(.*?)}}['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}")
+        str.replace(/{{(.*?)}}/g, function (match, $1) {
+            var obj = splitStrFull($1)
+            result.push(...obj)
+        })
+    }
+    return result
+}
+
+function splitStrFull (str) {
+    var newStr = str
+
+    //匹配引号里面的的字符串,含两侧的引号，后面再判断去除
+    var reg1 = /\[*\s*['"](.*?)['"]\s*\]*/g
+
+    newStr = newStr.replace(/{|}/g, "")
+    newStr = newStr.replace(reg1, function (match, $1) {
+        return match.indexOf("[") > -1 ? match : "null"
+    })
+
+    var splitReg = /===|==|=|!==|!=|\&\&|\|\||\?|:|<|>|\/|\+|<=|>=|-/
+    var arr = newStr.trim().split(splitReg)
+
+    var result = []
+    //去重， 去.length
+    var otherKeywordReg = /^(in|index|idx|item|on)$/
+    var reg = /^(\'|\")|^\d/
+    var numReg = /^\d+$/
+    var otherSymbolReg = /\(|\)|!/g
+    arr.forEach(function (item, i) {
+        var key = item.trim()
+        if (key && !reg.test(key)) {
+            key = key.replace(otherSymbolReg, "")
+            if (key && !isJavascriptKeyWord(key) && !numReg.test(key) && !otherKeywordReg.test(key)) {
+                result.push(key)
+            }
+        }
+    })
+    return result
+}
+
+
+/**
+ * 判断字符串里面的括号是否成对
+ * 所有括号配置成功返回true
+ * https://blog.csdn.net/shijue98/article/details/106250008
+ * @param {*} str
+ */
+function bracketsJudge (str) {
+    if (!str.trim()) return true
+    var stack = []
+    var keys = [')', ']', '}']
+    var values = ['(', '[', '{']
+    var isBreak = -1
+    for (var i = 0;i < str.length;i++) {
+        var char = str.charAt(i)
+        if (values.includes(char)) {
+            // 开始
+            stack.push(char)
+
+        } else {
+            var index = keys.indexOf(char)
+            if (index > -1) {
+                // 闭合
+                if (!stack.length || values[index] != stack.pop()) {
+                    isBreak = i
+                    break
+                }
+            }
+        }
+    }
+    if (isBreak > -1) {
+        isBreak = false
+        return isBreak
+    }
+    isBreak = stack.length - 1
+    return isBreak === -1
 }
 
 
 /**
  * copy to vue.js
- * Make a map and return a function for checking if a key
- * is in that map.
- */
+ * Make a map and return a function for checking if a key
+ * is in that map.
+ */
 function makeMap (
     str,
     expectsLowerCase
 ) {
-    var map = Object.create(null);
-    var list = str.split(',');
-    for (var i = 0; i < list.length; i++) {
-        map[list[i]] = true;
+    var map = Object.create(null)
+    var list = str.split(',')
+    for (var i = 0;i < list.length;i++) {
+        map[list[i]] = true
     }
     return expectsLowerCase
-        ? function (val) { return map[val.toLowerCase()]; }
-        : function (val) { return map[val]; }
+        ? function (val) { return map[val.toLowerCase()] }
+        : function (val) { return map[val] }
 }
 
 // 区分大小写
@@ -328,7 +469,7 @@ var isHTMLTag = makeMap(
     'output,progress,select,textarea,' +
     'details,dialog,menu,menuitem,summary,' +
     'content,element,shadow,template'
-);
+)
 
 // 不区分大小写
 var isSVG = makeMap(
@@ -336,7 +477,7 @@ var isSVG = makeMap(
     'font-face,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' +
     'polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view',
     true
-);
+)
 
 //是否为uni-app内置关键字，因与上面的有重复，有删减
 //参见：https://uniapp.dcloud.io/use?id=%e5%91%bd%e5%90%8d%e9%99%90%e5%88%b6
@@ -366,7 +507,31 @@ var isJavascriptKeyWord = makeMap(
     "this,throw,throws,transient,true," +
     "try,typeof,var,void,volatile," +
     "while,with,yield"
-);
+)
+
+/**
+ * 是否是小程序自带组件名
+ */
+var isMiniAppTag = makeMap(
+    "movable-view,cover-image,cover-view,match-media," +
+    "movable-area,scroll-view,swiper,swiper-item," +
+    "view,icon,progress,rich-text,text,button," +
+    "checkbox,checkbox-group,editor,form,input," +
+    "keyboard-accessory,label,picker,picker-view," +
+    "picker-view-column,radio,radio-group,slider," +
+    "switch,textarea,functional-page-navigator," +
+    "navigator,audio,camera,image,live-player," +
+    "live-pusher,video,voip-room,map,canvas," +
+    "web-view,ad,ad-custom,official-account," +
+    "open-data,native-component,camera,canvas," +
+    "input,live-player,live-pusher,map,textarea," +
+    "video,aria-component,navigation-bar,page-meta"
+)
+
+// https://opendocs.alipay.com/mini/component
+//https://smartprogram.baidu.com/docs/develop/component/view_cover-image/
+// https://developers.weixin.qq.com/miniprogram/dev/component/
+//https://microapp.bytedance.com/docs/zh-CN/mini-app/develop/component/all
 
 
 
@@ -375,7 +540,7 @@ var isJavascriptKeyWord = makeMap(
  * @param {*} params
  */
 function hasReserverdPorps (params) {
-    return /\b(data)\b/.test(params) || /\b(id)\b/.test(params) || /\b(default)\b/.test(params);
+    return /\b(data)\b/.test(params) || /\b(id)\b/.test(params) || /\b(default)\b/.test(params)
 }
 
 
@@ -383,7 +548,7 @@ function hasReserverdPorps (params) {
 //是否为vue内置关键字或方法
 // "_init"
 function isVueMethod (tag) {
-    return /^_|^\$/.test(tag);
+    return /^_|^\$/.test(tag)
 }
 
 /**
@@ -391,14 +556,14 @@ function isVueMethod (tag) {
  * @param {*} tag
  */
 function isReservedTag (tag) {
-    return isHTMLTag(tag) || isSVG(tag) || isUniAppTag(tag) || isVueMethod(tag);
+    return isHTMLTag(tag) || isSVG(tag) || isUniAppTag(tag) || isVueMethod(tag)
 };
 
 /**
  * 获取组件别名
  */
 function getComponentAlias (name) {
-    return isReservedTag(name) ? (name + "-diy") : name;
+    return isReservedTag(name) ? (name + "-diy") : name
 }
 
 /**
@@ -406,7 +571,7 @@ function getComponentAlias (name) {
  * @param {*} tag
  */
 function isReservedName (name) {
-    return isJavascriptKeyWord(name) || isVueMethod(name);
+    return isJavascriptKeyWord(name) || isVueMethod(name)
 };
 
 
@@ -414,11 +579,11 @@ function isReservedName (name) {
  * 获取props别名
  */
 function getPropsAlias (name) {
-    var result = name;
+    var result = name
     if (isJavascriptKeyWord(name)) {
-        result += "Attr";
+        result += "Attr"
     }
-    return result;
+    return result
 }
 
 /**
@@ -427,15 +592,39 @@ function getPropsAlias (name) {
  * 2.以_开头的函数名，返回"re" + name形式
  */
 function getFunctionAlias (name) {
-    if (!name) return name;
-    var rusult = name;
+    if (!name) return name
+    var rusult = name
 
     if (isVueMethod(name)) {
-        rusult = name.replace(/^_|^\$/g, "") + "Fun";
+        rusult = name.replace(/^_|^\$/g, "") + "Fun"
     } else {
-        rusult = name + "Fun";
+        rusult = name + "Fun"
     }
-    return rusult;
+    return rusult
+}
+
+/**
+ * 通过template里标签属性名来判断值的类型
+ * @param {*} k
+ */
+function getOriginalTypeByattrKey (k) {
+    var originalType = ""
+    if (k.indexOf("for") > -1) {
+        originalType = "Array"
+    } else if (k.indexOf("if") > -1) {
+        originalType = "Boolean"
+    } else {
+        switch (k) {
+            case "autoplay":
+                originalType = "Boolean"
+                break
+            case "duration":
+            case "interval":
+                originalType = "Number"
+                break
+        }
+    }
+    return originalType
 }
 
 /**
@@ -443,12 +632,12 @@ function getFunctionAlias (name) {
  * @param {*} str
  */
 function stringToObject (str) {
-    let index = str.indexOf(":");
-    let key = str.substring(0, index).trim();
-    let value = str.substring(index + 1).trim();
-    let result = {};
-    if (key !== value) result[key] = value;
-    return result;
+    let index = str.indexOf(":")
+    let key = str.substring(0, index).trim()
+    let value = str.substring(index + 1).trim()
+    let result = {}
+    if (key !== value) result[key] = value
+    return result
 }
 
 //测试样例：后面再补上。
@@ -473,40 +662,40 @@ function stringToObject (str) {
  * @param {*} attr
  */
 function parseTemplateAttrParams (attr) {
-    let str = attr.replace(/{{\s*(.*?)\s*}}/, '$1');
+    let str = attr.replace(/{{\s*(.*?)\s*}}/, '$1')
     //先去掉...[]和...{}
-    str = str.replace(/\.\.\.{.*?}|\.\.\.\[.*?\],?/g, "");
-    str = str.replace(/\.\.\..*?,/g, "");
+    str = str.replace(/\.\.\.{.*?}|\.\.\.\[.*?\],?/g, "")
+    str = str.replace(/\.\.\..*?,/g, "")
     //正则
-    let reg1 = /(\w+:\[.*?\]),?/g;  //解析数组
-    let reg2 = /(\w+:\{.*?\}),?/g;  //解析对象
-    let reg3 = /(\w+:.*?),|(\w+:.*?)$/g;  //解析key:value
+    let reg1 = /(\w+:\[.*?\]),?/g  //解析数组
+    let reg2 = /(\w+:\{.*?\}),?/g  //解析对象
+    let reg3 = /(\w+:.*?),|(\w+:.*?)$/g  //解析key:value
 
-    let result = {};
+    let result = {}
 
     //解析数组的(带中括号的)
     str = str.replace(reg1, function (match, $1) {
-        result = { ...result, ...stringToObject($1) };
-        return "";
-    });
+        result = { ...result, ...stringToObject($1) }
+        return ""
+    })
     //解析对象的(带花括号的)
     str = str.replace(reg2, function (match, $1) {
-        result = { ...result, ...stringToObject($1) };
-        return "";
-    });
+        result = { ...result, ...stringToObject($1) }
+        return ""
+    })
     //解析key:value
     str.replace(reg3, function (match, $1, $2) {
-        let tmpStr = $1 || $2;
-        result = { ...result, ...stringToObject(tmpStr) };
-    });
-    return result;
+        let tmpStr = $1 || $2
+        result = { ...result, ...stringToObject(tmpStr) }
+    })
+    return result
 }
 
 /**
  * 判断关键字是否与vant有关  //van-是老版vant，可以支持。
  */
 function isVant (name) {
-    return /\bvant-weapp\b|\bvant\b|van-/.test(name);
+    return /\bvant-weapp\b|\bvant\b|van-/.test(name)
 }
 
 /**
@@ -574,19 +763,19 @@ const vantComponentList = {
     "van-dropdown-menu": "./wxcomponents/vant/dropdown-menu/index",
     "van-dropdown-item": "./wxcomponents/vant/dropdown-item/index",
     "van-skeleton": "./wxcomponents/vant/skeleton/index"
-};
+}
 
 /**
  * 如果字符串里只有一个单引号时，删除它
  */
 function removeSingleQuote (value) {
     //如果只有一个单引号，就将它干掉
-    let re = value.match(/&#39;/g) || [];
+    let re = value.match(/&#39;/g) || []
     if (re.length === 1) {
-        value = value.replace(/&#39;/, "");
+        value = value.replace(/&#39;/, "")
     }
 
-    return value;
+    return value
 }
 
 /**
@@ -631,28 +820,28 @@ function getAttrPrefixExtname (exname) {
  * @param {} extname
  */
 function getMPType (extname) {
-    var mpType = "";
+    var mpType = ""
     switch (extname) {
         case '.wxml':
-            mpType = "weixin";
-            break;
+            mpType = "weixin"
+            break
         case '.qml':
-            mpType = "qq";
-            break;
+            mpType = "qq"
+            break
         case '.ttml':
-            mpType = "toutiao";
-            break;
+            mpType = "toutiao"
+            break
         case '.axml':
-            mpType = "alipay";
-            break;
+            mpType = "alipay"
+            break
         case '.swan':
-            mpType = "baidu";
-            break;
+            mpType = "baidu"
+            break
         default:
-            mpType = "wx";
-            break;
+            mpType = "wx"
+            break
     }
-    return mpType;
+    return mpType
 }
 /**
  * 小程序对应信息
@@ -702,14 +891,12 @@ let extnameArr = [
 /**
  * 扩展名正则
  */
-const extnameReg = new RegExp('\\.(' + extnameArr.join('|') + ')');
-
-
+const extnameReg = new RegExp('\\.(' + extnameArr.join('|') + ')')
 
 
 function formatDate (date, fmt) {
     if (/(y+)/.test(fmt)) {
-        fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length));
+        fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
     }
     let o = {
         'M+': date.getMonth() + 1,
@@ -717,22 +904,156 @@ function formatDate (date, fmt) {
         'h+': date.getHours(),
         'm+': date.getMinutes(),
         's+': date.getSeconds()
-    };
+    }
 
     // 遍历这个对象
     for (let k in o) {
-        if (new RegExp(`(${k})`).test(fmt)) {
+        if (new RegExp(`(${ k })`).test(fmt)) {
             // console.log(`${k}`)
             // console.log(RegExp.$1)
-            let str = o[k] + '';
-            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? str : padLeftZero(str));
+            let str = o[k] + ''
+            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? str : padLeftZero(str))
         }
     }
-    return fmt;
+    return fmt
 };
 
+/**
+ * 两位补0
+ * @param {*} str
+ * @returns
+ */
 function padLeftZero (str) {
-    return ('00' + str).substr(str.length);
+    return ('00' + str).substr(str.length)
+}
+
+
+/**
+ * 获取template里变量的类型
+ * @param {*} key
+ * @param {*} value
+ * @returns
+ */
+function getTemplateExpType (key, value) {
+
+    console.log(key, value)
+
+
+}
+
+/**
+ * 对象数组去重
+ * @param {*} array  数组
+ * @param {*} field  去重字段
+ * @returns  返回去重后的数组
+ */
+function unique (array, field) {
+    var obj = {}
+    return array.reduce(function (a, b) {
+        obj[b[field]] ? '' : obj[b[field]] = true && a.push(b)
+        return a
+    }, [])
+}
+
+
+/**
+ * 从当前元素开始遍历往上查找祖先，看是否有v-for存在，获取所有for的父级node list
+ */
+function getAllParentForNodeList (node) {
+    var list = []
+    if (node) {
+        if (node && node.attribs && node.attribs['v-for']) {
+            list.push(node.attribs)
+            var newList = getAllParentForNodeList(node.parent)
+            list.push(...newList)
+        } else {
+            var newList = getAllParentForNodeList(node.parent)
+            list.push(...newList)
+        }
+    }
+    return list
+}
+
+
+/**
+ * 存储标签里面使用{{}}绑定的对象，为去除{{}}的对象
+ * @param {*} fileKey        fileKey
+ * @param {*} value          含绑定的原始完整字符串
+ * @param {*} node           当前所在的template node节点，可为空！
+ * @param {*} attrs          当前项目的attrs
+ * @param {*} key            对应的key，如果是内容，则为空
+ * @param {*} originalType   原始类型，如果是内容，则为String
+ */
+function saveAttribsBindObject (fileKey, value, node = "", attrs = {}, key = "", originalType = "") {
+    //同时满足两种条件为templateConverter调用，否则为jsHandle里调用
+    if (value && value.indexOf("{{") > -1) {
+        let reg = /{{(.*?)}}/g
+
+        var matches = value.match(reg)
+        if (matches) {
+            matches.forEach(function (value) {
+                let pAttribs = getAllParentForNodeList(node)
+                value = value.replace(/{{|}}/g, "").trim()
+                // console.log("-*-", value)
+                if ((pAttribs && pAttribs.length) || JSON.stringify(attrs) !== "{}") {
+                    //只留最前面的一个变量来判断
+                    //如: a.b.c  --> a
+                    //    a[b]   --> a
+                    //    a.b[c] --> a
+                    var newValue = value.split(/\.|\[/g)[0]
+
+                    //todo: 需要优化一下
+                    //判断是否为父级for的item或index
+                    var isForItemName = false
+                    if ((attrs["v-for"] && attrs["v-for"].indexOf(`(${ newValue },`) > -1) && attrs[":key"] !== value) {
+                        isForItemName = true
+                    } else {
+                        isForItemName = pAttribs.some(function (item) {
+                            return item["v-for"].indexOf(`(${ newValue },`) > -1 && item[":key"] !== value
+                        })
+                    }
+
+                    //排除for里面声明的对象
+                    if (!isForItemName) {
+                        //将所有含有{{}}的属性的值存入到缓存
+                        global.pagesData[fileKey]['data']['attribs'].push({
+                            exp: value.trim(),
+                            key: key,
+                            type: originalType,
+                        })
+                    }
+                } else {
+                    //将所有含有{{}}的属性的值存入到缓存
+                    global.pagesData[fileKey]['data']['attribs'].push({
+                        exp: value.trim(),
+                        key: key,
+                        type: originalType,
+                    })
+                }
+            })
+        }
+    }
+}
+
+
+
+/**
+ * 存储setData里面的key值
+ * @param {*} fileKey        fileKey
+ * @param {*} value          key字符串
+ * @param {*} originalType   原始类型，如果是内容，则为String
+ * @param {*} isSetData      表示是否为setData里面的变量，一般来说，以template优先，setData次之
+ */
+function saveSetDataKey (fileKey, value, originalType = "") {
+    if (!global.pagesData[fileKey]['data']['jsSetDataKeyList']) {
+        global.pagesData[fileKey]['data']['jsSetDataKeyList'] = []
+    }
+    global.pagesData[fileKey]['data']['jsSetDataKeyList'].push({
+        exp: value.trim(),
+        key: "",
+        type: originalType,
+        isSetData: true
+    })
 }
 
 
@@ -744,6 +1065,16 @@ module.exports = {
     isObject,
     isFunction,
     isEmpty,
+
+    numberReg,
+    singleWordReg,
+    valueNameReg,
+
+    isNumberString,
+    isSingleWord,
+    isValueName,
+    exceptNameReg,
+
 
     isHex,
     isAssetsFolderName,
@@ -758,7 +1089,7 @@ module.exports = {
     getComponentAlias,
     isJavascriptKeyWord,
     isReservedName,
-
+    isMiniAppTag,
 
     getPropsAlias,
 
@@ -780,5 +1111,21 @@ module.exports = {
     extnameReg,
 
 
-    formatDate
+    formatDate,
+
+    bracketsJudge,
+
+    getAttribValueList,
+
+    getTemplateExpType,
+
+    getOriginalTypeByattrKey,
+
+    unique,
+
+    getAllParentForNodeList,
+    saveAttribsBindObject,
+    saveSetDataKey,
+
+
 }
