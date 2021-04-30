@@ -148,11 +148,11 @@ async function cssHandle (fileContent, file_wxss) {
                             })
                             const constantDecl = postcss.decl({
                                 prop: 'top',
-                                value: "calc(88rpx + constant(safe-area-inset-top)"
+                                value: "calc(88rpx + constant(safe-area-inset-top))"
                             })
                             const envDecl = postcss.decl({
                                 prop: 'top',
-                                value: "calc(88rpx + env(safe-area-inset-top)"
+                                value: "calc(88rpx + env(safe-area-inset-top))"
                             })
                             let commentEnd = postcss.comment({
                                 text: "  #endif  "

@@ -20,7 +20,7 @@ $ npm install miniprogram-to-uniapp -g
 $ npm update miniprogram-to-uniapp -g
 ``` -->
 
-## 使用方法
+### 使用方法
 
 ```sh
 Usage: wtu [options]
@@ -90,7 +90,7 @@ $ wtu -i ./miniprogram-project -w
 $ wtu -i ./miniprogram-project -f
 ```
 
-### HbuilderX 插件安装
+## HbuilderX 插件安装
 
 请参考项目：[HBuilder X 插件] 转换各种小程序为 uni-app 项目](https://ext.dcloud.net.cn/plugin?id=2656)进行食用。
 
@@ -147,7 +147,7 @@ $ wtu -i ./miniprogram-project -f
 
 ## 更新记录
 
-### v1.1.1(20210430)
+### v1.1.2(20210430)
 
 -   【重要】 [针对压缩代码]增加 -f 参数，默认为false，用于尽可能修复被混淆过的js代码，提升可读性！
 -   【重要】 [针对压缩代码]三元表达式转换为if表达式(需增加-f参数)
