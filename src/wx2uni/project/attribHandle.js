@@ -579,8 +579,8 @@ function binaryExpressionHandle (path, left, right, operator, jsData) {
                 const node2 = javascriptParser.parse($2)
                 const node3 = javascriptParser.parse($3)
                 traverseJsAst(node1, jsData, getTypeByOperator(node1.operator, node1))
-                traverseJsAst(node2, jsData, getTypeByOperator(node2.operator, node2))
-                traverseJsAst(node3, jsData, getTypeByOperator(node3.operator, node3))
+                addValueToData(jsData, $2, getTypeByOperator(node2.operator, node2))
+                addValueToData(jsData, $3, getTypeByOperator(node3.operator, node3))
             })
             return;
         }
