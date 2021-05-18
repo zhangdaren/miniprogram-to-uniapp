@@ -562,6 +562,18 @@ function binaryExpressionHandle (path, left, right, operator, jsData) {
     let valuePath = `${ generate(left.node).code }`
     if (valuePath) {
         // console.log("valuePath ", valuePath, type)
+
+        //含有三元表达式的情况
+        const ternaryReg = /([^?]*)\?([^:]*):([^;]*)/
+        if (ternaryReg.test(valuePath)) {
+            valuePath.replace(ternaryReg, function (match, $1, $2, $3) {
+                addValueToData(jsData, $1, type)
+                addValueToData(jsData, $2, type)
+                addValueToData(jsData, $3, type)
+            })
+            return;
+        }
+
         addValueToData(jsData, valuePath, type)
     }
 
