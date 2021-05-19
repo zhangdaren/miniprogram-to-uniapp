@@ -578,6 +578,7 @@ function binaryExpressionHandle (path, left, right, operator, jsData) {
                 const node1 = javascriptParser.parse($1)
                 const node2 = javascriptParser.parse($2)
                 const node3 = javascriptParser.parse($3)
+                // TODO: 待优化逻辑。目前功能已实现， 暂不支持，嵌套三元
                 traverseJsAst(node1, jsData, getTypeByOperator(node1.operator, node1))
                 addValueToData(jsData, $2, getTypeByOperator(node2.operator, node2))
                 addValueToData(jsData, $3, getTypeByOperator(node3.operator, node3))

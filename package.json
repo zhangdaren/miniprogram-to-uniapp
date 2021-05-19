@@ -72,8 +72,7 @@
         "url": "git+ssh://git@github.com/zhangdaren/miniprogram-to-uniapp.git"
     },
     "scripts": {
-        "to": "node bin/wtu -i ../test",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "version": "1.1.2"
+    "version": "1.1.3"
 }
