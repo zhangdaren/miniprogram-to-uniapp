@@ -1446,8 +1446,6 @@ function repairThisExpression (ast) {
                             let id = varPath.id
                             let init = varPath.init
                             if (t.isThisExpression(init) && t.isIdentifier(id)) {
-                                console.log("id.name", id.name, "hasThis", hasThis)
-
                                 //重名为that
                                 path.scope.rename(id.name, "that")
 

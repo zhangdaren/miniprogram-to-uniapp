@@ -1,6 +1,6 @@
 // const Parser = require('./Parser')  //基类
 const path = require('path');
-const babylon = require('babylon')  //AST解析器
+// const babylon = require('babylon')  //AST解析器
 const parse = require('@babel/parser').parse;
 const generate = require('@babel/generator').default
 const traverse = require('@babel/traverse').default

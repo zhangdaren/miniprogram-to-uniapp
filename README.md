@@ -68,8 +68,7 @@ $ wtu -i ./miniprogram-project -m
 ```sh
 $ wtu -i ./miniprogram-project -z -r -m
 ``` -->
- ##### vue-cli模式
-转换项目为vue-cli项目:
+ ##### 转换项目为vue-cli项目:
 
 ``` sh
 $ wtu -i ./miniprogram-project -c
@@ -92,9 +91,9 @@ $ wtu -i ./miniprogram-project -f
 
 ## HbuilderX 插件安装
 
-请参考项目：[HBuilder X 插件] 转换各种小程序为 uni-app 项目](https://ext.dcloud.net.cn/plugin?id=2656)进行食用。
+请参考项目：[【HBuilder X 插件】 转换各种小程序为 uni-app 项目](https://ext.dcloud.net.cn/plugin?id=2656) 进行食用。
 
-目前这种方式，不支持转换 vant 项目，如需转换 vant 项目，请切换为 Npm 安装 方式。
+目前这种方式，不支持转换 vant 项目，如需转换 vant 项目，请使用 Npm 安装 方式。
 
 ## 使用指南
 
@@ -132,7 +131,7 @@ $ wtu -i ./miniprogram-project -f
 
 ## 不支持转换的功能及组件
 
--   不支持转换使用 uni-app 编译的小程序项目
+-   不支持转换使用 uni-app 发布的小程序项目
 -   不支持转换使用 redux 开发的小程序(代表为：网易云信小程序 DEMO)
 -   不支持转换使用 wxpage 开发的小程序(https://github.com/tvfe/wxpage)
 -   不支持转换使用腾讯 omi 开发的小程序(https://github.com/Tencent/omi)
@@ -146,6 +145,16 @@ $ wtu -i ./miniprogram-project -f
 -   更多，请参照[miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 ## 更新记录
+
+### v1.1.3(20210615)
+
+-  [新增] var 一行声明拆成多行声明
+-  [修复] 生成css附带source map的bug
+-  [修复] H5平台添加兼容导航栏位置的css错乱的bug
+-  [修复] `onLoad: function(options = {}){}` 解析 报错的bug
+-  [修复] 属性为空时未删除的bug(如`<view start="{{}}"></view>`、`<view class="page_db_1" bindtap="">`等)
+-  [修复] form-type被莫名加上了冒号(:)的bug(`<view :form-type="submit"></view>`)
+-  [修复] 支持微信小程序”简易双向绑定“转换(`<input model:value="{{myValue}}" />`-->`<input v-model="myValue" />`)
 
 ### v1.1.2(20210430)
 
@@ -178,7 +187,7 @@ $ wtu -i ./miniprogram-project -f
 -   感谢官方大佬 DCloud_heavensoft 的文章：[微信小程序转换 uni-app 详细指南](http://ask.dcloud.net.cn/article/35786)，补充了我一些未考虑到的规则。
 -   工具使用[mp-html](https://ext.dcloud.net.cn/plugin?id=805)替换 wxParse，表示感谢~
 -   工具使用[全兼容官方 picker mode=region 城市选择器](https://ext.dcloud.net.cn/plugin?id=1536)替换 `<picker mode="region"></picker>`，表示感谢~
--   感谢为本项目提供建议以及帮助的热心网友们~~
+-   感谢为本项目给予赞助及提供建议的网友们~~
 
 ## 参考资料
 

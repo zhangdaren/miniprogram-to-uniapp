@@ -100,6 +100,12 @@ function getAttrConverterConfig (key, value) {
                     return repairAttr(str)
                 },
             },
+            'model:value': {
+                key: 'v-model',
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            },
         }
 
         attrConverterConfigUni[mpType + ':if'] = {
@@ -1036,6 +1042,7 @@ const templateConverter = async function (
                 if (node.attribs["wx:for-item"]) {
                     itemName = node.attribs["wx:for-item"]
                 }
+
                 //检测括号是否匹配
                 var oldValue = node.attribs[k]
                 oldValue = oldValue.trim()
