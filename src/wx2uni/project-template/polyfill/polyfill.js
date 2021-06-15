@@ -6,7 +6,7 @@
  * 现根据uniapp文档对各平台的支持度，或实现，或调用success来抹平各平台的差异，
  * 让代码能正常运行，下一步再解决这些api的兼容问题。
  *
- * code by 375890534@qq.com
+ * author: 375890534@qq.com
  */
 const base64Binary = require("./base64Binary")
 
@@ -65,6 +65,14 @@ function loginPolyfill () {
     if (isApiNotImplemented("getUserInfo")) {
         uni.getUserInfo = function (options) {
             console.warn("api: uni.getUserInfo 获取用户信息 在当前平台不支持，【关键流程函数】回调成功")
+            options.success && options.success({
+                userInfo: ""
+            })
+        }
+    }
+    if (isApiNotImplemented("getUserProfile")) {
+        uni.getUserProfile = function (options) {
+            console.warn("api: uni.getUserProfile 获取用户授权信息 在当前平台不支持，【关键流程函数】回调成功")
             options.success && options.success({
                 userInfo: ""
             })

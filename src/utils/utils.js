@@ -120,8 +120,9 @@ function isValueName (str) {
 
 /**
  * template里这些字符串变量将不会在data里定义
+ * util.beautifyTime() 过滤
  */
-const exceptNameReg = /^(index|items|idx)$|^item(\w+)?/
+const exceptNameReg = /^(index|items|idx)$|^item(\w+)?|\.\w+\(/
 
 
 // function isString (val) {
@@ -781,36 +782,48 @@ function removeSingleQuote (value) {
 /**
  * 根据文件后缀名，获取template所对应的属性名的前缀
  * @param {*} exname
+ * @param {*} isAppendPostfix 添加后缀
  */
-function getAttrPrefixExtname (exname) {
+function getAttrPrefixExtname (exname, isAppendPostfix) {
     var attrPrefix = ''
+    var postfix = ''
+
     switch (exname) {
         case '.wxml':
         case '.wxss':
             //微信小程序
             attrPrefix = 'wx'
+            postfix = ":"
             break
         case '.qml':
         case '.qss':
             //qq小程序
             attrPrefix = 'qq'
+            postfix = ":"
             break
         case '.ttml':
         case '.ttss':
             //头条小程序
             attrPrefix = 'tt'
+            postfix = ":"
             break
         case '.axml':
         case '.acss':
-            //支付宝/钉钉小唷
+            //支付宝/钉钉小程序
             attrPrefix = 'a'
+            postfix = ":"
             break
         case '.swan':
             //百度小程序
             attrPrefix = 's'
+            postfix = "-"
             break
         default:
             break
+    }
+
+    if (isAppendPostfix) {
+        attrPrefix += postfix
     }
     return attrPrefix
 }

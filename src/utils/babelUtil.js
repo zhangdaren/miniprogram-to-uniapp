@@ -27,6 +27,7 @@ const lifeCycleFunction = {
     onPullDownRefresh: true,
     onReachBottom: true,
     onShareAppMessage: true,
+    onShareTimeline: true,
     onLaunch: true,
     onError: true
 }
@@ -496,143 +497,6 @@ function arrayToObject (pathAry) {
     return t.objectExpression(pathAry)
 }
 
-var setDataFunAST = null
-/**
- * 获取setData()的AST
- * 暂未想到其他好的方式来实现将setData插入到methods里。
- * 未用上
- */
-function getSetDataFunAST () {
-    if (setDataFunAST) return clone(setDataFunAST)
-    const code = `
-	var setData = {
-        setData: function(obj, callback) {
-			let that = this;
-			const handleData = (tepData, tepKey, afterKey) => {
-                var tepData2 = tepData;
-				tepKey = tepKey.split('.');
-				tepKey.forEach(item => {
-					if (tepData[item] === null || tepData[item] === undefined) {
-						let reg = /^[0-9]+$/;
-						tepData[item] = reg.test(afterKey) ? [] : {};
-						tepData2 = tepData[item];
-					} else {
-						tepData2 = tepData[item];
-					}
-				});
-				return tepData2;
-			};
-			const isFn = function(value) {
-				return typeof value == 'function' || false;
-			};
-			Object.keys(obj).forEach(function(key) {
-				let val = obj[key];
-				key = key.replace(/\\]/g, '').replace(/\\[/g, '.');
-				let front, after;
-				let index_after = key.lastIndexOf('.');
-				if (index_after != -1) {
-					after = key.slice(index_after + 1);
-					front = handleData(that, key.slice(0, index_after), after);
-				} else {
-					after = key;
-					front = that;
-				}
-				if (front.$data && front.$data[after] === undefined) {
-					Object.defineProperty(front, after, {
-						get() {
-							return front.$data[after];
-						},
-						set(newValue) {
-							front.$data[after] = newValue;
-							that.$forceUpdate();
-						},
-						enumerable: true,
-						configurable: true
-					});
-					front[after] = val;
-				} else {
-					that.$set(front, after, val);
-				}
-			});
-			// this.$forceUpdate();
-			isFn(callback) && this.$nextTick(callback);
-		}
-	}
-	`
-    const ast = parse(code, {
-        sourceType: "module"
-    })
-
-    let result = null
-    traverse(ast, {
-        ObjectProperty (path) {
-            result = path.node
-            path.stop()
-        }
-    })
-    setDataFunAST = result
-    return result
-}
-
-/**
- * 获取setData()的AST
- * 未用上
- */
-function getSetDataFunAST2 () {
-    if (setDataFunAST) return clone(setDataFunAST)
-    const code = `
-	var setData = {
-    setData: function(obj, callback) {
-        let that = this;
-        let keys = [];
-        let val, data;
-        let reg = /\\[\\d+\\]/;
-        Object.keys(obj).forEach(function(key) {
-            keys = key.split('.');
-            val = obj[key];
-            data = that.$data;
-            keys.forEach(function(key2, index) {
-                if (index + 1 == keys.length) {
-                    if (reg.test(key2)) {
-                        let re = /(.*?)\\[(\\d+)\\]/.exec(key2);
-                        let name = re[1];
-                        let kk = re[2];
-                        data = data[name];
-                        data[kk] && that.$set(data, kk, val);
-                    } else {
-                        data[key2] && that.$set(data, key2, val);
-                    }
-                } else {
-                    if (reg.test(key2)) {
-                        let re = /(.*?)\\[(\\d+)\\]/.exec(key2);
-                        let name = re[1];
-                        let kk = re[2];
-                        data = data[name][kk];
-                    } else if (data[key2]) {
-                        that.$set(data, key2, {});
-                        data = data[key2];
-                    }
-                }
-            });
-        });
-        callback && callback();
-    }
-}
-	`
-    const ast = parse(code, {
-        sourceType: "module"
-    })
-
-    let result = null
-    traverse(ast, {
-        ObjectProperty (path) {
-            result = path.node
-            path.stop()
-        }
-    })
-    setDataFunAST = result
-    return result
-}
 
 /**
  * 根据name创建一个空的objectProperty，retrun name:{}
@@ -659,13 +523,7 @@ function repairValueAndFunctionLink (ast, keyList) {
             const property = path.node.property
             const propertyName = property.name
             if (keyList.hasOwnProperty(propertyName)) {
-                if (
-                    t.isThisExpression(object) ||
-                    t.isIdentifier(object, { name: "that" }) ||
-                    t.isIdentifier(object, { name: "_this" }) ||
-                    t.isIdentifier(object, { name: "self" }) ||
-                    t.isIdentifier(object, { name: "_" })
-                ) {
+                if (isThisExpressionPlus(object)) {
                     let subMe = t.MemberExpression(
                         t.MemberExpression(object, t.identifier("$options")),
                         t.identifier("globalData")
@@ -795,11 +653,11 @@ function requirePathHandle (path, fileDir) {
 }
 
 /**
- * 判断path是否为this或this的别名，如_this、that、self、_等
- * @param {*} path          当前path
+ * 判断object是否为this或this的别名，如_this、that、self等
+ * @param {*} path          当前object所在的path，可能是MeberexPression对象
  * @param {*} object        一般是MeberexPression对象的object
  */
-function isThisExpression (path, object) {
+function isThisExpressionPlus (path, object) {
     if (t.isThisExpression(object)) {
         return true
     }
@@ -818,13 +676,11 @@ function isThisExpression (path, object) {
     //理论上应该只判断scope就行了嘛，为啥还要判断名字呢？
     //对了，有可能这个this是从别的地方作为参数传进来的。
     return (
-        t.isThisExpression(object) ||
         isThisExpScope ||
         t.isIdentifier(object.node, { name: "that" }) ||
         t.isIdentifier(object.node, { name: "_this" }) ||
         t.isIdentifier(object.node, { name: "self" })
     )
-    // || name && name.length === 1 && /[a-zA-Z_]/.test(name);
 }
 
 /**
@@ -1073,6 +929,8 @@ function conditionalExpToIfStatement (ast) {
  * 一行代码转多行代码 (还原http://lisperator.net/uglifyjs/压缩代码)
  * 1.用逗号连起来的：a = 5, this.fun1(), this.fun2();
  * 2.使用&&进行判断：a && a = 5, b = 6;
+ * 3.if (1 == a.is_open_sku) o=4; else o=5; 改成多行展示
+ * 4.for (var e = t.data.result.list, a = 0; a < e.length; a++) o.data.kino_list.push(e[a]); 改多行
  *
  * //逻辑变量展开
  * !0 ==> true;  !1 ==> false
@@ -1080,7 +938,7 @@ function conditionalExpToIfStatement (ast) {
  * //十六进制转10进制
  * 3e8 ==> 1000
  *
- * success和fail回调函数的参数语义化
+ * success和fail回调函数的参数语义化(嵌套时有问题)
  * success ==> res; fail ==> err
  *
  * getCurrentPages()处理
@@ -1123,17 +981,23 @@ function repairJavascript (ast) {
             }
         },
 
-        //TODO: 这里报错951680
-        // VariableDeclaration (path) {
-        //     var declarations = path.get("declarations")
-        //     if (declarations.length > 1) {
-        //         declarations.forEach(function (subPath) {
-        //             let varDec = t.variableDeclaration(path.node.kind || "let", [subPath.node])
-        //             path.insertBefore(varDec)
-        //         })
-        //         path.remove()
-        //     }
-        // }
+        //一行声明拆成多行声明
+        VariableDeclaration (path) {
+            var declarations = path.get("declarations")
+            const parentPath = path.parentPath
+
+            //跳过for里面的var
+            //如：for (var e = t.data.result.list, a = 0; a < e.length; a++)
+            if (t.isForStatement(parentPath)) return
+
+            if (declarations.length > 1) {
+                declarations.forEach(function (subPath) {
+                    let varDec = t.variableDeclaration(path.node.kind || "let", [subPath.node])
+                    path.insertBefore(varDec)
+                })
+                path.remove()
+            }
+        },
 
         UnaryExpression (path) {
             const { operator, argument } = path.node
@@ -1185,7 +1049,7 @@ function repairJavascript (ast) {
                     let subPath = arguments[0]
                     let subObject = subPath.get("object")
                     let subProperty = subPath.get("property")
-                    if (isThisExpression(path, subObject) && t.isIdentifier(subProperty.node, { name: "data" })) {
+                    if (isThisExpressionPlus(path, subObject) && t.isIdentifier(subProperty.node, { name: "data" })) {
                         //处理 this.setData(this.data); 这种情况
                         //ps：因为是解析js后处理的，所以this.data还未处理
                         path.remove()
@@ -1258,6 +1122,32 @@ function repairJavascript (ast) {
                     }
                 }
             }
+        },
+        IfStatement (path) {
+            //if (1 == a.is_open_sku) o=4; else o=5; 改成多行展示
+
+            var consequent = path.node.consequent
+            var alternate = path.node.alternate
+
+            //没有else就返回
+            if (!alternate) return
+
+            if (!t.isBlockStatement(consequent)) {
+                path.node.consequent = t.blockStatement([consequent])
+            }
+
+            if (!t.isBlockStatement(alternate)) {
+                path.node.alternate = t.blockStatement([alternate])
+            }
+        },
+        ForStatement (path) {
+            //for (var e = t.data.result.list, a = 0; a < e.length; a++) o.data.kino_list.push(e[a]);
+            //转换为：
+            //for (var e = t.data.result.list, a = 0; a < e.length; a++) { that.kino_list.push(e[a]);  }
+            const body = path.node.body
+            if (!t.isBlockStatement(body)) {
+                path.node.body = t.blockStatement([body])
+            }
         }
     })
 }
@@ -1296,7 +1186,7 @@ function onLoadFunCloneHandle (ast, onLoadFunPath, vistors, fileKey) {
             let object = path.get("object")
             let property = path.get("property")
 
-            if (isThisExpression(path, object)) {
+            if (isThisExpressionPlus(path, object)) {
                 if (t.isIdentifier(property.node, { name: "onLoad" })) {
                     //this.onLoad() --> this.refreshPage3389()
 
@@ -1339,8 +1229,18 @@ function onLoadFunCloneHandle (ast, onLoadFunPath, vistors, fileKey) {
                          *   )
                          */
                         if (t.isObjectProperty(onLoadFunPath)) {
+
+                            console.log("fileKey", fileKey)
                             //onLoad:function(a){}
-                            var args = onLoadFunPath.value.params
+                            var args = clone(onLoadFunPath.value.params)
+
+                            // 处理这种情况
+                            // onLoad: function(options = {}){}
+                            args.forEach(function (obj, i) {
+                                if (t.isAssignmentPattern(obj)) {
+                                    args[i] = obj.left
+                                }
+                            })
                             var me = t.memberExpression(t.thisExpression(), t.identifier(newFunName))
                             var callExp = t.callExpression(me, args)
                             var expStatement = t.expressionStatement(callExp)
@@ -1383,6 +1283,8 @@ function generateExt (pathNode) {
 
 async function jsAstToString (jsData) {
     var codeText = ""
+
+    if (!jsData) return ""
 
     if (jsData.onlyJSFile || !jsData.ast) {
         codeText = jsData.codeText
@@ -1525,23 +1427,69 @@ function getKeyNameByObject (path) {
 }
 
 /**
- * this变量名语义化
- * @param {*} path
+ * 修复前预操作 必须先执行，否则可能修改不完全!!!
+ * //this声明合并，that重命名
+ * //只针对作用域里第一级
+ * @param {*} ast
  */
-function renameThisName (path) {
-    if (t.isVariableDeclarator(path)) {
-        //fix
-        // var n = this; --> var that = this;
-        //新增，将所有this的别名，统一修改成that
-        let id = path.get("id")
-        let init = path.get("init")
-        if (t.isThisExpression(init) && t.isIdentifier(id)) {
-            let hasBindThis = path.scope.getBinding("that")
-            if (!hasBindThis && id.node.name.length === 1) {
-                path.scope.rename(id.node.name, "that")
+function repairThisExpression (ast) {
+    traverse(ast, {
+        FunctionExpression (path) {
+            var list = path.get("body.body")
+            var hasThis = false
+            list.forEach(function (subPath) {
+                if (t.isVariableDeclaration(subPath)) {
+                    var declarations = subPath.node.declarations
+                    if (declarations.length) {
+                        //修改定义里面的变量
+                        declarations.forEach(function (varPath, index) {
+                            let id = varPath.id
+                            let init = varPath.init
+                            if (t.isThisExpression(init) && t.isIdentifier(id)) {
+                                console.log("id.name", id.name, "hasThis", hasThis)
+
+                                //重名为that
+                                path.scope.rename(id.name, "that")
+
+                                if (hasThis) {
+                                    //合并this声明
+                                    if (declarations.length > 1) {
+                                        declarations.splice(index, 1)
+                                    } else {
+                                        subPath.remove()
+                                    }
+                                } else {
+                                    hasThis = true
+                                }
+                            }
+                        })
+                    }
+                }
+            })
+        },
+    })
+}
+
+/**
+ * this变量名语义化
+ * @param {*} ast
+ */
+function renameThisName (ast) {
+    traverse(ast, {
+        VariableDeclarator (path) {
+            //fix
+            // var n = this; --> var that = this;
+            //新增，将所有this的别名，统一修改成that
+            let id = path.get("id")
+            let init = path.get("init")
+            if (t.isThisExpression(init) && t.isIdentifier(id)) {
+                let hasBindThis = path.scope.getBinding("that")
+                if (!hasBindThis && id.node.name.length === 1) {
+                    path.scope.rename(id.node.name, "that")
+                }
             }
         }
-    }
+    })
 }
 
 
@@ -1553,9 +1501,15 @@ function astAntiAliasing (ast) {
     //空语句
     // EmptyStatement(path)    {        path.remove();    }
 
-    //先
+    //修复前预操作, 必须先处理（先于repairJavascript），否则可能会漏掉！！！！
+    repairThisExpression(ast)
+
+    //然后再：
     //js 修复
     repairJavascript(ast)
+
+    //this变量语义化
+    renameThisName(ast)
 
     //后
     //三元表达式转if表达式
@@ -1575,10 +1529,9 @@ module.exports = {
 
     checkVueFile,
     arrayToObject,
-    getSetDataFunAST,
     createObjectProperty,
     requirePathHandle,
-    isThisExpression,
+    isThisExpressionPlus,
     renameToUni,
     cleanVisitor,
 

@@ -96,86 +96,6 @@ export default {
 `
 
 /**
- * 生成"let = right;"表达式
- * @param {*} left
- * @param {*} right
- */
-function buildAssignment (left, right) {
-    return t.assignmentExpression("=", left, right)
-}
-
-/**
- * 生成"this.left = right;"表达式
- * @param {*} left
- * @param {*} right
- */
-function buildAssignmentWidthThis (left, right) {
-    return t.assignmentExpression(
-        "=",
-        t.memberExpression(t.thisExpression(), left),
-        right
-    )
-}
-
-/**
- * 生成"that.left = right;"  //后面有需求再考虑其他关键字
- * @param {*} left
- * @param {*} right
- */
-function buildAssignmentWidthThat (left, right, name) {
-    return t.assignmentExpression(
-        "=",
-        t.memberExpression(t.identifier(name), left),
-        right
-    )
-}
-
-/**
- * 根据funName在liftCycleArr里查找生命周期函数，找不到就创建一个，给onLoad()里加入wxs所需要的代码
- * @param {*} liftCycleArr  生命周期函数数组
- * @param {*} key           用于查找当前编辑的文件组所对应的key
- * @param {*} funName       函数名："onLoad" or "beforeMount"
- */
-function handleOnLoadFun (liftCycleArr, key, funName) {
-    var node = null
-    for (let i = 0;i < liftCycleArr.length;i++) {
-        const obj = liftCycleArr[i]
-        if (obj.key.name == funName) {
-            node = obj
-            break
-        }
-    }
-    let pageWxsInfo = global.pageWxsInfo[key]
-    if (pageWxsInfo) {
-        if (!node) {
-            node = t.objectMethod(
-                "method",
-                t.identifier(funName),
-                [],
-                t.blockStatement([])
-            )
-            liftCycleArr.unshift(node)
-        }
-        pageWxsInfo.forEach(obj => {
-            let left = t.memberExpression(
-                t.thisExpression(),
-                t.identifier(obj.module)
-            )
-            let right = t.identifier(obj.module)
-            let exp = t.expressionStatement(t.assignmentExpression("=", left, right))
-            if (node.body) {
-                //处理 onLoad() {}
-                node.body.body.unshift(exp)
-            } else {
-                //处理 onLoad: function() {}
-                node.value.body.body.unshift(exp)
-            }
-        })
-    }
-    return node
-}
-
-/**
  * 处理未在data里面声明的变量
  * @param {*} ast
  * @param {*} vistors
@@ -215,6 +135,8 @@ function defineValueHandle (ast, vistors, file_js, fileKey) {
                                 let name = ""
                                 const value = subElement.value
                                 const keyNode = subElement.key
+                                const computed = subElement.computed
+
 
                                 if (t.isIdentifier(keyNode)) {
                                     name = subElement.key.name
@@ -229,6 +151,40 @@ function defineValueHandle (ast, vistors, file_js, fileKey) {
                                     let logStr = `[Error] 检测变量 ${ name } 位于props里，不能对其使用setData赋值，转换后请手动修改。   file-->   ${ nodePath.relative(global.miniprogramRoot, file_js) }`
                                     utils.log(logStr)
                                     global.log.push(logStr)
+                                } else if (computed) {
+                                    let logStr = `[Tip] 检测setData里面的变量 [${ name }] 是数组形式，uniapp不支持，已尝试进行修复。   file-->   ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                                    utils.log(logStr)
+                                    global.log.push(logStr)
+
+                                    let pathStr = `${ generate(subElement).code }`
+
+                                    // 添加注释
+                                    // TODO: 无论怎么添加注释并设置loc，还是：
+                                    // this.setData({//[target_click]: false
+                                    // });
+                                    // 注释不会在单独一行
+                                    if (!element.innerComments) {
+                                        element.innerComments = []
+                                    }
+                                    var obj = {
+                                        type: "CommentLine",
+                                        value: pathStr,
+                                    }
+                                    element.innerComments.push(obj)
+
+                                    // babelUtil.addComment(subElement, pathStr)
+
+                                    //尝试修复一下
+                                    var parentPath = path.parentPath
+                                    var meExp = t.memberExpression(object, subElement.key, true)
+                                    var assExp = t.assignmentExpression("=", meExp, value)
+                                    var exp = t.expressionStatement(assExp)
+                                    parentPath.insertAfter(exp)
+                                    parentPath.insertAfter(t.identifier("//try fix"))
+
+                                    //删除
+                                    delete element.properties[key2]
+
                                 } else {
                                     let originalType = babelUtil.getPathType(value)
                                     // console.log("setdata里面的变量添加：", name + "  类型为：" + originalType)
@@ -253,7 +209,7 @@ function appGlobalDataFunHandle (ast) {
         MemberExpression (path) {
             let object = path.get("object")
             let property = path.get("property")
-            if (babelUtil.isThisExpression(path, object) &&
+            if (babelUtil.isThisExpressionPlus(path, object) &&
                 t.isIdentifier(property.node, {
                     name: "globalData"
                 })
@@ -300,7 +256,7 @@ function applifeCycleFunHandle (
             // utils.log(object.node.name, property.node.name);
             //app.js里非生命周期函数里引用globalData里变量的引用关系修改
             if (
-                babelUtil.isThisExpression(path, object) &&
+                babelUtil.isThisExpressionPlus(path, object) &&
                 appGlobalDataValueNameList[property.node.name]
             ) {
                 let me = t.MemberExpression(
@@ -666,8 +622,8 @@ const componentTemplateBuilder = function (
             if (t.isMemberExpression(callee)) {
                 let object = callee.get("object")
                 let property = callee.get("property")
-                if (t.isIdentifier(object, { name: global.mpTypeName })) {
-                    if (t.isIdentifier(property, { name: "createWorker" })) {
+                if (t.isIdentifier(object.node, { name: global.mpTypeName })) {
+                    if (t.isIdentifier(property.node, { name: "createWorker" })) {
                         //将wx.createWorker('workers/fib/index.js')转为wx.createWorker('./static/workers/fib/index.js');
                         let arguments = path.node.arguments
                         if (arguments && arguments.length > 0) {
@@ -822,9 +778,6 @@ const componentTemplateBuilder = function (
      * 调整三次遍历的顺序，必须在最后收尾！
      */
     traverse(ast, {
-        VariableDeclarator (path) {
-            babelUtil.renameThisName(path)
-        },
         CallExpression (path) {
             //var t = require("amap-wx.js"); 这类代码处理，可能没到这里来
             let callee = path.node.callee
@@ -837,28 +790,17 @@ const componentTemplateBuilder = function (
             let object = path.get("object")
             let property = path.get("property")
 
-            if (babelUtil.isThisExpression(path, object)) {
+            if (babelUtil.isThisExpressionPlus(path, object)) {
                 let parentPath = path.parentPath
                 // console.log("property.node ", property.node.name)
                 if (t.isIdentifier(property.node, { name: "data" })) {
                     //将this.data.xxx转换为this.xxx
 
                     //如果父级是AssignmentExpression，则不需再进行转换
-                    if (parentPath && !t.isAssignmentExpression(parentPath)) {
-                        if (t.isUpdateExpression(parentPath)) {
-                            //++this.data.notify_count;
-                            object.replaceWith(object.node.object)
-                            path.skip()
-                        } else {
-                            path.replaceWith(object)
-                        }
-                    }
-
-                    //this变量语义化
-                    var varDecParentPath = path.findParent(parent => parent.isVariableDeclarator())
-                    if (varDecParentPath) {
-                        babelUtil.renameThisName(varDecParentPath)
-                    }
+                    // if (parentPath && !t.isAssignmentExpression(parentPath)) {
+                    path.replaceWith(object)
+                    // path.skip()
+                    // }
                 } else if (t.isIdentifier(property.node, { name: "properties" })) {
                     //将this.properties.xxx转换为this.xxx
                     if (t.isMemberExpression(parentPath)) {
@@ -901,7 +843,7 @@ const componentTemplateBuilder = function (
                 //替换与data变量重名的函数引用
                 for (const item of replaceFunNameList) {
                     if (t.isIdentifier(property.node, { name: item })) {
-                        if (babelUtil.isThisExpression(path, object)) {
+                        if (babelUtil.isThisExpressionPlus(path, object)) {
                             let parent = path.parent
                             //如果父级是AssignmentExpression，则不需再进行转换
                             if (parent && !t.isAssignmentExpression(parent)) {

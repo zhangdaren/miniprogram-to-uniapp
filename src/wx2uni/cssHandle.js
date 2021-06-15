@@ -92,10 +92,9 @@ async function cssHandle (fileContent, file_wxss) {
             styleRules.forEach((node) => {
                 if (node.type === "atrule" && node.name === "font-face") {
                     let nodes = node.nodes
-                    nodes.find(function (decl, i) {
-                        //
-                        if (!decl) return
 
+                    for (let i = nodes.length - 1;i >= 0;i--) {
+                        var decl = nodes[i]
                         var prop = decl.prop
                         var value = decl.value
                         if (prop == "src") {
@@ -114,7 +113,7 @@ async function cssHandle (fileContent, file_wxss) {
                                 nodes.splice(i, 1)
                             }
                         }
-                    })
+                    }
                 } else if (node.type === "rule") {
 
                     //转换前：
@@ -143,9 +142,7 @@ async function cssHandle (fileContent, file_wxss) {
                             return decl.prop === "top" && parseInt(decl.value) === 0
                         })
                         if (decl) {
-                            let commentStart = postcss.comment({
-                                text: "  #ifdef  H5  "
-                            })
+                            let commentStart = "/*  #ifdef  H5  */"
                             const constantDecl = postcss.decl({
                                 prop: 'top',
                                 value: "calc(88rpx + constant(safe-area-inset-top))"
@@ -154,9 +151,7 @@ async function cssHandle (fileContent, file_wxss) {
                                 prop: 'top',
                                 value: "calc(88rpx + env(safe-area-inset-top))"
                             })
-                            let commentEnd = postcss.comment({
-                                text: "  #endif  "
-                            })
+                            let commentEnd = "/*  #endif  */"
 
                             decl.after(commentEnd)
                             decl.after(envDecl)
@@ -171,7 +166,7 @@ async function cssHandle (fileContent, file_wxss) {
 
 
             //使用toString方法可以把语法树转换为字符串
-            fileContent = ast.toResult({ map: true }).css
+            fileContent = ast.toResult({ map: false }).css
 
 
             // fileContent = fileContent.replacess(/@import +"\//g, '@import "./');

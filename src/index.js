@@ -1449,7 +1449,7 @@ async function transform (
 
                 if (global.hasWeUIJS && global.hasWeUIWxml) {
                     str +=
-                        '\r\n\r\n\r\n注意!!! \r\n注意!!! \r\n注意!!!\r\n源项目可能是引用了 We UI 组件，暂不支持转换，请先 “备份” 源项目，再使用 https://gitee.com/zhangdaren/weui-miniprogram-js 替换 We UI 后，再进行转换！！！\r\n\r\n'
+                        '\r\n\r\n\r\n注意!!! \r\n注意!!! \r\n注意!!!\r\n源项目可能是引用了 We UI 组件，转换后不太好修复。 建议重新转换，转换前先 “备份” 源项目，再使用 https://gitee.com/zhangdaren/weui-miniprogram-js 替换 We UI 后，再进行转换！！！\r\n\r\n'
                 }
 
                 str = '\r\n转换完成: ' + str

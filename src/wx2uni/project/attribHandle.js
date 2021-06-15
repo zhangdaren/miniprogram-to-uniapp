@@ -184,6 +184,12 @@ function findDataPathByName (dataAstList, name) {
  */
 function addValueToData (jsData, name, type) {
     // if (jsData.dataAstList) {
+
+    if (!jsData) return
+
+    // TODO: 'comment_item[0][0].username'  //这种先过滤吧
+    if(name.indexOf("][")>-1) return;
+
     const reg = /\./
     var list = name.split(".")
 
@@ -193,6 +199,7 @@ function addValueToData (jsData, name, type) {
     }
 
     //item、index、idx等变量将直接返回
+    //忽略：<view class="cu-card case">{{util.beautifyTime(item.end_date)[0]}} 已结束</view>的处理
     if (utils.exceptNameReg.test(valueName)) return
 
     var isArrayObject = valueName.indexOf("[0]") > -1
@@ -211,6 +218,10 @@ function addValueToData (jsData, name, type) {
         // console.log("增加单个变量: ", valueName, type)
 
         if (jsData.dataAstList && !isInData(jsData.dataAstList, valueName) && !isInProps(jsData.propsAstList, valueName)) {
+            //TODO: 三元再三元，先忽略：
+            //{{ (checked ? activeColor : inactiveColor) ? 'background-color: ' + (checked ? activeColor : inactiveColor ) : '' }}
+            if (/[\?:]/.test(valueName)) return
+
             var obj = t.objectProperty(t.identifier(valueName), getTypeDefaultAst(type))
             jsData.dataAstList.push(obj)
         }
@@ -370,6 +381,12 @@ function parseAttrib (attr, jsData) {
     // console.log(attr.exp)
 
     var code = attr.exp.trim()
+
+    //可能for是一个数据，比如：<swiper-item wx:for="{{['http://www.baidu.com']}}" wx:key></swiper-item>
+    if (!code || code === 'undefined'){
+        return
+    }
+
     var key = attr.key
     var originalType = attr.type
     var isSetDataKey = attr.isSetDataKey
@@ -645,6 +662,9 @@ function attribHandle (obj, jsData, fileKey) {
     /**
      * 这里面的exp都已处理过，仅存在单{{}}，并且已去掉{{}}
      */
+
+    if (!jsData) return  //居然为null!!!!!!!!
+
     var exp = obj.exp
     if (exp) {
         // console.log("exp: ", obj.exp)

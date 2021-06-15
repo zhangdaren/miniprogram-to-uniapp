@@ -99,9 +99,9 @@ class TemplateParser {
                             //需要同时满足；如果attr=data，且没有value时，也删除
                             if (attr.indexOf(":") > -1 || attr == "data") {
                                 //key含冒号且value为空时，直接删除
-                            } if (attr.indexOf("@") > -1) {
+                            }else if (attr.indexOf("@") > -1) {
                                 //key含@且value为空时，直接删除
-                            } if (attr === "class" || attr === "title") {
+                            }else if (attr === "class" || attr === "title") {
                                 //key为class或title且value为空时，直接删除
                                 //<navigation title></navigation>
                             } else {

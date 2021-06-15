@@ -168,9 +168,9 @@ function attribValueHandle () {
 
     for (const fileKey in pagesData) {
         const item = pagesData[fileKey]
-        var jsData = item.data.jsData
+        var jsData = item.data.jsData  //居然有为null的情况。。。。
 
-        if (item.data.type === "all" || item.data.type === "js") {
+        if (jsData && item.data.type === "all" || item.data.type === "js") {
             let attribs = item.data.attribs
             if (attribs) {
                 //倒序一下，因为加进来的时候是倒序循环
@@ -241,6 +241,8 @@ function notImplementedFunHandle (attribFunList, jsData, fileKey) {
             } else {
                 //只取第一个单词！
                 funName = funName.replace(reg, "$1")
+                if(!funName) return ;
+
                 if (funNameList.indexOf(funName) > -1 || dataValueNameList.indexOf(funName) > -1) {
                     // 函数或变量存在(如果函数重名，那已经处理了，因此这里不用再处理)
                     // console.log("函数存在 -- ", funName)

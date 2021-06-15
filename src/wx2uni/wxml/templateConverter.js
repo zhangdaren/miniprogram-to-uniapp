@@ -13,6 +13,12 @@ const objectStringToObject = require('object-string-to-object')
 var mpType = 'wx'
 
 /**
+ * 小程序类型扩展
+ * 默认为wx:  百度为s-
+ */
+var mpTypeExt = 'wx:'
+
+/**
  * 去掉属性的值的双括号，然后将值里面的双引号改为单引号
  * @param {*} attr
  */
@@ -20,39 +26,6 @@ function repairAttr (attr) {
     return attr.replace(/{{ ?(.*?) ?}}/, '$1').replace(/\"/g, "'")
 }
 
-
-/**
- * 替换属性增强版
- * @param {*} key
- * @param {*} value
- * @returns
- */
-function repairAttrExt (key, value) {
-    var newKey = key
-    switch (key) {
-        case "openType":
-            newKey = "open-type"
-            break
-        case "formType":
-            newKey = "form-type"
-            break
-        case "scrollX":
-            newKey = "scroll-x"
-            break
-        case "scrollY":
-            newKey = "scroll-y"
-            break
-    }
-    if (value.indexOf("{{") > -1) {
-        newKey = ":" + newKey
-    }
-    return {
-        key: newKey,
-        value: (str) => {
-            return repairAttr(str)
-        },
-    }
-}
 
 //html标签替换规则，可以添加更多
 var attrConverterConfigUni = null
@@ -127,13 +100,8 @@ function getAttrConverterConfig (key, value) {
                     return repairAttr(str)
                 },
             },
-            //因为openType可能有绑定数据
-            //<navigator openType="{{item.open_type}}"></navigator>
-            'openType': repairAttrExt("openType", value),
-            'formType': repairAttrExt("formType", value),
-            'scrollX': repairAttrExt("scrollX", value),
-            'scrollY': repairAttrExt("scrollY", value),
         }
+
         attrConverterConfigUni[mpType + ':if'] = {
             key: 'v-if',
             value: (str) => {
@@ -158,8 +126,50 @@ function getAttrConverterConfig (key, value) {
                 return repairAttr(str)
             },
         }
+        attrConverterConfigUni[mpType + '-else'] = {
+            key: 'v-else',
+            value: (str) => {
+                return repairAttr(str)
+            },
+        }
+        attrConverterConfigUni[mpType + '-elif'] = {
+            key: 'v-else-if',
+            value: (str) => {
+                return repairAttr(str)
+            },
+        }
     }
-    return attrConverterConfigUni[key]
+
+    var obj = attrConverterConfigUni[key]
+    if (!obj) {
+        var newKey = ""
+        switch (key) {
+            case "openType":
+                newKey = "open-type"
+                break
+            case "formType":
+                newKey = "form-type"
+                break
+            case "scrollX":
+                newKey = "scroll-x"
+                break
+            case "scrollY":
+                newKey = "scroll-y"
+                break
+        }
+        if (newKey) {
+            if (value.indexOf("{{") > -1) {
+                newKey = ":" + newKey
+            }
+            obj = {
+                key: newKey,
+                value: (str) => {
+                    return repairAttr(str)
+                },
+            }
+        }
+    }
+    return obj
 }
 
 /**
@@ -173,7 +183,22 @@ function replaceBindToAt (attr) {
  * 替换wx:abc为:abc
  */
 function replaceWxBind (attr) {
-    let reg = new RegExp('^' + mpType + ':*')
+    let reg = ""
+    switch (global.mpType) {
+        case 'weixin':
+        case 'qq':
+            reg = new RegExp('^' + mpType + ':')
+            break
+        case 'toutiao':
+            reg = /^tt:/
+            break
+        case 'alipay':
+            reg = /^a:/
+            break
+        case 'baidu':
+            reg = /^s-/
+            break
+    }
     return attr.replace(reg, ':')
 }
 
@@ -181,6 +206,19 @@ function replaceWxBind (attr) {
  * 遍历往上查找祖先，看是否有v-for存在，存在就返回它的key，不存在返回空
  */
 function findParentsWithFor (node) {
+    if (node.parent) {
+        if (node.parent.attribs['v-for']) {
+            return node.parent.attribs[':key']
+        } else {
+            return findParentsWithFor(node.parent)
+        }
+    }
+}
+
+/**
+ * 遍历往上查找祖先，看是否有同名的item存在，存在就返回true, 不存在返回false
+ */
+function findParentsWithItemName (node) {
     if (node.parent) {
         if (node.parent.attribs['v-for']) {
             return node.parent.attribs[':key']
@@ -284,7 +322,7 @@ function forTagHandle (node, attrs, file_wxml) {
     //这里预先设置wx:for是最前面的一个属性，这样会第一个被遍历到
     // let wx_key = node.attribs['wx:key'];
     let wx_key = ""
-    let wx_forIndex = node.attribs[mpType + ':for-index']
+    let wx_forIndex = node.attribs[mpTypeExt + 'for-index']
 
     //有定义for-index时，优先使用wx_forIndex
     if (wx_forIndex) {
@@ -305,9 +343,9 @@ function forTagHandle (node, attrs, file_wxml) {
     //     wx_key = wx_key.split(/<|>/)[0];
     // }
 
-    let wx_for = node.attribs[mpType + ':for']
-    let wx_forItem = node.attribs[mpType + ':for-item']
-    let wx_forItems = node.attribs[mpType + ':for-items']
+    let wx_for = node.attribs[mpTypeExt + 'for']
+    let wx_forItem = node.attribs[mpTypeExt + 'for-item']
+    let wx_forItems = node.attribs[mpTypeExt + 'for-items']
     //wx:for与wx:for-items互斥
     let value = wx_for ? wx_for : wx_forItems
 
@@ -382,8 +420,8 @@ function forTagHandle (node, attrs, file_wxml) {
                 )
 
                 if (
-                    value == node.attribs[mpType + ':for'] ||
-                    value == node.attribs[mpType + ':for-items']
+                    value == node.attribs[mpTypeExt + 'for'] ||
+                    value == node.attribs[mpTypeExt + 'for-items']
                 ) {
                     //奇葩!!! 小程序写起来太自由了，相比js有过之而无不及，{{}}可加可不加……我能说什么？
                     //这里处理无{{}}的情况
@@ -402,22 +440,22 @@ function forTagHandle (node, attrs, file_wxml) {
 
             attrs['v-for'] = value
 
-            if (node.attribs.hasOwnProperty(mpType + ':for'))
-                delete node.attribs[mpType + ':for']
-            if (node.attribs.hasOwnProperty(mpType + ':for-index'))
-                delete node.attribs[mpType + ':for-index']
-            if (node.attribs.hasOwnProperty(mpType + ':for-item'))
-                delete node.attribs[mpType + ':for-item']
-            if (node.attribs.hasOwnProperty(mpType + ':for-items'))
-                delete node.attribs[mpType + ':for-items']
+            if (node.attribs.hasOwnProperty(mpTypeExt + 'for'))
+                delete node.attribs[mpTypeExt + 'for']
+            if (node.attribs.hasOwnProperty(mpTypeExt + 'for-index'))
+                delete node.attribs[mpTypeExt + 'for-index']
+            if (node.attribs.hasOwnProperty(mpTypeExt + 'for-item'))
+                delete node.attribs[mpTypeExt + 'for-item']
+            if (node.attribs.hasOwnProperty(mpTypeExt + 'for-items'))
+                delete node.attribs[mpTypeExt + 'for-items']
         }
     } else {
         const code = templateParser.astToString([node])
         utils.log('当前这个标签只有一个' + mpType + +':key --> ' + code)
     }
     attrs[':key'] = wx_key
-    if (node.attribs.hasOwnProperty(mpType + ':key'))
-        delete node.attribs[mpType + ':key']
+    if (node.attribs.hasOwnProperty(mpTypeExt + 'key'))
+        delete node.attribs[mpTypeExt + 'key']
 }
 
 /**
@@ -878,6 +916,8 @@ const templateConverter = async function (
     const fileKey = pathUtil.getFileKey(file_wxml)
     let extname = path.extname(file_wxml)
     mpType = utils.getAttrPrefixExtname(extname)
+    mpTypeExt = utils.getAttrPrefixExtname(extname, true)
+
     const isComponent =
         (global.pagesData[fileKey] &&
             global.pagesData[fileKey]['data'] &&
@@ -975,7 +1015,6 @@ const templateConverter = async function (
             //     ast.splice(Math.max(i - 1, 0), 0, newNode);
             // }
 
-
             //处理template标签<template is="head" data="{{title: 'addPhoneContact'}}"/>
             let newNode = templateTagHandle(node, file_wxml, onlyWxmlFile)
             if (newNode) {
@@ -992,11 +1031,15 @@ const templateConverter = async function (
             const reg = /\}\}$/      //检测是否含括号
             const reg2 = /{{|}}/g    //去除括号
             const itemReg = /\bitem\./
+            var itemName = "item"
             for (let k in node.attribs) {
+                if (node.attribs["wx:for-item"]) {
+                    itemName = node.attribs["wx:for-item"]
+                }
                 //检测括号是否匹配
                 var oldValue = node.attribs[k]
                 oldValue = oldValue.trim()
-                if (oldValue && reg.test(oldValue)) {
+                if (oldValue && reg.test(oldValue) && oldValue.indexOf(itemName) === -1) {
                     oldValue.replace(/{{(.*?)}}/g, function (match, $1) {
                         var minValue = $1
                         minValue = minValue.trim()
@@ -1020,12 +1063,14 @@ const templateConverter = async function (
             //进行属性替换
             let attrs = {}
             if (
-                node.attribs[mpType + ':for'] ||
-                node.attribs[mpType + ':for-items']
+                node.attribs[mpTypeExt + 'for'] ||
+                node.attribs[mpTypeExt + 'for-items']
             ) {
                 //wx:for处理
                 forTagHandle(node, attrs, file_wxml)
             }
+
+
 
             const oldNode = clone(node)
             const reg_num = /^([+-]?\d+(\.\d+)?)$/
