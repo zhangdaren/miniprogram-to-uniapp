@@ -409,70 +409,80 @@ function parseAttrib (attr, jsData) {
         if (isParseError) {
 
         } else {
-            traverse(javascriptAst, {
-                ConditionalExpression (path) {
-
-                    //     //这里不用判断了
-                    const test = path.get("test")
-                    const consequent = path.get("consequent")
-                    const alternate = path.get("alternate")
-
-                    if (t.isIdentifier(test)) {
-                        let valuePath = `${ generate(test.node).code }`
-                        addValueToData(jsData, valuePath, "Boolean")
-                        path.skip()
-                    }
-                    // expPathHandle(consequent, dataAstList)
-                    // expPathHandle(alternate, dataAstList)
-                },
-                MemberExpression (path) {
-                    // if (t.isCallExpression(path.parentPath)) {
-                    //     //略过解析：<view class="cycle {{parse.getStatusColor(item.live_status)}}"></view>
-                    // } else {
-                    //     let valuePath = `${ generate(path.node).code }`
-                    //     if (valuePath) {
-                    //         addValueToData(jsData, valuePath, originalType)
-                    //     }
-                    // }
-                    memberExpressionHandle(path, jsData, originalType)
-                    path.skip()
-                },
-                ExpressionStatement (path) {
-                    // const expression = path.get("expression")
-                    // if (expression.node.name) expression.node.name = replaceField(expression.node.name, replacePropsMap)
-                    // utils.log("ExpressionStatement-", expression.node.name)
-                },
-                UnaryExpression (path) {
-                    // const expression = path.get("expression")
-                    // if (expression.node.name) expression.node.name = replaceField(expression.node.name, replacePropsMap)
-                    // utils.log("ExpressionStatement-", expression.node.name)
-                },
-                BinaryExpression (path) {
-                    const left = path.get("left")
-                    const right = path.get("right")
-                    const operator = path.node.operator
-
-                    if (t.isMemberExpression(left)) {
-                        let type = getTypeByOperator(operator, right) || originalType
-                        memberExpressionHandle(left, jsData, type)
-                    } else {
-                        binaryExpressionHandle(path, left, right, operator, jsData)
-                    }
-
-                    if (t.isMemberExpression(right)) {
-                        let type = getTypeByOperator(operator, left) || originalType
-                        memberExpressionHandle(right, jsData, type)
-                    } else {
-                        binaryExpressionHandle(path, right, left, operator, jsData)
-                    }
-                    path.skip()
-                },
-            })
+            traverseJsAst(javascriptAst, jsData, originalType)
         }
     }
     return javascriptAst
 }
 
+/**
+ * @description: 遍及并处理 ast 树
+ * @date 2021/5/18
+ * @param {JavascriptParser} javascriptAst ast 树
+ * @param {*} jsData 转换 jsData
+ * @param {String} originalType 原视类型
+ */
+function traverseJsAst (javascriptAst, jsData,originalType) {
+    traverse(javascriptAst, {
+        ConditionalExpression(path) {
+
+            //     //这里不用判断了
+            const test = path.get("test")
+            const consequent = path.get("consequent")
+            const alternate = path.get("alternate")
+
+            if (t.isIdentifier(test)) {
+                let valuePath = `${generate(test.node).code}`
+                addValueToData(jsData, valuePath, "Boolean")
+                path.skip()
+            }
+            // expPathHandle(consequent, dataAstList)
+            // expPathHandle(alternate, dataAstList)
+        },
+        MemberExpression(path) {
+            // if (t.isCallExpression(path.parentPath)) {
+            //     //略过解析：<view class="cycle {{parse.getStatusColor(item.live_status)}}"></view>
+            // } else {
+            //     let valuePath = `${ generate(path.node).code }`
+            //     if (valuePath) {
+            //         addValueToData(jsData, valuePath, originalType)
+            //     }
+            // }
+            memberExpressionHandle(path, jsData, originalType)
+            path.skip()
+        },
+        ExpressionStatement(path) {
+            // const expression = path.get("expression")
+            // if (expression.node.name) expression.node.name = replaceField(expression.node.name, replacePropsMap)
+            // utils.log("ExpressionStatement-", expression.node.name)
+        },
+        UnaryExpression(path) {
+            // const expression = path.get("expression")
+            // if (expression.node.name) expression.node.name = replaceField(expression.node.name, replacePropsMap)
+            // utils.log("ExpressionStatement-", expression.node.name)
+        },
+        BinaryExpression(path) {
+            const left = path.get("left")
+            const right = path.get("right")
+            const operator = path.node.operator
+
+            if (t.isMemberExpression(left)) {
+                let type = getTypeByOperator(operator, right) || originalType
+                memberExpressionHandle(left, jsData, type)
+            } else {
+                binaryExpressionHandle(path, left, right, operator, jsData)
+            }
+
+            if (t.isMemberExpression(right)) {
+                let type = getTypeByOperator(operator, left) || originalType
+                memberExpressionHandle(right, jsData, type)
+            } else {
+                binaryExpressionHandle(path, right, left, operator, jsData)
+            }
+            path.skip()
+        },
+    })
+}
 
 /**
  *
@@ -557,11 +567,26 @@ function binaryExpressionHandle (path, left, right, operator, jsData) {
         || t.isCallExpression(left)
     ) return
 
-    var type = getTypeByOperator(operator, right)
-
     let valuePath = `${ generate(left.node).code }`
     if (valuePath) {
         // console.log("valuePath ", valuePath, type)
+
+        //含有三元表达式的情况, 则继续进行转换
+        const ternaryReg = /([^?]*)\?([^:]*):([^;]*)/
+        if (ternaryReg.test(valuePath)) {
+            valuePath.replace(ternaryReg, function (match, $1, $2, $3) {
+                const node1 = javascriptParser.parse($1)
+                const node2 = javascriptParser.parse($2)
+                const node3 = javascriptParser.parse($3)
+                // TODO: 待优化逻辑。目前功能已实现， 暂不支持，嵌套三元
+                traverseJsAst(node1, jsData, getTypeByOperator(node1.operator, node1))
+                addValueToData(jsData, $2, getTypeByOperator(node2.operator, node2))
+                addValueToData(jsData, $3, getTypeByOperator(node3.operator, node3))
+            })
+            return;
+        }
+
+        var type = getTypeByOperator(operator, right)
         addValueToData(jsData, valuePath, type)
     }
 
