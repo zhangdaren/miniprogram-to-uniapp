@@ -362,6 +362,16 @@ function forTagHandle (node, attrs, file_wxml) {
         utils.log(logStr)
     }
 
+    //如果wx_forItem是index时，设置为item
+    if (wx_forItem === "index") {
+        wx_forItem = "item"
+
+        const code = templateParser.astToString([node])
+        let logStr = "[Error] 检测到wx:for-item的值为index，index理论上不应该作为item使用，已尝试修复   file-> " + path.relative(global.miniprogramRoot, file_wxml) + "   code-> " + code
+        global.log.push(logStr)
+        utils.log(logStr)
+    }
+
     if (value) {
         //处理<view wx:for="{{ dates }}" wx:key="dates"></view>
         if (value.replace(/{{\s*(.*?)\s*}}/, '$1').trim() === wx_key)

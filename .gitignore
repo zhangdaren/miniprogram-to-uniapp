@@ -5,3 +5,4 @@ demo
 *.DS_Store
 plugins
 .idea
+docs/

@@ -797,10 +797,10 @@ const componentTemplateBuilder = function (
                     //将this.data.xxx转换为this.xxx
 
                     //如果父级是AssignmentExpression，则不需再进行转换
-                    // if (parentPath && !t.isAssignmentExpression(parentPath)) {
-                    path.replaceWith(object)
-                    // path.skip()
-                    // }
+                    if (parentPath && !t.isAssignmentExpression(parentPath)) {
+                        path.replaceWith(object)
+                        path.skip()
+                    }
                 } else if (t.isIdentifier(property.node, { name: "properties" })) {
                     //将this.properties.xxx转换为this.xxx
                     if (t.isMemberExpression(parentPath)) {

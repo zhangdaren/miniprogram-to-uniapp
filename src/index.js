@@ -22,6 +22,8 @@ const templateParser = new TemplateParser()
 
 const MAX_FILE_SIZE = 500 * 1024
 
+var packageJSON = require('../package.json');
+
 //文件组数据
 //数据结构为：
 // {
@@ -1192,20 +1194,21 @@ async function transform (
     //
     global.log.push('miniprogram to uni-app 转换日志')
     global.log.push('')
-    global.log.push('---基本信息---')
-    global.log.push('时间: ' + utils.formatDate(new Date(), 'yyyy-MM-dd hh:mm:ss'))
+    global.log.push('###################基本信息###################')
+    global.log.push('工具版本：v' + packageJSON.version)
+    global.log.push('转换时间: ' + utils.formatDate(new Date(), 'yyyy-MM-dd hh:mm:ss'))
     global.log.push(
-        '语言: ' + (global.isTSProject ? 'TypeScript' : 'Javascript')
+        '项目语言: ' + (global.isTSProject ? 'TypeScript' : 'Javascript')
     )
     global.log.push(
-        '转换模式: ' + (global.isVueAppCliMode ? 'vue-cli' : 'Hbuilder X')
+        '项目类型: ' + (global.isVueAppCliMode ? 'vue-cli' : 'Hbuilder X')
     )
     global.log.push('isTransformWXS: ' + global.isTransformWXS)
     global.log.push('isRenameWxToUni: ' + global.isRenameWxToUni)
     global.log.push('isMergeWxssToVue: ' + global.isMergeWxssToVue)
     global.log.push('isRepair: ' + global.isRepair)
     global.log.push('')
-    global.log.push('---小程序基本信息---')
+    global.log.push('################小程序基本信息#################')
     global.log.push('name: ' + configData.name)
     global.log.push('version: ' + configData.version)
     global.log.push('description: ' + configData.description)
@@ -1214,13 +1217,13 @@ async function transform (
     global.log.push('compileType: ' + configData.compileType)
     global.log.push('author: ' + configData.author)
     global.log.push('')
-    global.log.push('---目录信息---')
+    global.log.push('###################目录信息###################')
     global.log.push('sourceFolder: ' + sourceFolder)
     global.log.push('targetFolder: ' + global.targetFolder)
     global.log.push('outputFolder: ' + global.outputFolder)
     global.log.push('miniprogramRoot: ' + global.miniprogramRoot)
     global.log.push('')
-    global.log.push('---日志信息---')
+    global.log.push('###################日志信息###################')
 
     //
     utils.log('outputFolder = ' + global.outputFolder)
@@ -1435,7 +1438,7 @@ async function transform (
                 str += `gitee：https://gitee.com/zhangdaren/miniprogram-to-uniapp\r\n`
                 str += `github：https://github.com/zhangdaren/miniprogram-to-uniapp\r\n`
                 str += `\r\n`
-                str += `热烈欢迎各位大佬star和issue!\r\n`
+                str += `欢迎各位大佬star和issue!\r\n`
 
                 if (isVantProject) {
                     str +=

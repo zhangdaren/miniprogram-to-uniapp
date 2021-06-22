@@ -941,6 +941,9 @@ function conditionalExpToIfStatement (ast) {
  * success和fail回调函数的参数语义化(嵌套时有问题)
  * success ==> res; fail ==> err
  *
+ *
+ * if("" != r && void 0 != r){} ==> if(r){}
+ *
  * getCurrentPages()处理
  * @param {*} path
  */
@@ -1129,15 +1132,19 @@ function repairJavascript (ast) {
             var consequent = path.node.consequent
             var alternate = path.node.alternate
 
-            //没有else就返回
-            if (!alternate) return
+            if (alternate) {
+                if (!t.isBlockStatement(consequent)) {
+                    path.node.consequent = t.blockStatement([consequent])
+                }
 
-            if (!t.isBlockStatement(consequent)) {
-                path.node.consequent = t.blockStatement([consequent])
-            }
-
-            if (!t.isBlockStatement(alternate)) {
-                path.node.alternate = t.blockStatement([alternate])
+                if (!t.isBlockStatement(alternate)) {
+                    path.node.alternate = t.blockStatement([alternate])
+                }
+            } else {
+                //没有else
+                if (!t.isBlockStatement(consequent)) {
+                    path.node.consequent = t.blockStatement([consequent])
+                }
             }
         },
         ForStatement (path) {
@@ -1147,6 +1154,75 @@ function repairJavascript (ast) {
             const body = path.node.body
             if (!t.isBlockStatement(body)) {
                 path.node.body = t.blockStatement([body])
+            }
+        },
+        LogicalExpression (path) {
+            let parentPath = path.parentPath
+            if (t.isIfStatement(parentPath)) {
+                let left = path.node.left
+                let right = path.node.right
+                if (t.isBinaryExpression(left) && t.isBinaryExpression(right)) {
+
+                    /**
+                     *
+                     *  if ("" != r && void 0 != r) { }
+                     *  替换为：
+                     *  if (r) {
+                     *
+                     */
+                    //
+                    let leftSubLeft = left.left
+                    let leftSubRight = left.right
+                    let leftOperator = left.operator
+                    //
+                    let rightSubLeft = right.left
+                    let rightSubRight = right.right
+                    let rightOperator = right.operator
+
+                    var bool1 = leftOperator === rightOperator
+
+                    let bool2 = t.isIdentifier(leftSubRight)
+                        && t.isIdentifier(rightSubRight)
+                        && leftSubRight.name === rightSubRight.name
+
+
+                    let bool3 = t.isStringLiteral(leftSubLeft, { value: "" }) &&
+                        t.isUnaryExpression(rightSubLeft) &&
+                        t.isNumericLiteral(rightSubLeft.argument, { value: 0 })
+
+                    if (bool1 && bool2 && bool3) {
+                        path.replaceWith(t.identifier(leftSubRight.name))
+                    }
+                }
+            }
+        },
+        ReturnStatement (path) {
+            let argument = path.node.argument
+            if (t.isSequenceExpression(argument)) {
+                let expressions = argument.expressions
+
+                /**
+                 * return a = 1, b = 2, c = 3, false;
+                 *
+                 * 转换为：
+                 *
+                 * a = 1;
+                 * b = 2;
+                 * c = 3;
+                 * return false;
+                 *
+                 */
+
+
+                // 注：
+                // 1. 数据倒序遍历，并且是从倒数第 2 个开始！
+                // 2. 暂未知这种情况是否可以优雅点用js数组操作方法？
+                for (let i = expressions.length - 2;i >= 0;i--) {
+                    const subPath = expressions[i]
+                    let exp = t.expressionStatement(subPath)
+                    path.insertBefore(exp)
+                    expressions.splice(i, 1)
+                }
             }
         }
     })

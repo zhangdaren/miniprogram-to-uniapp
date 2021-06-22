@@ -139,12 +139,19 @@ $ wtu -i ./miniprogram-project -f
 -   不支持转换组件间关系relations
 -   不支持转换 echarts 组件，需手动替换 echarts 为其他组件
 -   不支持 component 里的 pageLifetimes 生命周期，请手动绕过
--   不支持使用 js 系统关键字作为函数或变量名(如 default、import、return、switch 等)
+-   不支持使用 js 系统关键字作为函数或变量名(如 default、import、return、switch、continue、delete 等)
 -   不支持以\$开头的变量名称，如 `Page({data:{$data:{name:"hello"}}})` ，刚好\$data 是 vue 内置变量，so 不支持，需手动修复
 -   不支持以动态绑定的函数`<input @input="test{{index+1}}">`，需手动修复
 -   更多，请参照[miniprogram to uniapp 工具答疑](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
 
 ## 更新记录
+
+### v1.1.4(20210622)
+- [新增] observer多个值时的处理
+- [新增] observer转换后默认配置为:immediate和deep
+- [新增] `if("" != r && void 0 != r){}` ==> `if(r){}`
+- [修复] 尝试修复`wx:for-item="index"`的情况
+...等等
 
 ### v1.1.3(20210615)
 
