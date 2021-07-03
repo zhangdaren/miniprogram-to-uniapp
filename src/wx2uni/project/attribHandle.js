@@ -582,6 +582,8 @@ function binaryExpressionHandle (path, left, right, operator, jsData) {
         || t.isBinaryExpression(left)
         || t.isUnaryExpression(left)
         || t.isCallExpression(left)
+        || t.isLogicalExpression(left)   // (plugins_coupon_data || null) != null
+        || t.isNullLiteral(left)   //  null
     ) return
 
     let valuePath = `${ generate(left.node).code }`

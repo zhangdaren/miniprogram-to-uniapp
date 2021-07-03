@@ -109,7 +109,7 @@ function parseParams (params, replacePropsMap = {}) {
       let newCode = `${generate(javascriptAst).code}`;
       if (newCode !== oldCode) {
         codeText = newCode;
-        let logStr = "[绑定值命名替换]:  " + oldCode + "  -->  " + newCode;
+        let logStr = "[template标签内容绑定值命名替换]:  " + oldCode + "  -->  " + newCode;
 
         //存入日志，方便查看
         // utils.log(logStr, "base");

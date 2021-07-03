@@ -1,7 +1,27 @@
 # Miniprogram to uni-app - Release Notes
 
 ======================================
-### v1.1.0(20210430)
+
+
+## v1.1.4(20210622)
+- [新增] observer多个值时的处理
+- [新增] observer转换后默认配置为:immediate和deep
+- [新增] `if("" != r && void 0 != r){}` ==> `if(r){}`
+- [修复] 尝试修复`wx:for-item="index"`的情况
+...等等
+
+## v1.1.3(20210615)
+
+-  [新增] var 一行声明拆成多行声明
+-  [修复] 生成css附带source map的bug
+-  [修复] H5平台添加兼容导航栏位置的css错乱的bug
+-  [修复] `onLoad: function(options = {}){}` 解析 报错的bug
+-  [修复] 属性为空时未删除的bug(如`<view start="{{}}"></view>`、`<view class="page_db_1" bindtap="">`等)
+-  [修复] form-type被莫名加上了冒号(:)的bug(`<view :form-type="submit"></view>`)
+-  [修复] 支持微信小程序”简易双向绑定“转换(`<input model:value="{{myValue}}" />`-->`<input v-model="myValue" />`)
+
+
+## v1.1.0(20210430)
 
 -   【重要】 [针对压缩代码]增加 -f 参数，默认为false，用于尽可能修复被混淆过的js代码，提升可读性！
 -   【重要】 [针对压缩代码]三元表达式转换为if表达式(需增加-f参数)
@@ -9,7 +29,7 @@
 -   【重要】 增加小程序大部分API函数的Polyfill，尽量避免调试报错，让项目先跑起来！(实验阶段)
 -   【重要】 增加uni.navigateTo、uni.redirectTo不能跳转tabBar页面的Polyfill(不得已而为之)
 -   【重要】 搜索template里未声明的变量，智能识别变量类型，并在data里面进行声明！
--   【重要】 升级 jyf-parse 为 mp-html v2.1.2（2021-04-24）
+-   【重要】 升级 jyf-parse 为 mp-html v2.1.3（2021-06-12）
 -   【重要】 增加getCurrentPages的处理
 <!-- -   [新增] 组件picker的mode属性为region的检测(App和H5未实现region) -->
 -   【重要】 使用[全兼容官方 picker mode=region 城市选择器](https://ext.dcloud.net.cn/plugin?id=1536) v1.0.6（2020-06-16）替换 `<picker mode="region"></picker>`

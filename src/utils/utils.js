@@ -122,7 +122,7 @@ function isValueName (str) {
  * template里这些字符串变量将不会在data里定义
  * util.beautifyTime() 过滤
  */
-const exceptNameReg = /^(index|items|idx)$|^item(\w+)?|\.\w+\(/
+const exceptNameReg = /^(index|items|idx)$|^item(\w+)?|\.\w+|\bnull\b\(/
 
 
 // function isString (val) {

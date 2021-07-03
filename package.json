@@ -69,9 +69,9 @@
         "url": "git+ssh://git@github.com/zhangdaren/miniprogram-to-uniapp.git"
     },
     "scripts": {
-        "docs:dev": "vuepress dev docs",
+        "docs:dev": "vuepress dev docs --temp .temp",
         "docs:build": "vuepress build docs",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "version": "1.1.4"
+    "version": "1.1.5"
 }

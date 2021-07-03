@@ -805,10 +805,8 @@ function otherRequirePathHandle (path, fileDir) {
 
                         if (filePath.indexOf("/wxParse/") > -1) {
                             // babelUtil.addComment(path.parentPath, `${generate(path.node).code}`);  //没法改成注释，只能删除
-                            try {
-                                path.remove()  //这里居然会报错：报cannot read property buildError of undefined
-                            } catch (err) {
-                                console.log("-------err ", err)
+                            if (t.isObjectProperty(path2.parentPath)) {
+                                path2.parentPath.remove()
                             }
                         } else {
                             filePath = pathUtil.relativePath(
@@ -1127,23 +1125,40 @@ function repairJavascript (ast) {
             }
         },
         IfStatement (path) {
-            //if (1 == a.is_open_sku) o=4; else o=5; 改成多行展示
-
-            var consequent = path.node.consequent
-            var alternate = path.node.alternate
-
-            if (alternate) {
-                if (!t.isBlockStatement(consequent)) {
-                    path.node.consequent = t.blockStatement([consequent])
-                }
-
-                if (!t.isBlockStatement(alternate)) {
-                    path.node.alternate = t.blockStatement([alternate])
-                }
+            let test = path.node.test
+            if (t.isSequenceExpression(test)) {
+                /**
+                 *
+                 * if(a=1, b=2, c===5){}
+                 *
+                 * 转换后：
+                 *
+                 * a=1;
+                 * b=2;
+                 * if(c===5){}
+                 *
+                 */
+                sequenceExpressionHandle(test, path)
             } else {
-                //没有else
-                if (!t.isBlockStatement(consequent)) {
-                    path.node.consequent = t.blockStatement([consequent])
+                /**
+                 * if (1 == a.is_open_sku) o=4; else o=5; 改成多行展示
+                 */
+                let consequent = path.node.consequent
+                let alternate = path.node.alternate
+
+                if (alternate) {
+                    if (!t.isBlockStatement(consequent)) {
+                        path.node.consequent = t.blockStatement([consequent])
+                    }
+
+                    if (!t.isBlockStatement(alternate)) {
+                        path.node.alternate = t.blockStatement([alternate])
+                    }
+                } else {
+                    //没有else
+                    if (!t.isBlockStatement(consequent)) {
+                        path.node.consequent = t.blockStatement([consequent])
+                    }
                 }
             }
         },
@@ -1199,9 +1214,8 @@ function repairJavascript (ast) {
         ReturnStatement (path) {
             let argument = path.node.argument
             if (t.isSequenceExpression(argument)) {
-                let expressions = argument.expressions
-
                 /**
+                 *
                  * return a = 1, b = 2, c = 3, false;
                  *
                  * 转换为：
@@ -1212,22 +1226,51 @@ function repairJavascript (ast) {
                  * return false;
                  *
                  */
-
-
-                // 注：
-                // 1. 数据倒序遍历，并且是从倒数第 2 个开始！
-                // 2. 暂未知这种情况是否可以优雅点用js数组操作方法？
-                for (let i = expressions.length - 2;i >= 0;i--) {
-                    const subPath = expressions[i]
-                    let exp = t.expressionStatement(subPath)
-                    path.insertBefore(exp)
-                    expressions.splice(i, 1)
-                }
+                sequenceExpressionHandle(argument, path)
             }
         }
     })
 }
 
+/**
+ *
+ * 展开SequenceExpression表达式
+ *
+ * 示例1：
+ * if(a=1, b=2, c===5){}
+ *
+ * 转换后：
+ *
+ * a=1;
+ * b=2;
+ * if(c===5){}
+ *
+ * 示例2：
+ * return a = 1, b = 2, c = 3, false;
+ *
+ * 转换为：
+ *
+ * a = 1;
+ * b = 2;
+ * c = 3;
+ * return false;
+ *
+ */
+function sequenceExpressionHandle (path, parentPath) {
+    if (t.isSequenceExpression(path)) {
+        //多判断一下，覆盖更多情况
+        let expressions = path.node ? path.node.expressions : path.expressions
+
+        for (let i = 0;i < expressions.length - 1;i++) {
+            const subPath = expressions[i]
+            let exp = t.expressionStatement(subPath)
+            parentPath.insertBefore(exp)
+        }
+
+        //保留最后一个表达式
+        expressions.splice(0, expressions.length - 1)
+    }
+}
 
 
 /**
@@ -1591,7 +1634,13 @@ function astAntiAliasing (ast) {
 
     //三元表达式转if表达式（针对：r = a ? 2 == d ? "1111" : "2222"  : "3333"; 需再次遍历，暂无更好办法）
     conditionalExpToIfStatement(ast)
+
+    //最后再来一次：
+    //js 修复
+    repairJavascript(ast)
+
 }
+
 
 
 module.exports = {

@@ -22,7 +22,7 @@ const templateParser = new TemplateParser()
 
 const MAX_FILE_SIZE = 500 * 1024
 
-var packageJSON = require('../package.json');
+var packageJSON = require('../package.json')
 
 //文件组数据
 //数据结构为：
@@ -156,8 +156,12 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                     )
                 } else {
                     //utils.log(stats)
+
+                    let extname = path.extname(fileName).toLowerCase()
+
+
                     /*not use ignore files*/
-                    if (fileName[0] == '.' || fileName === "project.config.json") {
+                    if (fileName[0] == '.' || fileName === "project.config.json" || extname === ".ts") {
                     } else {
                         //判断是否含有wxParse文件
                         global.hasWxParse =
@@ -166,7 +170,7 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                         // utils.log("文件 ", fileDir, fileName);
 
                         //这里处理一下，防止目录名与文件名不一致
-                        let extname = path.extname(fileName).toLowerCase()
+
                         let fileNameNoExt = pathUtil.getFileNameNoExt(fileName)
                         //
                         let obj = {}
@@ -1427,9 +1431,9 @@ async function transform (
 
                 //常见问答
                 str += `\r\n常见问题：\r\n`
-                questions.forEach(function(obj){
-                    str += `问：${obj.q}\r\n`
-                    str += `答：${obj.a}\r\n`
+                questions.forEach(function (obj) {
+                    str += `问：${ obj.q }\r\n`
+                    str += `答：${ obj.a }\r\n`
                     str += `\r\n`
                 })
 

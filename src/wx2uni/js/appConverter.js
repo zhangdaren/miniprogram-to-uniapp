@@ -45,7 +45,7 @@ const vistor = {
     ExpressionStatement (path) {
         const parent = path.parentPath.parent;
         babelUtil.otherRequirePathHandle(path, fileDir);
-        if (t.isCallExpression(path.node.expression)) {
+        if (path.node && t.isCallExpression(path.node.expression)) {
             const calleeName = t.isIdentifier(path.node.expression.callee)
                 ? path.node.expression.callee.name.toLowerCase()
                 : "";
@@ -200,10 +200,8 @@ const vistor = {
             case "data":
                 initGlobalData();
                 if (path.node.value && path.node.value.properties) {
-                    globalData.value.properties = [
-                        ...globalData.value.properties,
-                        ...path.node.value.properties
-                    ];
+                    //data移入globalData
+                    globalData.value.properties.push(path.node);
                 }
                 path.skip();
                 break;

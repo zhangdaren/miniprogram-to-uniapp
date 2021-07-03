@@ -326,15 +326,70 @@ function lifeCycleHandle (path) {
  * 特别针对同时监听多个变量的处理
  * 并，增加deep和immediate参数
  *
+ *
  * @param {*} path
  */
 function observersHandle (path) {
+
+    /**
+     *
+     * TODO: 这个暂时没法支持
+     * 特别地，仅使用通配符 ** 可以监听全部 setData 。
+     *
+     * 如果需要监听所有子数据字段的变化，可以使用通配符 ** 。
+     *
+     *
+     */
+    //  Component({
+    //     observers: {
+    //       '**': function() {
+    //         // 每次 setData 都触发
+    //       },
+    //     },
+    //   })
+
+    // Component({
+    //     observers: {
+    //       'some.field.**': function(field) {
+    //         // 使用 setData 设置 this.data.some.field 本身或其下任何子数据字段时触发
+    //         // （除此以外，使用 setData 设置 this.data.some 也会触发）
+    //         field === this.data.some.field
+    //       },
+    //     },
+    //     attached: function() {
+    //       // 这样会触发上面的 observer
+    //       this.setData({
+    //         'some.field': { /* ... */ }
+    //       })
+    //       // 这样也会触发上面的 observer
+    //       this.setData({
+    //         'some.field.xxx': { /* ... */ }
+    //       })
+    //       // 这样还是会触发上面的 observer
+    //       this.setData({
+    //         'some': { /* ... */ }
+    //       })
+    //     }
+    //   })
+
     var properties = path.node.value.properties
+    var reg = /\.\*\*$/
     if (properties) {
         properties.forEach(function (item) {
-            var keyName = item.key.value
+            var keyName = item.key.value || item.key.name
             var value = item.value
-            if (keyName.indexOf(",") > -1) {
+
+            // if (reg.test(keyName)) {
+            //     keyName = keyName.replace(reg, "")
+            // }
+
+            if (keyName === "**") {
+                let logStr = `[Error] 小程序上 “ ** ” 是监听整个data的变量，但uniapp/vue无此语法    file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                utils.log(logStr)
+                global.log.push(logStr)
+            }
+
+            if (keyName && keyName.indexOf(",") > -1) {
                 if (t.isFunctionExpression(value)) {
                     //清除空格
                     keyName = keyName.replace(/\s/g, "")
@@ -349,7 +404,7 @@ function observersHandle (path) {
                     var keyList = keyName.split(",")
                     var objList = []
                     keyList.forEach(function (name) {
-                        name = name.trim()
+                        name = name.trim().replace(reg, "")
                         objList.push(t.objectProperty(t.identifier(name), t.identifier(name), false, true))
                     })
                     var objectPattern = t.objectPattern(objList)
@@ -357,35 +412,48 @@ function observersHandle (path) {
                     funExpBody.unshift(varPath)
 
                     //
-                    let objExp_handle = t.objectProperty(
-                        t.identifier("handler"),
-                        funExp
-                    )
-                    //对齐微信小程序，开启首次赋值监听
-                    let objExp_immediate = createObjectProperty("immediate")
-
-                    //Array和Object换成深度监听
-                    let objExp_deep = createObjectProperty("deep")
-
-                    let subProperties = [objExp_handle, objExp_immediate, objExp_deep]
-                    var newKeyName = keyName.replace(/\s/g, "").replace(/,/g, "_")
-
-                    let objExp = t.objectExpression(subProperties)
-                    objProp = t.objectProperty(t.identifier(newKeyName), objExp)
-                    //
-                    vistors["watch"].handle(objProp)
-
+                    addWatchHandlerItem(keyName, funExp)
                     //
                     addComputedItem(keyName)
                 } else {
-                    vistors["watch"].handle(item)
+                    addWatchHandlerItem(keyName, value)
                 }
             } else {
-                vistors["watch"].handle(item)
+                addWatchHandlerItem(keyName, value)
             }
         })
     }
 }
+
+/**
+ * 将observers改造成handler引用方式，并添加到watch里
+ *
+ * @param {*} keyName
+ * @param {*} funExp
+ */
+function addWatchHandlerItem (keyName, funExp) {
+    var reg = /\.\*\*$/
+    //
+    let objExp_handle = t.objectProperty(
+        t.identifier("handler"),
+        funExp
+    )
+    //对齐微信小程序，开启首次赋值监听
+    let objExp_immediate = createObjectProperty("immediate")
+
+    //Array和Object换成深度监听
+    let objExp_deep = createObjectProperty("deep")
+
+    let subProperties = [objExp_handle, objExp_immediate, objExp_deep]
+    var newKeyName = keyName.replace(/\s/g, "").replace(/,/g, "_").replace(reg, "")
+
+    let objExp = t.objectExpression(subProperties)
+    objProp = t.objectProperty(t.stringLiteral(newKeyName), objExp)
+    //
+    vistors["watch"].handle(objProp)
+}
+
+
 
 /**
  * 创建指定name的objectproperty
