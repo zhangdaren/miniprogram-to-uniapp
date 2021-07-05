@@ -264,7 +264,7 @@ function toCamel (str) {
  * 驼峰命名转为短横线命名
  */
 function getKebabCase (str) {
-    return str.replace(/[A-Z]/g, function (i) {
+    return str.replace(/(?<!\-)[A-Z]/g, function (i) {
         return '-' + i.toLowerCase()
     })
 }
