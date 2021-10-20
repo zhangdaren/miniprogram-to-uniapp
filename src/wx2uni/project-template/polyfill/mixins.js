@@ -1,7 +1,7 @@
 /**
  * 如果你想删除本文件，请先确认它使用的范围，感谢合作~
  *
- * author: 375890534@qq.com
+ * Author: 375890534@qq.com
  */
 export default {
     methods: {

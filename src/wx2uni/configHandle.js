@@ -10,6 +10,8 @@ const pinyin = require("node-pinyin")
 
 const clone = require('clone')
 
+const prettier = require('prettier')
+
 
 /**
  * 将小程序subPackages节点处理为uni-app所需要的节点
@@ -26,7 +28,7 @@ function subPackagesHandle (subPackages, routerData) {
         for (const subKey in pages) {
             const subObj = pages[subKey]
 
-            let absKey = root + subObj
+            let absKey = root + "/" + subObj
             let style = {}
             if (routerData[absKey]) {
                 style = routerData[absKey]
@@ -59,7 +61,7 @@ function subPackagesHandle (subPackages, routerData) {
  */
 async function configHandle (configData, routerData, miniprogramRoot, targetFolder) {
     try {
-        await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             ////////////////////////////write pages.json/////////////////////////////
 
             //app.json文件路径
@@ -69,6 +71,7 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
                 "tabBar": {},
                 "globalStyle": {},
                 "usingComponents": {},
+                "useExtendedLib": {},
             }
             if (fs.existsSync(json_app)) {
                 appJson = fs.readJsonSync(json_app)
@@ -115,6 +118,10 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
                 pages.push(obj)
             }
             appJson.pages = pages
+
+            //检查是否通过useExtendedLib方式引用了weui
+            global.isUseWeuiExtendedLib = appJson.useExtendedLib && appJson.useExtendedLib.weui || false
+
 
             //替换window节点为globalStyle
             appJson["globalStyle"] = clone(appJson["window"] || {})
@@ -297,6 +304,9 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
             mainContent += "app.$mount();\r\n"
             //
             let file_main = path.join(targetFolder, "main.js")
+            //格式化代码
+            mainContent = prettier.format(mainContent, { parser: "babel" })
+
             fs.writeFileSync(file_main, mainContent)
             utils.log(`write ${ path.relative(global.targetFolder, file_main) } success!`)
 

@@ -1,3 +1,4 @@
+const { NodePath } = require('@babel/traverse')
 const fs = require('fs')
 const path = require('path')
 const nodeUtil = require('util')
@@ -212,22 +213,72 @@ function relativePath (filePath, root, fileDir) {
     //     ); //去掉扩展名
     // }
 
-    if (/^\//.test(filePath)) {
-        //如果是以/开头的，表示根目录
-        filePath = path.join(root, filePath)
+
+
+    // import PubSub, { publish } from 'pubsub-js'
+    // import moment from "moment"
+
+    const reg_signle = /[\w-_]+/
+    const reg_weui = /^weui-miniprogram\//
+
+
+    if(filePath.indexOf("weui-miniprogram")>-1)
+    {
+        console.log("----")
+    }
+
+    if (reg_signle.test(filePath) || reg_weui.test(filePath)) {
+        var testFile = path.join(root, "miniprogram_npm", filePath)
+
+        // console.log("---------------filePath 1 ", filePath)
+        // console.log("---------------ftestFolder ", testFolder)
+        if (fs.existsSync(testFile)) {
+            filePath =  "@/" + path.relative(root, testFile)
+        } else {
+            // console.log("----------------------漏风")
+            if (/^\//.test(filePath)) {
+                //如果是以/开头的，表示根目录
+                filePath = path.join(root, filePath)
+            } else {
+                filePath = path.join(fileDir, filePath)
+            }
+            // console.log("---------------filePath 2 ", filePath)
+
+            //todo: test @
+            // var xx = path.relative(global.miniprogramRoot, filePath);
+            // console.log("xx", xx)
+
+            filePath = path.relative(fileDir, filePath)
+
+            if (!/^[\.\/]/.test(filePath)) {
+                filePath = './' + filePath
+            }
+        }
     } else {
-        filePath = path.join(fileDir, filePath)
+        if (/^\//.test(filePath)) {
+            //如果是以/开头的，表示根目录
+            filePath = path.join(root, filePath)
+        } else {
+            filePath = path.join(fileDir, filePath)
+        }
+        // console.log("---------------filePath 2 ", filePath)
+
+        //todo: test @
+        // var xx = path.relative(global.miniprogramRoot, filePath);
+        // console.log("xx", xx)
+
+        filePath = path.relative(fileDir, filePath)
+
+        if (!/^[\.\/]/.test(filePath)) {
+            filePath = './' + filePath
+        }
     }
 
-    //todo: test @
-    // var xx = path.relative(global.miniprogramRoot, filePath);
-    // console.log("xx", xx)
+    // if(filePath.indexOf("pubsub-js") > -1)
+    // {
+    //     console.log("---------------filePath 2 ", filePath)
+    // }
 
-    filePath = path.relative(fileDir, filePath)
-
-    if (!/^[\.\/]/.test(filePath)) {
-        filePath = './' + filePath
-    }
     return utils.normalizePath(filePath)
 }
 

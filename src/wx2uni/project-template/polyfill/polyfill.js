@@ -6,7 +6,7 @@
  * 现根据uniapp文档对各平台的支持度，或实现，或调用success来抹平各平台的差异，
  * 让代码能正常运行，下一步再解决这些api的兼容问题。
  *
- * author: 375890534@qq.com
+ * Author: 375890534@qq.com
  */
 const base64Binary = require("./base64Binary")
 

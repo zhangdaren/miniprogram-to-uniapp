@@ -734,8 +734,8 @@ function otherTagHandle (node, attrs, k) {
     //处理下面这种嵌套关系的样式或绑定的属性
     //style="background-image: url({{avatarUrl}});color:{{abc}};font-size:12px;"
     let value = attrs[wx_key]
-    //将双引号转换单引号
-    value = value.replace(/\"/g, "'")
+    //将双引号转换单引号(PS: 使用模板字符串后，理论上不需要转换引号了)
+    // value = value.replace(/\"/g, "'")
 
     //<navigator class="slist" url="{{(!items.status && !items.reward)?'../notes/notes':items.active_type == 1?'../active/active?id='+items.id:'../active1/active1?id='+items.id}}"></navigator>
     //查找{{}}里是否有?，有就加个括号括起来
@@ -793,20 +793,22 @@ function otherTagHandle (node, attrs, k) {
         let reg3 = /^{{ ?/ //起始的{{
         let reg4 = / ?}}$/ //文末的}}
 
-        value = value.replace(reg1, "' + ").replace(reg2, " + '")
+        //注意：这几行都是使用模板字符串语法
+        //修复<view class="['legend','col-9',{{actTabIndex===0? 'show':'none'}}]">活动</view>这类代码
+        value = value.replace(reg1, "` + ").replace(reg2, " + `")
 
         //单独处理前后是否有{{}}的情况
         if (reg3.test(value)) {
             //有起始的{{的情况
             value = value.replace(reg3, '')
         } else {
-            value = "'" + value
+            value = "`" + value
         }
         if (reg4.test(value)) {
             //有结束的}}的情况
             value = value.replace(reg4, '')
         } else {
-            value = value + "'"
+            value = value + "`"
         }
 
         //试处理：<view url="/page/url/index={{item.id}}&data='abc'"></view>

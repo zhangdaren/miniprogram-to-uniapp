@@ -6,6 +6,7 @@
 const fs = require('fs-extra')
 const t = require("@babel/types")
 const nodePath = require("path")
+const { parseExpression } = require("@babel/parser")
 const generate = require("@babel/generator").default
 const traverse = require("@babel/traverse").default
 const template = require("@babel/template").default
@@ -26,7 +27,7 @@ let compiledProjectHandle = null
 try {
     compiledProjectHandle = require('./plugins/compiledProjectHandle')
 } catch (error) {
-    // utils.log("加载失败，", error)
+    utils.log("加载失败，", error)
 }
 
 /**
@@ -172,13 +173,30 @@ function defineValueHandle (ast, vistors, file_js, fileKey) {
                                     }
                                     element.innerComments.push(obj)
 
-                                    // babelUtil.addComment(subElement, pathStr)
+                                    let keyStr = `${ generate(subElement.key).code }`
+
+                                    if (keyStr.indexOf("`") > -1) {
+                                        //含模板字符串
+                                        // this.setData({
+                                        //     [`${style}.xxx.${name}`]: 11
+                                        // });
+                                        keyStr = keyStr.replace(/\.?\$\{(\w+)\}/g, "[$1]")
+                                        keyStr = keyStr.replace(/`/g, "")
+                                    } else {
+                                        //不含模板字符串
+                                        // this.setData({
+                                        //     ["info.jishilist[" + index + "].ifguanzhu"]: 0
+                                        // });
+                                        keyStr = keyStr.replace(/["']\s*\+\s*|\s*\+\s*["']|["']/g, "")
+                                    }
 
                                     //尝试修复一下
-                                    var parentPath = path.parentPath
-                                    var meExp = t.memberExpression(object, subElement.key, true)
+                                    var dotStr = keyStr.indexOf("[") > 0 ? "." : ""
+                                    var codeStr = generate(object).code + dotStr + keyStr
+                                    let meExp = parseExpression(codeStr)
                                     var assExp = t.assignmentExpression("=", meExp, value)
                                     var exp = t.expressionStatement(assExp)
+                                    var parentPath = path.parentPath
                                     parentPath.insertAfter(exp)
                                     parentPath.insertAfter(t.identifier("//try fix"))
 
@@ -622,7 +640,7 @@ const componentTemplateBuilder = function (
             if (t.isMemberExpression(callee)) {
                 let object = callee.get("object")
                 let property = callee.get("property")
-                if (t.isIdentifier(object.node, { name: global.mpTypeName })) {
+                if (t.isIdentifier(object.node, { name: global.mpTypeName }) || t.isIdentifier(object.node, { name: "uni" })) {
                     if (t.isIdentifier(property.node, { name: "createWorker" })) {
                         //将wx.createWorker('workers/fib/index.js')转为wx.createWorker('./static/workers/fib/index.js');
                         let arguments = path.node.arguments
@@ -796,10 +814,13 @@ const componentTemplateBuilder = function (
                 if (t.isIdentifier(property.node, { name: "data" })) {
                     //将this.data.xxx转换为this.xxx
 
-                    //如果父级是AssignmentExpression，则不需再进行转换
-                    if (parentPath && !t.isAssignmentExpression(parentPath)) {
-                        path.replaceWith(object)
-                        path.skip()
+                    //注：app.js里的data不用处理！！！
+                    if (!isApp) {
+                        //如果父级是AssignmentExpression，则不需再进行转换
+                        if (parentPath && !t.isAssignmentExpression(parentPath)) {
+                            path.replaceWith(object)
+                            path.skip()
+                        }
                     }
                 } else if (t.isIdentifier(property.node, { name: "properties" })) {
                     //将this.properties.xxx转换为this.xxx
@@ -985,11 +1006,6 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
         babelUtil.renameToUni(javascriptAst, keyword)
     }
 
-    //有type才会转换，暂时对于那种单js文件不开放，防止意外，也没必要
-    if (astType && global.isRepair) {
-        babelUtil.astAntiAliasing(javascriptAst)
-    }
-
     //平台api函数polyfill
     // babelUtil.apiFunctionPolyfill(javascriptAst, keyword);
 
@@ -1109,6 +1125,15 @@ async function jsHandle (fileData, usingComponents, file_js, onlyJSFile, isAppFi
 
         }
         // utils.log(`${generate(convertedJavascript).code}`);
+
+
+
+    //有type才会转换，暂时对于那种单js文件不开放，防止意外，也没必要
+    if (astType && global.isRepair) {
+        babelUtil.astAntiAliasing(convertedJavascript)
+    }
+
+
 
         //生成文本并写入到文件
         if (astType === "Behavior" || astType === "Behavior2") {

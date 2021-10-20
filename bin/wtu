@@ -25,6 +25,7 @@ updater({ 'pkg': pkg }).then(() => {
         .option('-r, --rename', 'rename wx.xxx() to uni.xxx(), which default value is true', true)
         .option('-m, --merge', 'merge wxss file into vue file, which default value is false', false)
         .option('-f, --repair', 'repair javascript, which default value is false', false)
+        .option('-ff, --format', 'format file, which default value is false', false)
         .parse(process.argv);
 
     program.on('--help', function () {
@@ -53,6 +54,7 @@ updater({ 'pkg': pkg }).then(() => {
     let isRenameWxToUni = program.rename;
     let isMergeWxssToVue = program.merge;
     let isRepair = program.repair;
+    let isFormat = program.format;
 
     let options = {
         dist,
@@ -61,7 +63,8 @@ updater({ 'pkg': pkg }).then(() => {
         isVantProject,
         isRenameWxToUni,
         isMergeWxssToVue,
-        isRepair
+        isRepair,
+        isFormat,
     }
 
     src = path.resolve(process.cwd(), src);

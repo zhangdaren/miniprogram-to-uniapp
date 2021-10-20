@@ -28,7 +28,7 @@ let fileKey = ""
  */
 const componentVistor = {
     IfStatement (path) {
-        babelUtil.getAppFunHandle(path)
+        babelUtil.getAppFunHandle(path, fileKey)
     },
     ExpressionStatement (path) {
         const parent = path.parentPath.parent
@@ -132,7 +132,7 @@ const componentVistor = {
     FunctionDeclaration (path) {
         const parent = path.parentPath.parent
         if (t.isFile(parent)) {
-            babelUtil.getAppFunHandle(path)
+            babelUtil.getAppFunHandle(path, fileKey)
 
             //定义的外部函数
             babelUtil.otherRequirePathHandle(path, fileDir)
@@ -226,7 +226,7 @@ function lifeCycleHandle (path) {
             path.skip()
             break
         case "attached":
-            //组件特有生命周期: attached-->beforeMount
+            //组件特有生命周期: attached-->observerNode
             let newPath_a = clone(path)
             newPath_a.node.key.name = "beforeMount"
             vistors.lifeCycle.handle(newPath_a.node)
@@ -280,10 +280,17 @@ function lifeCycleHandle (path) {
             path.skip()
             break
         case "behaviors":
-            //组件的behaviors，重名为mixins，放入生命周期
-            let newPath_b = clone(path)
-            newPath_b.node.key.name = "mixins"
-            vistors.lifeCycle.handle(newPath_b.node)
+            //组件的behaviors，直接放入生命周期
+            var value = path.node.value
+            if (t.isArrayExpression(value)) {
+
+                value.elements.forEach(function (fieldNode) {
+                    if (t.isStringLiteral(fieldNode)) {
+                        fieldNode.value = fieldNode.value.replace(reg, "uni://")
+                    }
+                })
+            }
+            vistors.lifeCycle.handle(path.node)
             path.skip()
             break
         case "lifetimes":
@@ -356,20 +363,6 @@ function observersHandle (path) {
     //         field === this.data.some.field
     //       },
     //     },
-    //     attached: function() {
-    //       // 这样会触发上面的 observer
-    //       this.setData({
-    //         'some.field': { /* ... */ }
-    //       })
-    //       // 这样也会触发上面的 observer
-    //       this.setData({
-    //         'some.field.xxx': { /* ... */ }
-    //       })
-    //       // 这样还是会触发上面的 observer
-    //       this.setData({
-    //         'some': { /* ... */ }
-    //       })
-    //     }
     //   })
 
     var properties = path.node.value.properties
@@ -385,6 +378,14 @@ function observersHandle (path) {
 
             if (keyName === "**") {
                 let logStr = `[Error] 小程序上 “ ** ” 是监听整个data的变量，但uniapp/vue无此语法    file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+                utils.log(logStr)
+                global.log.push(logStr)
+            }
+
+            if (!value) {
+                let pathStr = `${ generate(item).code }`
+
+                let logStr = `[Warn] observers 里: ${ keyName }的监听表达式异常，已尝试处理(可能后续仍需手动调整)     代码： ${ pathStr }    file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
                 utils.log(logStr)
                 global.log.push(logStr)
             }
@@ -433,7 +434,17 @@ function observersHandle (path) {
  */
 function addWatchHandlerItem (keyName, funExp) {
     var reg = /\.\*\*$/
-    //
+
+    // funExp为undefined的情况，异常情况
+    // 下面代码let objExp_handle = t.objectProperty(){}
+    // 报错：["Expression", "PatterLike" ] but instead got undefined
+    if (!funExp) {
+        funExp = t.functionExpression(
+            null,
+            [t.identifier("newValue"), t.identifier("oldValue")],
+            t.blockStatement([])
+        )
+    }
     let objExp_handle = t.objectProperty(
         t.identifier("handler"),
         funExp

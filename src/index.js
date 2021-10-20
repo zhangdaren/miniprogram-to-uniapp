@@ -48,7 +48,7 @@ const questions = [{
     a: "已做polyfill，转换后可正常使用setData函数(见main.js文件)"
 }, {
     q: "getApp()能在Uni-app里面使用吗？",
-    a: "可以的，Uni-app早已支持"
+    a: "可以的，Uni-app早已支持，使用方式与微信小程序一致"
 }, {
     q: "为什么转换后我的资源文件都不见了？",
     a: "已将所有非static目录下面的资源文件都移入到static目录里"
@@ -57,7 +57,7 @@ const questions = [{
     a: "当然可以，必须可以！Uni-app项目可以编译到各种小程序、H5和APP等平台"
 }, {
     q: "为什么小程序运行正常，而转换到Uni-app后报了这么多错误呢？",
-    a: "很正常。Uni-app与小程序无法一一对应，且代码写法千变万化，工具也无法预测所有情况，只能尽力做到更少的报错、更好的兼容。有问题可以添加qq group(780359397、361784059)进行交流"
+    a: "很正常。Uni-app与小程序无法一一对应，且代码写法千变万化，工具也无法预测所有情况，只能尽力做到更少的报错、更好的兼容。有问题可以添加qq group(780359397、361784059、603659851)进行交流"
 }]
 
 
@@ -133,6 +133,9 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                         } else if (fileName === 'wxParse') {
                             fs.copySync(fileDir, newFileDir)
                             // ignoreFolder.push(fileDir)
+                        // } else if (fileName === 'node_modules') {
+                        //     fs.copySync(fileDir, newFileDir)
+                        //     ignoreFolder.push(fileDir)
                         } else {
                             //如果不是是素材目录或workers目录下面的子目录就复制
                             let isInIgnoreFolder =
@@ -147,6 +150,7 @@ function traverseFolder (folder, miniprogramRoot, targetFolder, callback) {
                             }
                         }
                     }
+
                     //继续往下面遍历
                     return traverseFolder(
                         fileDir,
@@ -1017,6 +1021,7 @@ function preHandle (folder, hbxOutputChannel) {
  * @param {*} isRenameWxToUni  是否转换wx为uni，默认为true
  * @param {*} isMergeWxssToVue 是否合并wxss到vue文件，默认为false
  * @param {*} isRepair         是否修复js语法，默认为false
+ * @param {*} isFormat         是否格式化文件，默认为false，这种模式大约要增加一倍时间
  * @param {*} callback         回调函数
  */
 async function transform (
@@ -1036,6 +1041,7 @@ async function transform (
     let isRenameWxToUni = options.isRenameWxToUni || !options.hasOwnProperty("isRenameWxToUni") ? true : false
     let isMergeWxssToVue = options.isMergeWxssToVue || false
     let isRepair = options.isRepair || false
+    let isFormat = options.isFormat || false
     let isHBuildXPlugin = options.isHBuildXPlugin || false  //是否是hbuildx plugin调用
 
 
@@ -1115,6 +1121,9 @@ async function transform (
     //是否修复js
     global.isRepair = isRepair
 
+    //是否格式化文件
+    global.isFormat = isFormat
+
     //判断是否为ts项目,ts项目里tsconfig.json必须存在
     let tsconfigPath = path.join(sourceFolder, 'tsconfig.json')
     global.isTSProject = fs.existsSync(tsconfigPath)
@@ -1158,6 +1167,9 @@ async function transform (
 
     //编译后的项目的文件信息
     global.compiledData = {}
+
+    //是否使用了useExtendedLib加载weui，kbone暂不支持
+    global.isUseWeuiExtendedLib = false
 
     // utils.log(" global.isCompiledProject = " + global.isCompiledProject)
 
@@ -1359,7 +1371,14 @@ async function transform (
             }
 
             //处理配置文件
-            configHandle(configData, routerData, miniprogramRoot, targetFolder)
+            await configHandle(configData, routerData, miniprogramRoot, targetFolder)
+
+
+            //拷贝weui到根目录
+            if (global.isUseWeuiExtendedLib) {
+
+
+            }
 
             //拷贝mp-html到components
             if (global.hasWxParse) {

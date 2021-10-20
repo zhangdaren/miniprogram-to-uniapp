@@ -1,11 +1,15 @@
 {
     "name": "miniprogram-to-uniapp",
-    "author": "375890534@qq.com",
+    "author": {
+        "name":"zhangdaren",
+        "email": "375890534@qq.com"
+    },
     "bin": {
         "wtu": "bin/wtu"
     },
     "bugs": {
-        "url": "https://github.com/zhangdaren/miniprogram-to-uniapp/issues"
+        "url": "https://github.com/zhangdaren/miniprogram-to-uniapp/issues",
+        "email": "375890534@qq.com"
     },
     "bundleDependencies": [],
     "dependencies": {
@@ -14,6 +18,8 @@
         "@babel/parser": "^7.7.3",
         "@babel/traverse": "^7.7.2",
         "@babel/types": "^7.7.2",
+        "acorn": "^8.4.1",
+        "acorn-walk": "^8.1.1",
         "chalk": "^2.3.2",
         "clone": "^2.1.2",
         "commander": "^2.15.1",
@@ -22,7 +28,8 @@
         "node-pinyin": "^0.2.3",
         "object-string-to-object": "^1.0.2",
         "pkg-updater": "^1.0.4",
-        "postcss": "^8.2.13"
+        "postcss": "^8.2.13",
+        "prettier": "^2.3.2"
     },
     "deprecated": false,
     "description": "Try to transform Weixin miniprogram project to Uni-app project",
@@ -47,8 +54,7 @@
         "@babel/preset-env": "^7.0.0",
         "babel-loader": "^8.2.2",
         "chai": "^4.2.0",
-        "mocha": "^6.2.2",
-        "vuepress": "^1.8.2"
+        "mocha": "^6.2.2"
     },
     "homepage": "https://github.com/zhangdaren/miniprogram-to-uniapp#readme",
     "keywords": [
@@ -69,8 +75,6 @@
         "url": "git+ssh://git@github.com/zhangdaren/miniprogram-to-uniapp.git"
     },
     "scripts": {
-        "docs:dev": "vuepress dev docs --temp .temp",
-        "docs:build": "vuepress build docs",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "version": "1.1.5"

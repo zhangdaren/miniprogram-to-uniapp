@@ -11,6 +11,9 @@ const includeTagHandle = require('./includeTagHandle')
 const templateTagHandle = require('./templateTagHandle')
 const attribHandle = require('./attribHandle')
 
+const prettier = require('prettier')
+
+
 /**
  * 保存所有未保存的文件
  */
@@ -25,6 +28,8 @@ async function saveAllFile () {
             app.data.js = main.data.js
         }
     }
+
+    const reg = /\.min$/
 
     for (const key in pagesData) {
         const item = pagesData[key]
@@ -65,6 +70,11 @@ async function saveAllFile () {
             //因此当文件内容为空时，给它一个空格(有时文件为空，但引用还在，所以不能直接删除)
             //有种情况：一组页面，只有js文件时，会报错，但没复现
             fileContent = " "
+        } else {
+            //以.min结尾的文件名不进行格式化
+            if (global.isFormat && !reg.test(key)) {
+                fileContent = formatCode(fileContent, data.type, key)
+            }
         }
 
         //写入文件
@@ -72,6 +82,51 @@ async function saveAllFile () {
     }
 }
 
+
+/**
+ * 尽可能根据HBuilderX的风格格式化代码
+ * 目前未完全还原的还有一个空格问题，影响不太大
+ * @param {*} fileContent   代码
+ * @param {*} type          type
+ *
+ * https://prettier.io/playground/
+ */
+function formatCode (fileContent, type, fileKey) {
+    let parser = ""
+    switch (type) {
+        case "all":
+        case "vue":
+            parser = "vue"
+            break
+        case "js":
+            parser = "babel"
+            break
+        case "wxml":
+            parser = "vue"
+            break
+        case "css":
+            parser = "css"
+            break
+        case "json":
+            parser = "json"
+            break
+    }
+    try {
+        // 格式化代码
+        var options = {
+            parser: parser,           // 解析器
+            printWidth: 200,          // 代码多长换行
+            tabWidth: 4,              // tab的空格数量
+            singleQuote: true,        // 单引号
+            arrowParens: "avoid",     // 尽可能省略括号。例子：x => x
+            trailingComma: "none",     // 这一条是hbx格式规则，去掉对象或数组末节点的逗号
+        }
+        fileContent = prettier.format(fileContent, options)
+    } catch (error) {
+        console.log("key: " + fileKey + "       格式化代码error：", error)
+    }
+    return fileContent
+}
 
 /**
  * 解析小程序项目的配置
@@ -124,7 +179,7 @@ function getProjectConfig (folder, sourceFolder) {
         projectConfig.name = decodeURIComponent(data.projectname || '')
     } else {
         projectConfig.miniprogramRoot = sourceFolder
-        utils.log(`Warning： 找不到project.config.json文件(不影响转换，无视这条)`);
+        utils.log(`Warning： 找不到project.config.json文件(不影响转换，无视这条)`)
         // global.log.push("\r\nWarning： 找不到project.config.json文件(不影响转换，无视这条)\r\n")
         // throw (`error： 这个目录${sourceFolder}应该不是小程序的目录，找不到project.config.json文件`)
     }
@@ -153,7 +208,7 @@ function getProjectConfig (folder, sourceFolder) {
             // }) || global.hasVant;
         }
     } else {
-        utils.log(`Warning： 找不到package.json文件(不影响转换，无视这条)`);
+        utils.log(`Warning： 找不到package.json文件(不影响转换，无视这条)`)
         // global.log.push("\r\nWarning： 找不到package.json文件(不影响转换，无视这条)\r\n")
     }
     return projectConfig
@@ -241,7 +296,7 @@ function notImplementedFunHandle (attribFunList, jsData, fileKey) {
             } else {
                 //只取第一个单词！
                 funName = funName.replace(reg, "$1")
-                if(!funName) return ;
+                if (!funName) return
 
                 if (funNameList.indexOf(funName) > -1 || dataValueNameList.indexOf(funName) > -1) {
                     // 函数或变量存在(如果函数重名，那已经处理了，因此这里不用再处理)

@@ -37,7 +37,7 @@ let fileKey = ""
  */
 const componentVistor = {
     IfStatement (path) {
-        babelUtil.getAppFunHandle(path)
+        babelUtil.getAppFunHandle(path, fileKey)
     },
     ExpressionStatement (path) {
         const parent = path.parentPath.parent
@@ -111,6 +111,8 @@ const componentVistor = {
             )
             path.node.source.value = filePath
 
+            // console.log("filePath------------------------", filePath)
+
             //定义的外部函数
             babelUtil.otherRequirePathHandle(path, fileDir)
             declareNodeList.push(path);;
@@ -135,7 +137,7 @@ const componentVistor = {
     FunctionDeclaration (path) {
         const parent = path.parentPath.parent
         if (t.isFile(parent)) {
-            babelUtil.getAppFunHandle(path)
+            babelUtil.getAppFunHandle(path, fileKey)
 
             //定义的外部函数
             babelUtil.otherRequirePathHandle(path, fileDir)

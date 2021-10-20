@@ -462,11 +462,11 @@ function getAstType (ast, _file_js) {
  * 遍历path下面的所有的MemberExpression，然后处理getApp()语法
  * @param {*} path
  */
-function getAppFunHandle (path) {
+function getAppFunHandle (path, fileKey) {
     traverse(path.node, {
         noScope: true,
         MemberExpression (path) {
-            globalDataHandle(path)
+            globalDataHandle(path, fileKey)
         }
     })
 }
@@ -1011,6 +1011,7 @@ function repairJavascript (ast) {
         },
         NumericLiteral ({ node }) {
             // 1e3 --> 1000
+            //'\x68\x65\x6c\x6c\x6f' --> 'hello'
             if (node.extra && node.extra.raw !== "" + node.extra.rawValue) {
                 node.extra = undefined
             }
@@ -1450,7 +1451,7 @@ async function jsAstToString (jsData) {
         }
     }
 
-    return codeText
+    return codeText || ""
 }
 
 
@@ -1609,6 +1610,17 @@ function renameThisName (ast) {
     })
 }
 
+function preHandle () {
+
+    /**
+     *
+     *  if ("" != r && void 0 != r) { }
+     *  替换为：
+     *  if (r) {
+     *
+     */
+    //
+}
 
 /**
  * ast 反混淆
@@ -1620,6 +1632,9 @@ function astAntiAliasing (ast) {
 
     //修复前预操作, 必须先处理（先于repairJavascript），否则可能会漏掉！！！！
     repairThisExpression(ast)
+
+    //预处理
+    preHandle()
 
     //然后再：
     //js 修复
@@ -1639,8 +1654,9 @@ function astAntiAliasing (ast) {
     //js 修复
     repairJavascript(ast)
 
+    //getApp
+    getAppFunHandle(ast)
 }
-
 
 
 module.exports = {

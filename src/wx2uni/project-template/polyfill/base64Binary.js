@@ -1,20 +1,18 @@
-
 /**
  *
  * 借鉴自：https://github.com/dankogai/js-base64/blob/main/base64.js
- * 因uniapp没有引用window，也无法使用Buffer，因此直接使用polyfill
+ * 因uniapp没有window，也无法使用Buffer，因此直接使用polyfill
  *
  */
-
-const b64ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-const b64chs = [...b64ch];
-const b64re = /^(?:[A-Za-z\d+\/]{4})*?(?:[A-Za-z\d+\/]{2}(?:==)?|[A-Za-z\d+\/]{3}=?)?$/;
+const b64ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+const b64chs = [...b64ch]
+const b64re = /^(?:[A-Za-z\d+\/]{4})*?(?:[A-Za-z\d+\/]{2}(?:==)?|[A-Za-z\d+\/]{3}=?)?$/
 const b64tab = ((a) => {
-    let tab = {};
-    a.forEach((c, i) => tab[c] = i);
-    return tab;
-})(b64chs);
-const _fromCC = String.fromCharCode.bind(String);
+    let tab = {}
+    a.forEach((c, i) => tab[c] = i)
+    return tab
+})(b64chs)
+const _fromCC = String.fromCharCode.bind(String)
 
 /**
  * polyfill version of `btoa`
@@ -59,7 +57,9 @@ const atobPolyfill = (asc) => {
     return bin
 }
 
-//base64转ArrayBuffer
+/**
+ * base64转ArrayBuffer
+ */
 function base64ToArrayBuffer (base64) {
     const binaryStr = atobPolyfill(base64)
     const byteLength = binaryStr.length
@@ -70,12 +70,14 @@ function base64ToArrayBuffer (base64) {
     return bytes.buffer
 }
 
-//ArrayBuffer转base64
+/**
+ * ArrayBuffer转base64
+ */
 function arrayBufferToBase64 (buffer) {
     let binaryStr = ""
     const bytes = new Uint8Array(buffer)
-    var len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
+    var len = bytes.byteLength
+    for (let i = 0;i < len;i++) {
         binaryStr += String.fromCharCode(bytes[i])
     }
     return btoaPolyfill(binaryStr)
@@ -84,4 +86,4 @@ function arrayBufferToBase64 (buffer) {
 module.exports = {
     base64ToArrayBuffer,
     arrayBufferToBase64,
-};
+}

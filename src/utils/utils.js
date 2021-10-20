@@ -201,7 +201,8 @@ const exceptNameReg = /^(index|items|idx)$|^item(\w+)?|\.\w+|\bnull\b\(/
 function isURL (str_url) {
     //TODO: 似乎//www.baidu.com/xx.png 不能通过校验？
     var reg = /^((https|http|ftp|rtsp|mms)?:\/\/)?(([0-9a-z_!~*'().&amp;=+$%-]+: )?[0-9a-z_!~*'().&amp;=+$%-]+@)?((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5]$)|([0-9a-z_!~*'()-]+\.)*([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\.[a-z]{2,6})(:[0-9]{1,4})?((\/?)|(\/[0-9a-zA-Z_!~*'().;?:@&amp;=+$,%#-]+)+\/?)$/
-    if (reg.test(str_url)) {
+    //上面的表达式logo.png能直接过....，因此再判断一下是否含有/
+    if (reg.test(str_url) && str_url.indexOf("/") > -1) {
         return (true)
     } else {
         //有些可能就是//开头的地址

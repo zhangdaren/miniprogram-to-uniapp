@@ -30,7 +30,7 @@ let behaviorParams = []
  */
 const behaviorVistor = {
     IfStatement (path) {
-        babelUtil.getAppFunHandle(path)
+        babelUtil.getAppFunHandle(path, fileKey)
     },
     ReturnStatement (path) {
         /**
@@ -130,7 +130,7 @@ const behaviorVistor = {
     FunctionDeclaration (path) {
         const parent = path.parentPath.parent
         if (t.isFile(parent)) {
-            babelUtil.getAppFunHandle(path)
+            babelUtil.getAppFunHandle(path, fileKey)
 
             //定义的外部函数
             babelUtil.otherRequirePathHandle(path, fileDir)
@@ -365,10 +365,17 @@ function lifeCycleHandle (path) {
             path.skip()
             break
         case "behaviors":
-            //组件的behaviors，重名为mixins，放入生命周期
-            let newPath_b = clone(path)
-            newPath_b.node.key.name = "mixins"
-            vistors.lifeCycle.handle(newPath_b.node)
+            //组件的behaviors，直接放入生命周期
+            var value = path.node.value
+            if (t.isArrayExpression(value)) {
+                let reg = /^wx:\/\//
+                value.elements.forEach(function (fieldNode) {
+                    if (t.isStringLiteral(fieldNode)) {
+                        fieldNode.value = fieldNode.value.replace(reg, "uni://")
+                    }
+                })
+            }
+            vistors.lifeCycle.handle(path.node)
             path.skip()
             break
         case "lifetimes":
