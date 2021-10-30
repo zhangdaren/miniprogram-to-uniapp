@@ -1,5 +1,64 @@
+/*
+ * @Author: zhang peng
+ * @Date: 2021-08-02 09:02:29
+ * @LastEditTime: 2021-10-20 16:36:13
+ * @LastEditors: zhang peng
+ * @Description:
+ * @FilePath: \miniprogram-to-uniapp\src\utils\utils.js
+ *
+ */
 const chalk = require('chalk')
-const { switchCase } = require('@babel/types')
+// const fastGlob = require('fast-glob')
+
+const { fdir } = require("fdir")
+
+const path = require('path')
+const fs = require('fs-extra')
+
+
+
+/**
+ * 忽略目录:
+ * 云开发目录
+ * custom-tab-bar目录
+ */
+var ignoreList = [
+    /[\/\\]cloudfunctions$/,
+    /[\/\\]cloudfunctions[\/\\]/,
+
+    /[\/\\]custom-tab-bar$/,
+    /[\/\\]custom-tab-bar[\/\\]/,
+]
+
+function getAllFile (sourceFolder, options) {
+
+    //两者，都无法找出无后缀名的文件
+
+    //fast-glob方案
+    // if (!options) {
+    //     options = {
+    //         // ignore: ['components/**'],  //忽略
+    //         absolute: true,   //返回绝对路径
+    //         onlyFiles: false,   //不仅返回文件，也返回目录
+    //         dot: true,     //搜索以点开头的文件
+    //         markDirectories: true, //目录后面加/符号
+    //         objectMode: true,    //返回文件对象（内置的不影响性能）
+    //     }
+    // }
+
+    // var files = fastGlob.sync(sourceFolder + "/**", options)
+
+    //这个确实是快
+    //无后缀名就算是文件了
+    const crawler = new fdir()
+        .withFullPaths()   //返回完整路径
+        .withDirs()        //返回目录
+    // .filter((path, isDirectory) => ignoreList.some((reg) => reg.test(path)))
+
+    const files = crawler.crawl(sourceFolder).sync()
+
+    return files
+}
 
 function log (msg, type = '') {
     var fullMsg = `[wx-to-uni-app]: ${ msg }`
@@ -88,41 +147,41 @@ function isNumberString (str) {
     return numberReg.test(str)
 }
 
-
 /**
- * 单个单词正则
- */
-const singleWordReg = /^\w+$/i
-
-/**
- * 是否为单个单词
- * @param {*} str
+ * 判断字符串是否是'true'或'false'
+ * @param {*} name
  * @returns
  */
-function isSingleWord (str) {
-    return singleWordReg.test(str)
+function isBooleanString (name) {
+    return name === "true" || name === "false"
 }
 
 
 /**
  * 变量名正则
  */
-const valueNameReg = /^[\w-_\.]+$/i
+const variableNameReg = /^([^\x00-\xff]|[a-zA-Z_$])([^\x00-\xff]|[a-zA-Z0-9_$])*$/
 
 /**
  * 是否为变量名
  * @param {*} str
  * @returns
  */
-function isValueName (str) {
-    return valueNameReg.test(str)
+function isVariableName (str) {
+    return variableNameReg.test(str)
 }
 
 /**
  * template里这些字符串变量将不会在data里定义
  * util.beautifyTime() 过滤
  */
-const exceptNameReg = /^(index|items|idx)$|^item(\w+)?|\.\w+|\bnull\b\(/
+const exceptNameReg = /^(index|items|idx|key)$|^(item|index)(\w+)?|\.\w+|\bnull\b\(/
+
+
+//首字母大写
+function titleCase5 (str) {
+    return str.toLowerCase().replace(/( |^)[a-z]/g, (L) => L.toUpperCase())
+}
 
 
 // function isString (val) {
@@ -193,7 +252,6 @@ const exceptNameReg = /^(index|items|idx)$|^item(\w+)?|\.\w+|\bnull\b\(/
 // Object.prototype.toString.call(window); //[object global] window 是全局对象 global 的引用
 
 
-
 /**
  * 判断是否为url
  * @param {*} str_url 网址，支持http及各种协议
@@ -201,7 +259,8 @@ const exceptNameReg = /^(index|items|idx)$|^item(\w+)?|\.\w+|\bnull\b\(/
 function isURL (str_url) {
     //TODO: 似乎//www.baidu.com/xx.png 不能通过校验？
     var reg = /^((https|http|ftp|rtsp|mms)?:\/\/)?(([0-9a-z_!~*'().&amp;=+$%-]+: )?[0-9a-z_!~*'().&amp;=+$%-]+@)?((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5]$)|([0-9a-z_!~*'()-]+\.)*([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\.[a-z]{2,6})(:[0-9]{1,4})?((\/?)|(\/[0-9a-zA-Z_!~*'().;?:@&amp;=+$,%#-]+)+\/?)$/
-    if (reg.test(str_url)) {
+    //上面的表达式logo.png能直接过....，因此再判断一下是否含有/
+    if (reg.test(str_url) && str_url.indexOf("/") > -1) {
         return (true)
     } else {
         //有些可能就是//开头的地址
@@ -214,14 +273,6 @@ function isURL (str_url) {
     }
 };
 
-/**
- * 判断当前名字是否为资源目录
- * @param {*} name
- */
-function isAssetsFolderName (name) {
-    const reg = /\b(images|img|image|static|asset|assets)\b/i
-    return reg.test(name)
-}
 
 /**
  * 是否为十六进制
@@ -248,34 +299,23 @@ function toLowerLine (str) {
 };
 
 
-
-/**
- * 下横线转驼峰式
- * console.log(toCamel('test_to_camel')); //testToCamel
- * @param {*} str
- */
-function toCamel (str) {
-    return str.replace(/([^_])(?:_+([^_]))/g, function ($0, $1, $2) {
-        return $1 + $2.toUpperCase()
-    })
-}
-
 /**
  * 驼峰命名转为短横线命名
  */
 function getKebabCase (str) {
     return str.replace(/[A-Z]/g, function (i) {
         return '-' + i.toLowerCase()
-    })
+    }).replace(/_/g, "-")
 }
 
 /**
  * 中划线转驼峰式
- * console.log(toCamel('test-to-camel')); //testToCamel
+ * console.log(toCamel('test-to-camel'));   //testToCamel
  * console.log(toCamel('diy-imageSingle')); //diyImageSingle
+ * console.log(toCamel('diy_imageSingle')); //diyImageSingle
  * @param {*} str
  */
-function toCamel2 (str) {
+function toCamel (str) {
     let ret = getKebabCase(str).toLowerCase()
     ret = ret.replace(/-+([\w+])/g, function (all, letter) {
         return letter.toUpperCase()
@@ -298,74 +338,8 @@ function sleep (numberMillis) {
 }
 
 
-/**
- * 提取template里参数里所包含的变量
- * 如下，仅试举几例：
- * {{styleS==1}}  -->  {"styleS":true}
- * {{ item.is_buy ? '砍价成功' : '已结束' }}  -->  {"item.is_buy":true}
- * "swiper-tab-item {{options.scoreType == -1 ? 'on' : ''}}"  -->  {"options.scoreType":true}
- * 例外：
- * {{abc.styleS['a.b.c']==3}}  //'a.b.c'这种暂时处理不到
- * @param {*} str
- */
-function getTemplateParams (str) {
-    let reg_tag = /{{.*?}}/
-    var result = {}
-    if (reg_tag.test(str)) {
-        str = str.replace(/url\(['"]{{(.*?)}}['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}")
-        str.replace(/{{(.*?)}}/g, function (match, $1) {
-            var obj = splitStr($1)
-            result = {
-                ...result,
-                ...obj
-            }
-        })
-    }
-    return result
-}
 
-/**
- * 切割字符串，提取str里符合“变量”特征的字符串，并返回object
- * 与getTemplateParams配合使用
- * @param {*} str
- */
-function splitStr (str) {
-    //可能在引号对里面有这些切割标记，这里当场干掉
-    var newStr = str.replace(/\s|['"].*?['"]|,.*?:/g, "")
-    //去掉引号
-    newStr = newStr.replace(/\(|\)|{|}|\[|\]/g, ":")
-    //切割
-    var arr = newStr.trim().split(/\.\.\.|===|!==|==|\&\&|\|\||\?|:|<|>|\(|\)|\*|\/|\+|\-|!|<=|>=|%|,/)
-    var result = {}
-    //去重， 去.length
-    arr.forEach(function (item, i) {
-        if (item && !isNumber(item)) {
-            result[item] = true
-        }
-    })
-    return result
-}
 
-/**
- * 提取属性变量
- * @param {*} str
- */
-function getAttribValueList (str) {
-    //{{ utils.bem('switch', { on: value === activeValue, disabled }) }}
-    var vantReg = /\w+\.\w+\(/
-    if (vantReg.test(str)) return []
-
-    let reg_tag = /{{.*?}}/
-    var result = []
-    if (reg_tag.test(str)) {
-        str = str.replace(/url\(['"]{{(.*?)}}['"]\)/g, "url({{$1}})").replace(/['"]{{(.*?)}}['"]/g, "{{$1}}")
-        str.replace(/{{(.*?)}}/g, function (match, $1) {
-            var obj = splitStrFull($1)
-            result.push(...obj)
-        })
-    }
-    return result
-}
 
 function splitStrFull (str) {
     var newStr = str
@@ -536,21 +510,14 @@ var isMiniAppTag = makeMap(
 
 
 
-/**
- * 判断指定参数是否含有特定关键字，比如id、data和default等
- * @param {*} params
- */
-function hasReserverdPorps (params) {
-    return /\b(data)\b/.test(params) || /\b(id)\b/.test(params) || /\b(default)\b/.test(params)
-}
 
 
 
 //是否为vue内置关键字或方法
 // "_init"
-function isVueMethod (tag) {
-    return /^_|^\$/.test(tag)
-}
+// function isVueMethod (tag) {
+//     return /^_|^\$/.test(tag)
+// }
 
 /**
  * 判断tag是否为预置的名字
@@ -560,12 +527,15 @@ function isReservedTag (tag) {
     return isHTMLTag(tag) || isSVG(tag) || isUniAppTag(tag) || isVueMethod(tag)
 };
 
+
+
 /**
- * 获取组件别名
+ * 是否是小程序自带组件名
  */
-function getComponentAlias (name) {
-    return isReservedTag(name) ? (name + "-diy") : name
-}
+var isVueMethod = makeMap(
+    "methods"
+)
+
 
 /**
  * 判断name是否为预置的名字
@@ -575,122 +545,6 @@ function isReservedName (name) {
     return isJavascriptKeyWord(name) || isVueMethod(name)
 };
 
-
-/**
- * 获取props别名
- */
-function getPropsAlias (name) {
-    var result = name
-    if (isJavascriptKeyWord(name)) {
-        result += "Attr"
-    }
-    return result
-}
-
-/**
- * 获取函数别名
- * 1.函数名为js系统关键字，返回name + "Fun" 形式
- * 2.以_开头的函数名，返回"re" + name形式
- */
-function getFunctionAlias (name) {
-    if (!name) return name
-    var rusult = name
-
-    if (isVueMethod(name)) {
-        rusult = name.replace(/^_|^\$/g, "") + "Fun"
-    } else {
-        rusult = name + "Fun"
-    }
-    return rusult
-}
-
-/**
- * 通过template里标签属性名来判断值的类型
- * @param {*} k
- */
-function getOriginalTypeByattrKey (k) {
-    var originalType = ""
-    if (k.indexOf("for") > -1) {
-        originalType = "Array"
-    } else if (k.indexOf("if") > -1) {
-        originalType = "Boolean"
-    } else {
-        switch (k) {
-            case "autoplay":
-                originalType = "Boolean"
-                break
-            case "duration":
-            case "interval":
-                originalType = "Number"
-                break
-        }
-    }
-    return originalType
-}
-
-/**
- * 解析 key:value形式的字符串，如"abc:"xx""解析为{abc:"xxx"}
- * @param {*} str
- */
-function stringToObject (str) {
-    let index = str.indexOf(":")
-    let key = str.substring(0, index).trim()
-    let value = str.substring(index + 1).trim()
-    let result = {}
-    if (key !== value) result[key] = value
-    return result
-}
-
-//测试样例：后面再补上。
-// "item.type",
-// "...bbgRuleDialog",
-// "item,dataType",
-// "setting:setting",
-// "title:'open/get/Setting'",
-// "diyform:order",
-// "listName:list,ImgRoot:imgroot",
-// "type:isShowPH?'ph':'list',infos:item",
-// "type:isShowPH?'ph':'list',infos:item?1:2,index:111,ac:'ccc'",
-// "type:'detail',isEnd:false,time:[day,hour,minute,seconds],infos:infos",
-// "...kaipinglist,className:'ad-content',canIUse:canIUse",
-// "leftIndex:index+1,section3Title:item.title",
-// "...stdInfo[index],...{index:index,name:item.name}"
-
-/**
- * 解析template标签的data参数，将返回需要进行替换的参数
- * 如{setting:setting}，那就不需要替换
- * 如{"title:'open/get/Setting'"}，那就视为需要替换
- * @param {*} attr
- */
-function parseTemplateAttrParams (attr) {
-    let str = attr.replace(/{{\s*(.*?)\s*}}/, '$1')
-    //先去掉...[]和...{}
-    str = str.replace(/\.\.\.{.*?}|\.\.\.\[.*?\],?/g, "")
-    str = str.replace(/\.\.\..*?,/g, "")
-    //正则
-    let reg1 = /(\w+:\[.*?\]),?/g  //解析数组
-    let reg2 = /(\w+:\{.*?\}),?/g  //解析对象
-    let reg3 = /(\w+:.*?),|(\w+:.*?)$/g  //解析key:value
-
-    let result = {}
-
-    //解析数组的(带中括号的)
-    str = str.replace(reg1, function (match, $1) {
-        result = { ...result, ...stringToObject($1) }
-        return ""
-    })
-    //解析对象的(带花括号的)
-    str = str.replace(reg2, function (match, $1) {
-        result = { ...result, ...stringToObject($1) }
-        return ""
-    })
-    //解析key:value
-    str.replace(reg3, function (match, $1, $2) {
-        let tmpStr = $1 || $2
-        result = { ...result, ...stringToObject(tmpStr) }
-    })
-    return result
-}
 
 /**
  * 判断关键字是否与vant有关  //van-是老版vant，可以支持。
@@ -766,18 +620,7 @@ const vantComponentList = {
     "van-skeleton": "./wxcomponents/vant/skeleton/index"
 }
 
-/**
- * 如果字符串里只有一个单引号时，删除它
- */
-function removeSingleQuote (value) {
-    //如果只有一个单引号，就将它干掉
-    let re = value.match(/&#39;/g) || []
-    if (re.length === 1) {
-        value = value.replace(/&#39;/, "")
-    }
 
-    return value
-}
 
 /**
  * 根据文件后缀名，获取template所对应的属性名的前缀
@@ -907,52 +750,9 @@ let extnameArr = [
 const extnameReg = new RegExp('\\.(' + extnameArr.join('|') + ')')
 
 
-function formatDate (date, fmt) {
-    if (/(y+)/.test(fmt)) {
-        fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
-    }
-    let o = {
-        'M+': date.getMonth() + 1,
-        'd+': date.getDate(),
-        'h+': date.getHours(),
-        'm+': date.getMinutes(),
-        's+': date.getSeconds()
-    }
-
-    // 遍历这个对象
-    for (let k in o) {
-        if (new RegExp(`(${ k })`).test(fmt)) {
-            // console.log(`${k}`)
-            // console.log(RegExp.$1)
-            let str = o[k] + ''
-            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? str : padLeftZero(str))
-        }
-    }
-    return fmt
-};
-
-/**
- * 两位补0
- * @param {*} str
- * @returns
- */
-function padLeftZero (str) {
-    return ('00' + str).substr(str.length)
-}
 
 
-/**
- * 获取template里变量的类型
- * @param {*} key
- * @param {*} value
- * @returns
- */
-function getTemplateExpType (key, value) {
 
-    console.log(key, value)
-
-
-}
 
 /**
  * 对象数组去重
@@ -960,7 +760,7 @@ function getTemplateExpType (key, value) {
  * @param {*} field  去重字段
  * @returns  返回去重后的数组
  */
-function unique (array, field) {
+function uniqueArray (array, field) {
     var obj = {}
     return array.reduce(function (a, b) {
         obj[b[field]] ? '' : obj[b[field]] = true && a.push(b)
@@ -998,7 +798,7 @@ function getAllParentForNodeList (node) {
  * @param {*} originalType   原始类型，如果是内容，则为String
  */
 function saveAttribsBindObject (fileKey, value, node = "", attrs = {}, key = "", originalType = "") {
-    //同时满足两种条件为templateConverter调用，否则为jsHandle里调用
+    //同时满足两种条件为templateTransformer调用，否则为jsHandle里调用
     if (value && value.indexOf("{{") > -1) {
         let reg = /{{(.*?)}}/g
 
@@ -1070,6 +870,18 @@ function saveSetDataKey (fileKey, value, originalType = "") {
 }
 
 
+
+
+/**
+ * 获取小程序类型
+ */
+function getMiniprogramType () {
+
+}
+
+
+
+
 module.exports = {
     log,
 
@@ -1080,40 +892,31 @@ module.exports = {
     isEmpty,
 
     numberReg,
-    singleWordReg,
-    valueNameReg,
 
     isNumberString,
-    isSingleWord,
-    isValueName,
+    isBooleanString,
+
+    isVariableName,
     exceptNameReg,
 
 
     isHex,
-    isAssetsFolderName,
+
     normalizePath,
     isURL,
     toLowerLine,
+
+    getKebabCase,
     toCamel,
-    toCamel2,
+
     sleep,
     isReservedTag,
-    getFunctionAlias,
-    getComponentAlias,
+
     isJavascriptKeyWord,
     isReservedName,
     isMiniAppTag,
 
-    getPropsAlias,
-
-    getTemplateParams,
-    hasReserverdPorps,
-
-    removeSingleQuote,
-
     ///
-    stringToObject,
-    parseTemplateAttrParams,
     isVant,
     vantComponentList,
 
@@ -1123,22 +926,16 @@ module.exports = {
 
     extnameReg,
 
-
-    formatDate,
-
     bracketsJudge,
 
-    getAttribValueList,
-
-    getTemplateExpType,
-
-    getOriginalTypeByattrKey,
-
-    unique,
+    uniqueArray,
 
     getAllParentForNodeList,
     saveAttribsBindObject,
     saveSetDataKey,
 
+    titleCase5,
 
+    //////////////////////////////////////////
+    getAllFile,
 }

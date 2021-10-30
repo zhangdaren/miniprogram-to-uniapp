@@ -6,6 +6,4 @@ demo
 plugins
 .idea
 docs/
-
-# vuepress temp file
-.temp
+next

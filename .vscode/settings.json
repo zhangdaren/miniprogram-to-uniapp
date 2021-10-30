@@ -1,3 +1,4 @@
 {
-    "git.ignoreLimitWarning": true
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "aiXcoder.symbol": "★"
 }
