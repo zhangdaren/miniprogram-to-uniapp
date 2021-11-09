@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-10-29 19:03:55
+ * @LastEditTime: 2021-10-30 16:48:08
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\specialStructure\specialStructure-transfromer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/specialStructure/specialStructure-transfromer.js
  *
  */
 
@@ -81,11 +81,8 @@
 // })
 
 const t = require("@babel/types")
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
+var appRoot = "../../.."
 const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 /**
  *

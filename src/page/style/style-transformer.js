@@ -1,21 +1,16 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-29 19:03:03
+ * @LastEditTime: 2021-10-30 16:46:49
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\style\style-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/style/style-transformer.js
  *
  */
 const fs = require('fs-extra')
 const path = require('path')
 
-
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const postcss = require('postcss')

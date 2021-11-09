@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-26 18:15:05
+ * @LastEditTime: 2021-10-30 16:41:07
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\script\page\page-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/script/page/page-transformer.js
  *
  */
 
@@ -15,15 +15,12 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
 const babelUtils = require("../../../utils/babelUtils")
 
 const ggcUtils = require("../../../utils/ggcUtils")
 
+var appRoot = "../../../.."
 const { transformLifecycleFunction } = require(appRoot + "/src/transformers/lifecycle/lifecycle-transformer")
 
 

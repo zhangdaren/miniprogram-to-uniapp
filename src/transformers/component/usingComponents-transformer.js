@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 11:27:11
- * @LastEditTime: 2021-10-26 18:11:58
+ * @LastEditTime: 2021-10-30 16:47:17
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\component\usingComponents-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/usingComponents-transformer.js
  *
  */
 const $ = require('gogocode')
@@ -13,12 +13,10 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 const { restore } = require('../../utils/restoreJSUtils')
 
+
+var appRoot = "../../.."
 const utils = require(appRoot + "/src/utils/utils")
 const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 

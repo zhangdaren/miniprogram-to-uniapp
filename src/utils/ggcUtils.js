@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-26 18:13:29
+ * @LastEditTime: 2021-11-08 17:51:33
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\ggcUtils.js
@@ -39,7 +39,7 @@ const expList = [
     },
     {
         type: "Webpack",
-        exp: `global["webpackJsonp"]=global["webpackJsonp"]`,
+        exp: `(global["webpackJsonp"]=global["webpackJsonp"]||[])`,
     },
     {
         type: "VantComponent",
@@ -359,7 +359,22 @@ const propTypes = {
     COMPUTED: "COMPUTED"
 }
 
+/**
+ * 获取wxs的module name 列表
+ * @param {*} $wxmlAst
+ * @returns
+ */
+function getWxmlAstModuleList($wxmlAst){
+    if (!$wxmlAst) return []
 
+    var list = [];
+    $wxmlAst.find(`<script module="$_$1"></script>`).each(function (item) {
+        var node =item.match[1]
+        var moduleName = node[0].value
+        list.push(moduleName)
+    })
+    return list;
+}
 
 /**
  * 获取data、props或methods列表
@@ -688,6 +703,7 @@ module.exports = {
     getApiCount,
 
     getDataOrPropsOrMethodsList,
+    getWxmlAstModuleList,
     propTypes,
 
     getScopeVariableInitValue,

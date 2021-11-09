@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-29 19:02:55
+ * @LastEditTime: 2021-10-30 16:40:58
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\script\customPage\customPage-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/script/customPage/customPage-transformer.js
  *
  */
 
@@ -14,14 +14,11 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
 const babelUtils = require("../../../utils/babelUtils")
 const ggcUtils = require("../../../utils/ggcUtils")
 
+var appRoot = "../../../.."
 const { transformProperties } = require(appRoot + "/src/transformers/properties/properties-transformer")
 const { transformObservers } = require(appRoot + "/src/transformers/observers/observers-transformer")
 

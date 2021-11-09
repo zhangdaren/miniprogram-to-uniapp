@@ -15,6 +15,7 @@
     "dependencies": {
         "@babel/generator": "^7.15.4",
         "@babel/parser": "^7.15.7",
+        "@babel/plugin-proposal-object-rest-spread": "^7.16.0",
         "@babel/traverse": "^7.15.4",
         "@babel/types": "^7.15.6",
         "app-root-path": "^3.0.0",
@@ -62,5 +63,5 @@
         "test": "jest",
         "debugger": "node --inspect-brk ./node_modules/jest/bin/jest --runInBand --no-cache --no-watchman"
     },
-    "version": "2.0.2"
+    "version": "2.0.4"
 }

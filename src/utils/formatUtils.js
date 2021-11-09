@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2021-10-29 19:15:57
+ * @LastEditTime: 2021-10-30 16:44:14
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\formatUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/formatUtils.js
  *
  */
 
@@ -14,13 +14,9 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 const clone = require("clone")
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
 const prettier = require("prettier")
-
+var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 
 const ProgressBar = require('progress')

@@ -15,10 +15,6 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
 const babelUtils = require("../../utils/babelUtils")
 const ggcUtils = require("../../utils/ggcUtils")

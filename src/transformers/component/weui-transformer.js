@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2021-10-29 19:03:29
+ * @LastEditTime: 2021-10-30 16:47:26
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\component\weui-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/weui-transformer.js
  *
  */
 
@@ -16,11 +16,7 @@ const t = require("@babel/types")
 const clone = require("clone")
 const ProgressBar = require('progress')
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')

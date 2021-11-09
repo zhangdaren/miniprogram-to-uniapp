@@ -5,12 +5,7 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
-const { setDataByPathList, getExpressionVariableList } = require(appRoot + '/src/utils/variableUtils')
+const { setDataByPathList, getExpressionVariableList } = require('../../src/utils/variableUtils')
 
 var code = `var data = {
     user:{

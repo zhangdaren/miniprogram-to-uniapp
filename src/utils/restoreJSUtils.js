@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 15:40:27
- * @LastEditTime: 2021-10-29 19:04:13
+ * @LastEditTime: 2021-11-09 14:08:56
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\restoreJSUtils.js
@@ -15,11 +15,7 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const { parseExpression } = require("@babel/parser")
 
@@ -130,7 +126,7 @@ const generate = require('@babel/generator').default
  * @param {*} name
  * @returns
  */
- function addReplaceTag (code, name) {
+function addReplaceTag (code, name) {
     var tag = `const ${ name } = "replace-tag-375890534@qq.com"; \r\n`
     return tag + code
 }
@@ -1048,7 +1044,11 @@ function fixSpecialCode2 ($ast) {
 function restoreJS (ast) {
 
     //修复特殊代码结构
-    fixSpecialCode(ast)
+    try {
+        fixSpecialCode(ast)
+    } catch (error) {
+        console.log("修复特殊代码结构出错。 代码：", generateCode(ast))
+    }
 
     // 预修复
     repairThisExpression(ast)

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2021-09-27 18:17:47
+ * @LastEditTime: 2021-10-30 16:46:58
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp2\src\transformers\component\wxparse-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/wxParse-transformer.js
  *
  */
 
@@ -15,11 +15,8 @@ const fs = require('fs-extra')
 const t = require("@babel/types")
 
 
-var appRoot = require('app-root-path').path;
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
+var appRoot = "../../.."
 // const babelUtils = require(appRoot + "/src/utils/babelUtils")
 
 // const ggcUtils = require(appRoot + "/src/utils/ggcUtils")

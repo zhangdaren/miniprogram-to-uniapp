@@ -12,11 +12,8 @@ const $ = require('gogocode')
 const t = require("@babel/types")
 const clone = require("clone")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
+var appRoot = "../../../.."
 // const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 
 /**

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2021-10-29 11:20:50
+ * @LastEditTime: 2021-10-30 16:45:07
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\tag\indule-tag-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/tag/indule-tag-transformer.js
  *
  */
 
@@ -17,11 +17,8 @@ const clone = require("clone")
 
 
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
+var appRoot = "../../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 

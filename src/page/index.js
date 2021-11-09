@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-26 18:09:24
+ * @LastEditTime: 2021-11-08 18:05:53
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\index.js
@@ -15,11 +15,7 @@ const fs = require('fs-extra')
 const t = require("@babel/types")
 const clone = require("clone")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
@@ -310,7 +306,7 @@ class Page {
         //修复路径
         repireScriptSourcePath($ast, jsFile)
 
-        // console.log("astType ", astType, this.fileKey)
+        // console.log("astType ", this.astType, this.fileKey)
         switch (this.astType) {
             case "App":
                 transformAppAst($ast, jsFile)
@@ -327,6 +323,8 @@ class Page {
             case "CustomPage":
                 transformCustomPageAst($ast, jsFile, this.astType)
                 break
+            case "Webpack":
+                global.isCompileProject = true
             default:
                 transformSingleJSAst($ast, jsFile)
                 break
@@ -597,8 +595,9 @@ class Page {
             .replace(`<wxs module="$_$" $$$1>$$$2</wxs>`, `<script module="$_$" lang="wxs" $$$1>$$$2</script>`)
             .replace(`<filter module="$_$" $$$1>$$$2</filter>`, `<script module="$_$" lang="filter" $$$1>$$$2</script>`)
             .replace(`<import-sjs name="$_$1" from="$_$2" $$$1>$$$2</import-sjs>`, `<script module="$_$1" src="$_$2" lang="sjs" $$$1>$$$2</script>`)
-            .find(`<script></script>`)
+            .find(`<script module="$_$1" $$$1>$$$2</script>`)
             .each((item) => {
+                //取不到。。
                 var wxsCode = item.generate()
                 //存入global，最终在合成时，添加进去
                 wxsScriptList.push(wxsCode)

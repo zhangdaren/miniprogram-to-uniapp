@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 09:56:46
- * @LastEditTime: 2021-10-26 18:19:49
+ * @LastEditTime: 2021-10-30 16:47:08
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\component\regionPicker-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/regionPicker-transformer.js
  *
  */
 
@@ -15,11 +15,7 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../../.."
 // const babelUtils = require(appRoot + "/src/utils/babelUtils")
 
 // const ggcUtils = require(appRoot + "/src/utils/ggcUtils")

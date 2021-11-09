@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2021-10-26 19:45:04
+ * @LastEditTime: 2021-10-30 16:44:25
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\tag\template-tag-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/tag/template-tag-transformer.js
  *
  */
 
@@ -15,11 +15,7 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 const clone = require("clone")
-
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
+var appRoot = "../../.."
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 
 const { getMustacheTokens, parseMustache, stringifyMustache } = require(appRoot + "/src/utils/mustacheUtils")

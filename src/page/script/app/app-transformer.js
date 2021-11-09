@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-29 19:02:48
+ * @LastEditTime: 2021-10-30 16:40:11
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\script\app\app-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/script/app/app-transformer.js
  *
  */
 
@@ -15,11 +15,7 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../../../.."
 const babelUtils = require(appRoot + "/src/utils/babelUtils")
 const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 

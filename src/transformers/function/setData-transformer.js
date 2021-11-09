@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:44:02
- * @LastEditTime: 2021-10-29 19:16:39
+ * @LastEditTime: 2021-10-30 16:47:44
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\function\setData-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/function/setData-transformer.js
  *
  */
 
@@ -12,12 +12,9 @@ const $ = require('gogocode')
 const t = require("@babel/types")
 const clone = require("clone")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
 
+var appRoot = "../../.."
 const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 
 

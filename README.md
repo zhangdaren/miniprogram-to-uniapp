@@ -6,6 +6,8 @@
 
 PS: 目前工具转换支持度最好的为：微信小程序和 QQ 小程序。
 
+工具暂不支持vant项目，如果有含vant组件的小程序项目，请转换后，将vant的组件全部替换为uview或其他同功能组件。（个人不太建议转换vant项目！）
+
 同时支持 Npm 安装 和 HbuilderX 插件(不依赖环境) 两种形式安装，安装方式如下：
 
 ## Npm 安装
@@ -24,7 +26,7 @@ Options:
   -V, --version          output the version number [版本信息]
   -i, --input <target>   the input path for weixin miniprogram project [输入目录]
   -h, --help             output usage information [帮助信息]
-  -c, --cli              the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
+#   -c, --cli              the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -m, --merge            merge wxss file into vue file, which default value is false [是否合并wxss到vue文件，默认false]
 
 ```
@@ -37,11 +39,11 @@ Options:
 $ wtu -i ./miniprogram-project
 ```
 
-<!-- ##### 将 wxss 合并入 vue 文件:
+##### 将 wxss 合并入 vue 文件:
 
 ```sh
 $ wtu -i ./miniprogram-project -m
-``` -->
+```
 
 <!-- ##### 转换项目为 vue-cli 项目:
 
@@ -53,7 +55,7 @@ $ wtu -i ./miniprogram-project -c
 
 请参考项目：[【HBuilder X 插件】 转换各种小程序为 uni-app 项目](https://ext.dcloud.net.cn/plugin?id=2656) 进行食用。
 
-目前这种方式，不支持转换 vant 项目，如需转换 vant 项目，请使用 Npm 安装 方式。
+<!-- 目前这种方式，不支持转换 vant 项目，如需转换 vant 项目，请使用 Npm 安装 方式。 -->
 
 ## 使用指南
 

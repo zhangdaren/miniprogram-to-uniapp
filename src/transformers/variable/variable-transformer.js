@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-19 11:15:31
- * @LastEditTime: 2021-10-29 19:04:04
+ * @LastEditTime: 2021-11-08 17:42:12
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\variable\variable-transformer.js
@@ -12,11 +12,8 @@ const $ = require('gogocode')
 const t = require("@babel/types")
 const clone = require("clone")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
+var appRoot = "../../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
 
@@ -243,7 +240,7 @@ function getTemplateExpressionList ($wxmlAst) {
                 //去掉换行
                 content = content.replace(/\n/g, "")
 
-                var reg =/\{\{(.*?)\}\}/
+                var reg = /\{\{(.*?)\}\}/
                 if (content && reg.test(content)) {
                     var codeList = content.match(/\{\{(.*?)\}\}/g)
                     // codeList = codeList.map(function (str) {
@@ -278,7 +275,8 @@ function getTemplateExpressionList ($wxmlAst) {
  * @param {.} name
  */
 function getVariableListByKey (name) {
-    name = name.replace(/\[.*?\]/, "[0]")
+    //TODO: dateTimeArray1[dateTime1[1]] 这种不太好解析
+    name = name.replace(/\[.*?\]+/g, "[0]")
     return name.split(".")
 }
 
@@ -318,6 +316,9 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
         return item.key && (item.key.name || item.key.value)
     })
 
+    var wxsModuleNameList = ggcUtils.getWxmlAstModuleList($wxmlAst)
+
+
     var res = $jsAst.find(`export default {
         data() {
             return $_$data
@@ -338,7 +339,11 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
                 var keyName = node.key && (node.key.name || node.key.value) || ""
                 var value = node.value
 
-                if (keyName && !dataNameList.includes(keyName) && !propNameList.includes(keyName)) {
+                if (keyName
+                    && !dataNameList.includes(keyName)
+                    && !propNameList.includes(keyName)
+                    && !wxsModuleNameList.includes(keyName)
+                ) {
 
                     var list = getVariableListByKey(keyName)
 
@@ -346,7 +351,7 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
 
                     var first = list[0]
                     //判断list第一个是否在props里面
-                    if (propNameList.includes(first)) {
+                    if (propNameList.includes(first) || wxsModuleNameList.includes(first))  {
                         return
                     }
                     //item、index、idx等变量将直接返回
@@ -371,7 +376,7 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
 
         var first = list[0]
         //判断list第一个是否在props里面
-        if (propNameList.includes(first)) {
+        if (propNameList.includes(first) || wxsModuleNameList.includes(first)) {
             return
         }
         //item、index、idx等变量将直接返回

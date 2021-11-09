@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-17 20:16:00
- * @LastEditTime: 2021-10-29 19:04:19
+ * @LastEditTime: 2021-10-30 16:56:11
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\test\page\template\template-transformer.test.js
+ * @FilePath: /miniprogram-to-uniapp2/test/page/template/template-transformer.test.js
  *
  */
 
@@ -14,11 +14,7 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../../.."
 const {
     transformEventDynamicCode
 } = require(appRoot + '/src/page/template/template-transformer')

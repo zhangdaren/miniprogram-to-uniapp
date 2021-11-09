@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-10-20 16:34:14
+ * @LastEditTime: 2021-11-08 18:13:17
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\assets\assets-path-transformer.js
@@ -14,11 +14,7 @@ const fs = require('fs-extra')
 const t = require("@babel/types")
 const clone = require("clone")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
@@ -61,7 +57,7 @@ function repireScriptSourcePath ($jsAst, jsFile) {
             // function repiarAssetPath (filePath, root, fileDir) {
             let fileDir = path.dirname(jsFile)
             let extname = path.extname(jsFile)
-            let newSrc = pathUtils.repiarAssetPath(src, global.miniprogramRoot, fileDir)
+            let newSrc = pathUtils.repiarAssetPath(src, global.miniprogramRoot, fileDir, false)
 
             item.attr("value", newSrc)
         }
@@ -92,13 +88,14 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
             //TODO:  <image class="wc-ftimg" mode="aspectFit" :src="imgsrc + '/wechatimg/form/edit.png'"></image>
             // if (!assetsFileReg.test(src)) return
 
+
             let fileDir = path.dirname(wxmlFile)
             var newSrc = src.replace(ggcUtils.multiSssetsFileReg, function (match, $1) {
                 let newVal = pathUtils.repiarAssetPath(
                     $1,
                     global.miniprogramRoot,
                     fileDir,
-                    true
+                    false   //不使用@/，  <image :src="'@/static/image' + file+  'png'"></image>这种引用不到!
                 )
                 //如果有引号，则需要添加上
                 if (/^['"]/.test(match)) {

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-30 21:18:47
- * @LastEditTime: 2021-08-30 23:25:14
+ * @LastEditTime: 2021-10-30 16:42:47
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp2\test\transformers\variable\variable-transformer.test.js
+ * @FilePath: /miniprogram-to-uniapp2/test/transformers/variable/variable-transformer.test.js
  *
  */
 const $ = require('gogocode')
@@ -13,11 +13,7 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../../.."
 const {
     jsKeywordFunctionHandle,
     undefinedFunctionHandle,

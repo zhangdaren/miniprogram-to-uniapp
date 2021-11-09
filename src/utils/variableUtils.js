@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-30 17:07:30
- * @LastEditTime: 2021-10-25 14:00:19
+ * @LastEditTime: 2021-11-02 18:54:02
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\variableUtils.js
@@ -14,12 +14,8 @@ const $ = require('gogocode')
 const t = require("@babel/types")
 const clone = require("clone")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 const { util } = require('prettier')
-
+var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
 
@@ -109,7 +105,7 @@ function addNodePath (dataPath, key, valueType, isLast, isOnlyOne, variableTypeI
     }
 
     var isArrayObject = key.includes("[0]")
-    key = key.replace(/\[0\]/, "")
+    key = key.replace(/\[0\]/g, "")
 
     var properties = null
     if (t.isObjectExpression(dataPath) || t.isObjectProperty(dataPath)) {

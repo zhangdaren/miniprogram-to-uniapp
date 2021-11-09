@@ -1,20 +1,16 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-29 19:44:47
+ * @LastEditTime: 2021-10-30 16:43:51
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\configUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/configUtils.js
  *
  */
 const path = require('path');
 const fs = require('fs-extra');
 
-var appRoot = require('app-root-path').path;
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js');
 
 

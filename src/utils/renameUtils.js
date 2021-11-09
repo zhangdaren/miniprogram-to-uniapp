@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2021-10-26 18:14:21
+ * @LastEditTime: 2021-11-09 13:49:35
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\renameUtils.js
@@ -15,11 +15,7 @@ const fs = require('fs-extra')
 const t = require("@babel/types")
 const clone = require("clone")
 
-
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
+var appRoot = "../.."
 
 const utils = require(appRoot + '/src/utils/utils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
@@ -482,6 +478,27 @@ function renameTemplateAttrVariable (code, oldName, newName, isOnlyReplaceFuncti
                         return null  //不用改的，返回null
                     }
                 }).root().generate()
+
+                //将值里面的全角全转成半角，不然可能会导致引号有问题
+                //例：
+                // <template is="footer"  data="{{text: 'group'}}"/>
+                // <template name="footer">
+                //     <view class="footer-wrapper">
+                //     <navigator url="/pages/my/peiwang/modules/index/index" hover-class="none" open-type="redirect" class="footer-name {{text == 'index' ? 'blue' : ''}}">
+                //         <text class='iconfont icon-light font22'></text>
+                //         <text>设备</text>
+                //     </navigator>
+                //     <navigator url="/pages/my/peiwang/modules/group/group" hover-class="none" open-type="redirect" class="footer-name {{text == 'group' ? 'blue' : ''}}">
+                //         <text class='iconfont icon-group font22'></text>
+                //         <text>群组</text>
+                //     </navigator>
+                //     <navigator url="/pages/my/peiwang/modules/user/user" hover-class="none" open-type="redirect"  class="footer-name {{text == 'user' ? 'blue' : ''}}">
+                //         <text class='iconfont icon-user font20'></text>
+                //         <text>我的</text>
+                //     </navigator>
+                //     <view>
+                // </template>
+                res= res.replace(/"/g, "'")
             } catch (error) {
                 console.log("[Error]renameTemplateAttrVariable: newName有问题，无法替换。 error: ", error)
                 console.log("[Error]renameTemplateAttrVariable: newName有问题，无法替换。 newName: ", newName)

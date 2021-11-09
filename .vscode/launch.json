@@ -7,24 +7,11 @@
         {
             "type": "pwa-node",
             "request": "launch",
-            "name": "transform uniapp",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "${workspaceFolder}\\transform.js",
-            "outFiles": [
-                "${workspaceFolder}/**/*.js"
-            ],
-            // "console": "integratedTerminal"
-        },
-        {
-            "type": "pwa-node",
-            "request": "launch",
             "name": "Launch Program",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}\\index.js",
+            "program": "${workspaceFolder}\\test.js",
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]

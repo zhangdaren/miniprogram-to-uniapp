@@ -1,20 +1,16 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2021-10-29 19:03:11
+ * @LastEditTime: 2021-10-30 16:44:00
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\project\configHandle.js
+ * @FilePath: /miniprogram-to-uniapp2/src/project/configHandle.js
  *
  */
 const fs = require('fs-extra')
 const path = require('path')
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const formatUtils = require(appRoot + '/src/utils/formatUtils.js')
@@ -240,6 +236,9 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder
 
             var iconPath = item.iconPath
             var selectedIconPath = item.selectedIconPath
+
+            if(!iconPath || !selectedIconPath) continue
+
             if (global.isTransformAssetsPath) {
                 item.iconPath = pathUtils.getAssetsNewPath(iconPath)
                 item.selectedIconPath = pathUtils.getAssetsNewPath(selectedIconPath)

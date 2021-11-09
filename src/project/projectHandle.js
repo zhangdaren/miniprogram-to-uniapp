@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-29 19:51:46
+ * @LastEditTime: 2021-11-08 17:59:17
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
@@ -18,16 +18,7 @@ const t = require("@babel/types")
 const clone = require("clone")
 const ProgressBar = require('progress')
 
-var appRoot = require('app-root-path').path
-
-// console.log("appRoot---" , appRoot )
-
-// console.log('__dirname : ' + __dirname)
-
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
-
+var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
@@ -48,15 +39,23 @@ const Page = require(appRoot + "/src/page")
 //注意，不能像上面这样给global增加东西，会报错的。。 比如：prettier-eslint
 
 
-async function transform (sourceFolder, targetFolder) {
+/**
+ *
+ * @param {*} sourceFolder
+ * @param {*} targetFolder
+ * @param {*} outputChannel  hbx插件专用
+ * @returns
+ */
+async function transform (sourceFolder, targetFolder, outputChannel) {
     return new Promise(async function (resolve, reject) {
         var allPageData = {}
 
         const startTime = new Date()
         var files = utils.getAllFile(sourceFolder)
+        var num = files.length
 
         const time = new Date().getTime() - startTime.getTime()
-        var logStr = `搜索到${ files.length }个文件，耗时：${ time }ms\r\n`
+        var logStr = `搜索到${ num }个文件，耗时：${ time }ms\r\n`
         console.log(logStr)
 
         files.forEach(async function (file) {
@@ -81,11 +80,18 @@ async function transform (sourceFolder, targetFolder) {
                 var folderName = path.basename(file)
                 if (folderName === "__test__") {
                     //weui-miniprogram 源码里面的目录，无须转换
+                } else if (num > 3000 && folderName === "node_modules") {
+                    fs.copySync(file, newFile)
                 } else {
                     if (!fs.existsSync(newFile)) {
                         fs.mkdirSync(newFile)
                     }
                 }
+            } else if (num > 3000 && file.includes("node_modules")) {
+
+                //node_modules 不处理
+                console.log("文件数大于3000时，不处理node_modules目录")
+
             } else {
                 var extname = path.extname(file)
 
@@ -190,16 +196,17 @@ async function transform (sourceFolder, targetFolder) {
         })
 
         var pageList = Object.keys(allPageData)
+        var total = pageList.length * 2
         var bar = new ProgressBar('  转换进度 [:bar] :rate/bps :percent 预计剩余:etas ', {
             complete: '█',
             incomplete: '░',
             width: 60,
-            total: pageList.length * 2
+            total: total
         })
 
         //顺序不能错
-        await transformPageList(allPageData, bar)
-        await transformOtherComponents(allPageData, bar)
+        await transformPageList(allPageData, bar, outputChannel, total)
+        await transformOtherComponents(allPageData, bar, outputChannel, total)
 
         resolve()
     })
@@ -211,9 +218,10 @@ async function transform (sourceFolder, targetFolder) {
  * @param {*} bar
  * @returns
  */
-async function transformPageList (allPageData, bar) {
+async function transformPageList (allPageData, bar, outputChannel, total) {
     return new Promise(async function (resolve, reject) {
         //因为要遍历，要同步，没法使用map或forEach
+        var count = 0
         for (let fileKey of Object.keys(allPageData)) {
             var fileGroupData = allPageData[fileKey]
 
@@ -250,6 +258,11 @@ async function transformPageList (allPageData, bar) {
             global.loginApiCount += page.loginApiCount
 
             bar.tick()
+
+            count++
+            if (outputChannel) {
+                outputChannel.log(`转换进度: ${ count } / ${ total }`)
+            }
         }
         resolve()
 
@@ -263,9 +276,10 @@ async function transformPageList (allPageData, bar) {
  * @param {*} bar
  * @returns
  */
-async function transformOtherComponents (allPageData, bar) {
+async function transformOtherComponents (allPageData, bar, outputChannel, total) {
     return new Promise(async function (resolve, reject) {
         //处理template和include标签，以及未定义的变量等
+        var count = 0
         for (let fileKey of Object.keys(allPageData)) {
             var pageData = allPageData[fileKey]["data"]
 
@@ -293,9 +307,12 @@ async function transformOtherComponents (allPageData, bar) {
 
             bar.tick()
 
+            count++
+            if (outputChannel) {
+                outputChannel.log(`转换进度: ${ count + total / 2 } / ${ total }`)
+            }
         }
         resolve()
-
     })
 }
 
@@ -308,8 +325,9 @@ async function transformOtherComponents (allPageData, bar) {
 /**
  * 初始化日志，用于写入到转换目录目录
  * @param {*} folder
+ * @param {*} outputChannel
  */
-function initConsole (folder) {
+function initConsole (folder, outputChannel) {
     var logPath = path.join(folder, 'transform.log')
 
     if (fs.existsSync(logPath)) {
@@ -318,12 +336,24 @@ function initConsole (folder) {
 
     var logFile = fs.createWriteStream(logPath, { flags: 'a' })
     console.log = function () {
-        logFile.write(util.format.apply(null, arguments) + '\n')
-        process.stdout.write(util.format.apply(null, arguments) + '\n')
+        var log = util.format.apply(null, arguments) + '\n'
+        logFile.write(log)
+        process.stdout.write(log)
+
+        //hbuilderx console log
+        if (outputChannel) {
+            outputChannel.appendLine(log)
+        }
     }
     console.error = function () {
-        logFile.write(util.format.apply(null, arguments) + '\n')
-        process.stderr.write(util.format.apply(null, arguments) + '\n')
+        var log = util.format.apply(null, arguments) + '\n'
+        logFile.write(log)
+        process.stdout.write(log)
+
+        //hbuilderx console log
+        if (outputChannel) {
+            outputChannel.appendLine(log)
+        }
     }
 }
 
@@ -345,6 +375,11 @@ async function projectHandle (sourceFolder, options = {}) {
         }
     }
 
+    if (!fs.existsSync(sourceFolder)) {
+        console.log("输入目录不存在")
+        return
+    }
+
     let miniprogramRoot = sourceFolder
 
     //因后面会清空输出目录，为防止误删除其他目录/文件，所以这里不给自定义!!!
@@ -359,7 +394,7 @@ async function projectHandle (sourceFolder, options = {}) {
         fs.mkdirSync(targetFolder)
     }
 
-    initConsole(targetFolder)
+    initConsole(targetFolder, options.outputChannel)
 
     console.log(`项目 '${ path.basename(sourceFolder) }' 开始转换...`)
     console.log("sourceFolder = " + sourceFolder)
@@ -373,6 +408,9 @@ async function projectHandle (sourceFolder, options = {}) {
     global.loginApiCount = 0
     global.vueFileCount = 0
     global.wxsInfo = {}
+
+    //是否是uniapp发布后的小程序
+    global.isCompileProject = false
 
     //配置
     global.isVueAppCliMode = options.isVueAppCliMode || false
@@ -410,7 +448,7 @@ async function projectHandle (sourceFolder, options = {}) {
     pathUtils.cacheImportComponentList("", "", appJSON.usingComponents)
 
     /////////////////////////////////////////////
-    await transform(miniprogramRoot, targetFolder)
+    await transform(miniprogramRoot, targetFolder, options.outputChannel)
 
     //处理配置文件
     await configHandle(configData, global.routerData, miniprogramRoot, targetFolder)

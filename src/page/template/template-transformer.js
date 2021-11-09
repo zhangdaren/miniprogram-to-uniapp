@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-26 19:21:30
+ * @LastEditTime: 2021-11-08 16:23:59
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\template\template-transformer.js
@@ -22,13 +22,10 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-var appRoot = require('app-root-path').path
-if(appRoot !== __dirname){
-    appRoot = __dirname.split(/[\\/]miniprogram-to-uniapp/)[0] + "/miniprogram-to-uniapp"
-}
 
 const exp = require('constants')
 
+var appRoot = "../../.."
 const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 
 const { parseMustache } = require(appRoot + "/src/utils/mustacheUtils")
@@ -372,15 +369,23 @@ function transformHidden (keyNode, valueNode, state) {
     if (name === "hidden" && valueNode) {
         var value = valueNode.content
 
-        var newValueContent = parseMustache(value)
-        newValueContent = newValueContent.replace(/"/g, "'")
+        if (value === "true") {
+            keyNode.content = "v-if"
+            valueNode.content = `false`
+        } else if (value === "false") {
+            keyNode.content = "v-if"
+            valueNode.content = `true`
+        } else {
+            var newValueContent = parseMustache(value)
+            newValueContent = newValueContent.replace(/"/g, "'")
 
-        keyNode.content = "v-if"
-        try {
-            valueNode.content = logicalNegation(newValueContent)
-        } catch (error) {
-            console.log("error", error)
-            console.log("----transformHidden----", newValueContent)
+            keyNode.content = "v-if"
+            try {
+                valueNode.content = logicalNegation(newValueContent)
+            } catch (error) {
+                console.log("error", error)
+                console.log("----transformHidden----", newValueContent)
+            }
         }
 
         return true
