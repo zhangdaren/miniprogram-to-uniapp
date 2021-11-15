@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:59:58
- * @LastEditTime: 2021-10-29 19:03:40
+ * @LastEditTime: 2021-11-15 11:39:56
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\function\getCurrentPages-transformer.js
@@ -93,7 +93,7 @@ function transformGetCurrentPages ($ast, fileKey) {
                         var parentNode = item[0].nodePath.parentPath.node
                         if (t.isMemberExpression) {
                             var property = parentNode.property
-                            if(property){
+                            if (property) {
                                 var propertyName = property.name || property.value
 
                                 var keyMap = {
@@ -105,8 +105,8 @@ function transformGetCurrentPages ($ast, fileKey) {
                                     property.name = newName
                                     property.valuenewName
                                 }
-                            }else{
-console.log("")
+                            } else {
+                                console.log("transformGetCurrentPages:  未知错误")
                             }
                         }
                         let meExp = t.memberExpression(item.node, t.identifier("$vm"))

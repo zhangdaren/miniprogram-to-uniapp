@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-08 18:05:53
+ * @LastEditTime: 2021-11-15 13:57:35
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\index.js
@@ -84,6 +84,7 @@ class Page {
         this.wxssFile = options.wxssFile || ""
         this.fileKey = options.fileKey || ""
         this.cssLanguage = options.cssLanguage || ""
+        this.wxmlExtname = options.wxmlExtname || ".wxml"
 
         this.jsAst = null
         this.wxmlAst = null
@@ -176,7 +177,7 @@ class Page {
         var wxssFile = this.wxssFile
 
         this.transformScriptFile(jsFile, fileKey)
-        this.transformTemplateFile(wxmlFile)
+        this.transformTemplateFile(wxmlFile, this.wxmlExtname)
         this.styleContent = await transformStyleFile(wxssFile)
 
         var jsAst = this.jsAst
@@ -211,9 +212,6 @@ class Page {
             console.log("[Error]transformSetData: ", fileKey, jsAst.generate(), error)
         }
 
-
-        transformAnimate(jsAst, fileKey)
-
         if (!this.isApp) {
             //处理外部引用的组件
             transfromUsingComponents(jsAst, this.usingComponents)
@@ -221,6 +219,10 @@ class Page {
 
         //其他代码处理，一行流的处理都放在这里面了，懒得增开文件了
         transformSpecialCode(jsAst, wxmlAst)
+
+        //在transformSpecialCode后面执行，免得把$scope被替换，
+        //TODO:这里还是有点存疑问，是否$scope与$vm是同一个对象呢？
+        transformAnimate(jsAst, fileKey)
 
         //处理behavior/mixins    暂时这里先这样处理，还涉及到，引用的文件，需要对其进行处理
         transformBehavior(jsAst, fileKey)
@@ -254,20 +256,51 @@ class Page {
     }
 
     /**
+     * 根据后缀名获取小程序全局关键字
+     * @returns
+     */
+    getMpKeywordByExtname (extname) {
+        var prefix = "wx"
+        switch (extname) {
+            case '.wxml':
+                prefix = "wx"
+                break
+            case '.qml':
+                prefix = "qq"
+                break
+            case '.ttml':
+                prefix = "tt"
+                break
+            case '.axml':
+                prefix = "my"
+                break
+            case '.swan':
+                prefix = "swan"
+                break
+            default:
+                prefix = "wx"
+                break
+        }
+        return prefix
+    }
+
+    /**
      * 预处理babel js代码
      * @param {*} fileData
      * @param {*} fileKey
      * @param {*} isVueFile
      * @returns
      */
-    preHandleScriptCode (fileData, fileKey, isVueFile) {
-        //TODO:几种小程序的标志符
-        var code = restoreJSUtils.addReplaceTag(fileData, "wx")
+    preHandleScriptCode (fileData, fileKey, wxmlExtname, isVueFile) {
+        //获取小程序的全局关键字
+        var mpKeyword = this.getMpKeywordByExtname(wxmlExtname)
+
+        var code = restoreJSUtils.addReplaceTag(fileData, mpKeyword)
         var ast = javascriptParser.parse(code, fileKey, isVueFile)
         if (fileKey.indexOf(".min") === -1) {
             restoreJSUtils.restoreJS(ast)
         }
-        restoreJSUtils.renameKeywordToUni(ast, "wx")
+        restoreJSUtils.renameKeywordToUni(ast, mpKeyword)
         var newFileData = javascriptParser.generate(ast)
         return newFileData
     }
@@ -284,9 +317,9 @@ class Page {
 
         if (this.jsFile && this.wxmlFile || this.isApp) {
             //预处理js代码
-            fileData = this.preHandleScriptCode(fileData, this.fileKey, true)
+            fileData = this.preHandleScriptCode(fileData, this.fileKey, this.wxmlExtname, true)
         } else {
-            fileData = this.preHandleScriptCode(fileData, this.fileKey)
+            fileData = this.preHandleScriptCode(fileData, this.fileKey, this.wxmlExtname)
         }
 
         var $ast = $(fileData)
@@ -324,6 +357,7 @@ class Page {
                 transformCustomPageAst($ast, jsFile, this.astType)
                 break
             case "Webpack":
+                // console.log(`[Error]${this.fileKey}.js目测是uniapp发布的文件，建议停止转换！`)
                 global.isCompileProject = true
             default:
                 transformSingleJSAst($ast, jsFile)
@@ -349,7 +383,7 @@ class Page {
      * @param {*} wxmlFile
      * @returns
      */
-    transformTemplateFile (wxmlFile) {
+    transformTemplateFile (wxmlFile, wxmlExtname) {
         if (!wxmlFile) return
 
         var fileData = fs.readFileSync(wxmlFile, 'utf8')
@@ -365,7 +399,7 @@ class Page {
             throw new Error(`小程序template代码解析失败(gogocode)，请根据错误信息修复后，再重新进行转换。file: ${ this.fileKey } :>> ` + $ast.error)
         }
 
-        transformTemplateAst($ast, wxmlFile)
+        transformTemplateAst($ast, wxmlFile, wxmlExtname)
 
         this.wxmlAst = $ast
     }
@@ -549,12 +583,17 @@ class Page {
             case "css":
                 fileContent = styleContent
                 break
+            default:
+                console.log('其他-------------------', extname)
+                break
         }
 
         if (fileContent && !reg.test(this.fileKey)) {
             fileContent = formatUtils.formatCode(fileContent, extname, this.fileKey)
         }
-
+        if (global.isMergeWxssToVue && extname === "css") {
+            return
+        }
         $.writeFile(fileContent, newFile, false)
     }
 

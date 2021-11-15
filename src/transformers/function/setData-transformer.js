@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:44:02
- * @LastEditTime: 2021-10-30 16:47:44
+ * @LastEditTime: 2021-11-15 11:04:34
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/function/setData-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\function\setData-transformer.js
  *
  */
 
@@ -66,6 +66,7 @@ function getParamsExpressionString (keyNode, thisName, scope, fileKey) {
         // this.setData({
         //     [field]: 0
         // });
+        //注意： 这种经测试，H5里，不用转换也是可行的。
         var init = ggcUtils.getScopeVariableInitValue(scope, keyNode.name)
         if (init) {
             //重新获取

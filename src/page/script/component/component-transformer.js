@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-30 16:40:37
+ * @LastEditTime: 2021-11-09 17:16:10
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/script/component/component-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\script\component\component-transformer.js
  *
  */
 
@@ -140,7 +140,11 @@ function transformComponentAst ($ast, fileKey) {
     transformLifetimes($ast, "pageLifetimes")
 
     transformObservers($ast, fileKey)
-    transformProperties($ast, fileKey)
+    try {
+        transformProperties($ast, fileKey)
+    } catch (error) {
+console.log("transformProperties error", fileKey, error)
+    }
 
     global.props[fileKey] = ggcUtils.getCompoentPropsList($ast)
 

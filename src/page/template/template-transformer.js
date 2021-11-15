@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-08 16:23:59
+ * @LastEditTime: 2021-11-15 14:26:24
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\template\template-transformer.js
@@ -22,9 +22,6 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-
-const exp = require('constants')
-
 var appRoot = "../../.."
 const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 
@@ -36,12 +33,39 @@ const { repireScriptSourcePath,
     repiarAstStringLiteralAssetPath
 } = require(appRoot + '/src/transformers/assets/assets-path-transformer')
 
-const ATTRS = {
-    'wx:if': 'v-if',
-    'wx-if': 'v-if',  //we-ui 使用过的骚气写法。。。
-    'wx:elif': 'v-else-if',
-    'wx:else': 'v-else',
-    'model:value': 'v-model',  //简易双向绑定
+
+// const ATTRS = {
+//     'wx:if': 'v-if',
+//     'wx-if': 'v-if',  //we-ui 使用过的骚气写法。。。
+//     'wx:elif': 'v-else-if',
+//     'wx:else': 'v-else',
+//     'model:value': 'v-model',  //简易双向绑定
+// }
+
+/**
+ * 获取逻辑判断及简易兑换的key转换关系
+ * @param {*} prefix 小程序前缀
+ * @returns
+ */
+function getAttrMap (prefix) {
+    var obj = {
+        [`${ prefix }:if`]: 'v-if',
+        [`${ prefix }-if`]: 'v-if',  //wx-if: we-ui 使用过的骚气写法。。。
+        [`${ prefix }:elif`]: 'v-else-if',
+        [`${ prefix }:else`]: 'v-else',
+        'model:value': 'v-model',  //微信简易双向绑定 TODO: 未了解是否都支持，暂时都拿上吧
+    }
+    //baidu
+    if (prefix === "s") {
+        obj = {
+            [`s-if`]: 'v-if',
+            [`s-elif`]: 'v-else-if',
+            [`s-else`]: 'v-else',
+            'model:value': 'v-model',  //简易双向绑定
+        }
+    }
+
+    return obj
 }
 
 const EVENTS = {
@@ -49,7 +73,7 @@ const EVENTS = {
     'touchmove': 'touchmove',
     'touchcancel': 'touchcancel',
     'touchend': 'touchend',
-    'tap': 'click',
+    'tap': 'tap',
     'longpress': 'longpress',
     'longtap': 'longpress',
     'transitionend': 'transitionend',
@@ -59,22 +83,69 @@ const EVENTS = {
     'touchforcechange': 'touchforcechange'
 }
 
-const FOR = {
-    for: 'wx:for',
-    forItems: 'wx:for-items',
-    forKey: 'wx:for-key',
-    item: 'wx:for-item',
-    index: 'wx:for-index',
-    key: 'wx:key'
+// const FOR = {
+//     for: 'wx:for',
+//     forItems: 'wx:for-items',
+//     forKey: 'wx:for-key',
+//     item: 'wx:for-item',
+//     index: 'wx:for-index',
+//     key: 'wx:key'
+// }
+
+/**
+ * 获取for相关的属性
+ * @param {*} prefix 小程序前缀
+ * @returns
+ */
+function getForMap (prefix) {
+    var obj = {
+        for: `${ prefix }:for`,
+        forItems: `${ prefix }:for-items`,
+        forKey: `${ prefix }:for-key`,
+        item: `${ prefix }:for-item`,
+        index: `${ prefix }:for-index`,
+        key: `${ prefix }:key`
+    }
+    //baidu
+    if (prefix === "s") {
+        obj = {
+            for: `s-for`,
+            item: `s-for-item`,
+            index: `s-for-index`,
+            //baidu目测没下面三个  https://smartprogram.baidu.com/docs/develop/framework/view_for/
+            // forItems: `s-for-items`,
+            // forKey: `s-for-key`,
+            // key: `s-key`
+        }
+    }
+    return obj
 }
 
-const filterAttrList = [
-    "wx:for",
-    "wx:for-item",
-    "wx:for-items",
-    "wx:for-index",
-    "wx:key", "wx:for-key",
-]
+/**
+ * 获取需要删除的属性列表
+ * @param {*} prefix 小程序前缀
+ * @returns
+ */
+function getfilterAttrList (prefix) {
+    var list = [
+        `${ prefix }:for`,
+        `${ prefix }:for-item`,
+        `${ prefix }:for-items`,
+        `${ prefix }:for-index`,
+        `${ prefix }:key`,
+        `${ prefix }:for-key`]
+
+    //baidu
+    if (prefix === "s") {
+        list = [
+            `s-for`,
+            `s-for-item`,
+            `s-for-index`,
+        ]
+    }
+    return list
+}
+
 
 const FOR_DEFAULT = {
     item: 'item',
@@ -127,6 +198,7 @@ const TAGS = [
 ]
 
 function transformDirective (keyNode, valueNode, state) {
+    const ATTRS = getAttrMap(state.prefix)
     var name = keyNode.content
 
     var resultAttr = false
@@ -137,7 +209,9 @@ function transformDirective (keyNode, valueNode, state) {
         keyNode.content = ATTRS[name]
     }
     if (ATTRS[name] && valueNode) {
-        valueNode.content = parseMustache(valueNode.content)
+        var newContent = parseMustache(valueNode.content)
+        newContent = newContent.replace(/"/g, "'")
+        valueNode.content = newContent
         reslutValue = true
     }
     return resultAttr || reslutValue
@@ -205,7 +279,6 @@ function getParentForIndex (node) {
         //如果已经获取到了，就不需再获取更父级的节点了
         if (forIndex) return
 
-
         var attributes = item.attr('content.attributes')
         if (!attributes) {
             return
@@ -229,12 +302,15 @@ function getParentForIndex (node) {
  * @param {*} node
  * @returns
  */
-function transformFor (node) {
+function transformFor (node, state) {
     var attributes = node.attr('content.attributes')
     // console.log("attributes", attributes)
     if (!attributes) {
         return
     }
+
+    const prefix = state.prefix
+    const FOR = getForMap(prefix)
 
     var attribs = {}
     attributes.forEach(function (attr, index) {
@@ -246,7 +322,7 @@ function transformFor (node) {
     })
 
     //wx:for-items和wx:for的不同就是，wx:for-items默认的循环项为item, 不需要指定了
-    if (attribs["wx:for"] || attribs["wx:for-items"]) {
+    if (attribs[`${ prefix }:for`] || attribs[`${ prefix }:for-items`]) {
         const vFor = attribs[FOR.for] || attribs[FOR.forItems]
         if (!vFor) {
             return
@@ -298,7 +374,7 @@ function transformFor (node) {
 
         if (vKey || vForKey) {
             vKey = vForKey || vKey
-            if (vKey === '*this') {
+            if (vKey === '*this' || vKey === "index") {
                 //保留关键字 *this 代表在 for 循环中的 item 本身，这种表示需要 item 本身是一个唯一的字符串或者数字
                 //注意：如果:key是一个对象，会报错的，因此还是用index吧。下同
                 // vKey = vItem
@@ -308,6 +384,7 @@ function transformFor (node) {
                 // vKey = vItem
                 vKey = vIndex
             } else if (vKey !== vItem && vKey.indexOf('.') === -1) { // wx:for-key="{{item.value}}"
+                //TODO: 这里可能还是有问题。。。。
                 vKey = vItem + '.' + vKey
             }
             var keyObj = {
@@ -329,7 +406,7 @@ function transformFor (node) {
         var content = node.attr("content")
         content.attributes = attributes.filter(function (attr, index) {
             var key = attr.key.content
-            return !filterAttrList.includes(key)
+            return !getfilterAttrList(state.prefix).includes(key)
         })
         content.attributes = []
         // node.attr('content.attributes', newAttributes)
@@ -340,18 +417,30 @@ function transformFor (node) {
  * 删除for相关的属性：用于给子级搜索当前index属性的
  * @param {*} $ast
  */
-function removeForAttr ($ast) {
-    $ast
-        .root()
-        .replace('<$_$1 wx:for="$_$2" $$$1>$$$2</$_$1>', '<$_$1 $$$1>$$$2</$_$1>')
-        .replace('<$_$1 wx:for-item="$_$2" $$$1>$$$2</$_$1>', '<$_$1 $$$1>$$$2</$_$1>')
-        .replace('<$_$1 wx:for-items="$_$2" $$$1>$$$2</$_$1>', '<$_$1 $$$1>$$$2</$_$1>')
-        .replace('<$_$1 wx:for-index="$_$2" $$$1>$$$2</$_$1>', '<$_$1 $$$1>$$$2</$_$1>')
-        .replace('<$_$1 wx:key="$_$2" $$$1>$$$2</$_$1>', '<$_$1 $$$1>$$$2</$_$1>')
-        .replace('<$_$1 wx:for-key="$_$2" $$$1>$$$2</$_$1>', '<$_$1 $$$1>$$$2</$_$1>')
-        .replace('<$_$1 v-for-index="$_$2" $$$1>$$$2</$_$1>', '<$_$1 $$$1>$$$2</$_$1>')
+function removeForAttr ($ast, state) {
+    var prefix = state.prefix
+
+    if (prefix === "s") {
+        //baidu
+        $ast
+            .root()
+            .replace(`<$_$1 s-for="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+            .replace(`<$_$1 s-for-item="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+            .replace(`<$_$1 s-for-index="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+    } else {
+        $ast
+            .root()
+            .replace(`<$_$1 ${ prefix }:for="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+            .replace(`<$_$1 ${ prefix }:for-item="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+            .replace(`<$_$1 ${ prefix }:for-items="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+            .replace(`<$_$1 ${ prefix }:for-index="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+            .replace(`<$_$1 ${ prefix }:key="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+            .replace(`<$_$1 ${ prefix }:for-key="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
+    }
+
+    $ast.replace(`<$_$1 v-for-index="$_$2" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
         //可能有这种骚气写法：<view class='picture-magic-cont' wx:key="*this"></view>
-        .replace('<$_$1 :key="*this" $$$1>$$$2</$_$1>', '<$_$1 $$$1>$$$2</$_$1>')
+        .replace(`<$_$1 :key="*this" $$$1>$$$2</$_$1>`, '<$_$1 $$$1>$$$2</$_$1>')
 }
 
 /**
@@ -468,17 +557,15 @@ function logicalNegation (code) {
  * @returns
  */
 function transformAttr (keyNode, valueNode, state) {
+    var prefix = state.prefix
     var name = keyNode.content
+
+    var forAttrList = getfilterAttrList(prefix)
 
     if (
         name.indexOf('v-') === 0
         || name.indexOf(':') === 0
-        || name.indexOf('wx:key') === 0
-        || name.indexOf('wx:for') === 0
-        || name.indexOf('wx:for-index') === 0
-        || name.indexOf('wx:for-key') === 0
-        || name.indexOf('wx:for-item') === 0
-        || name.indexOf('wx:for-items') === 0
+        || forAttrList.includes(name)
     ) { // 已提前处理
         return
     }
@@ -495,6 +582,7 @@ function transformAttr (keyNode, valueNode, state) {
     }
 
     if (valueNode) {
+        // console.log("keyname", name)
         // console.log("valueNode", valueNode.content)
         var value = valueNode.content
 
@@ -503,9 +591,13 @@ function transformAttr (keyNode, valueNode, state) {
 
             //TODO: 单双交杂?
             //全部转为单引号
-            var newValueContent = parseMustache(value)
-            newValueContent = newValueContent.replace(/"/g, "'")
 
+            //这里必须处理一下，如果template的值是使用的单引号，后面会出问题，导致引号不匹配！！！
+            //<text class='iconfont {{item.icon}}'></text>
+
+            var newValueContent = parseMustache(value)
+            //
+            newValueContent = newValueContent.replace(/"/g, "'")
             valueNode.content = newValueContent
         } else {
             //如果属性的值为true或false，则将属性增加v-bind:
@@ -522,30 +614,38 @@ function transformAttr (keyNode, valueNode, state) {
  * @param {*} node
  * @returns
  */
-function transformAttrs (node) {
+function transformAttrs (node, state) {
     var attributes = node.attr('content.attributes')
     var tagName = node.attr('content.name')
     // console.log("attributes", attributes)
     if (!attributes) {
         return
     }
-    if (tagName === "wxs") {
+
+    var wxsTagList = ['wxs', "filter", "import-sjs"]
+    if (wxsTagList.includes(tagName)) {
         //wxs 不在这里处理
         // console.log('wxs :>> ', "wxs")
         return
     }
 
-    transformFor(node)
-
     const isComponent = !TAGS.includes(tagName)
-    var state = {
-        isComponent
-    }
+    state['isComponent'] = isComponent
+
+    transformFor(node, state)
 
     //干掉<image binderror src="xxx"></image>里面的binderror
     attributes = attributes.filter(function (item, i) {
         let { key: keyNode, value: valueNode } = item
         var isNotAttrContent = !valueNode && keyNode.content.includes("bind")
+
+        //修改单引号为双引号
+        if (item.startWrapper) {
+            item.startWrapper.content = '"'
+        }
+        if (item.endWrapper) {
+            item.endWrapper.content = '"'
+        }
 
         if (!isNotAttrContent) {
             transformAttr(keyNode, valueNode, state)
@@ -663,15 +763,43 @@ function transformduplicateAttr ($ast) {
     })
 }
 
-
+/**
+ * 根据后缀名获取前缀
+ * @returns
+ */
+function getPrefixByExtname (extname) {
+    var prefix = "wx"
+    switch (extname) {
+        case '.wxml':
+            prefix = "wx"
+            break
+        case '.qml':
+            prefix = "qq"
+            break
+        case '.ttml':
+            prefix = "tt"
+            break
+        case '.axml':
+            prefix = "a"
+            break
+        case '.swan':
+            prefix = "s"
+            break
+        default:
+            prefix = "wx"
+            break
+    }
+    return prefix
+}
 
 /**
  * 转换template ast
  * @param {*} $ast
  * @param {*} wxmlFile
+ * @param {*} wxmlExtname
  * @returns
  */
-function transformTemplateAst ($ast, wxmlFile) {
+function transformTemplateAst ($ast, wxmlFile, wxmlExtname) {
     // var data = `{{leftIndex:index+1,section3Title:item.title}}`
 
     // //解析这种会有问题
@@ -687,6 +815,12 @@ function transformTemplateAst ($ast, wxmlFile) {
     //     var obj =   [...new Set(props)]
     // }
 
+    //前缀
+    var prefix = getPrefixByExtname(wxmlExtname)
+    var state = {
+        prefix
+    }
+
     $ast
         .find(`<$_$1 $$$1>$$$2</$_$1>`)
         .each(node => {
@@ -698,11 +832,12 @@ function transformTemplateAst ($ast, wxmlFile) {
                 // if (!attributes || tagName === "template") {
                 return
             }
-            transformAttrs(node)
+
+            transformAttrs(node, state)
         })
 
     //转换for后，要删除原有的
-    removeForAttr($ast)
+    removeForAttr($ast, state)
 
     //转换资源路径
     repireTemplateSourcePath($ast, wxmlFile)

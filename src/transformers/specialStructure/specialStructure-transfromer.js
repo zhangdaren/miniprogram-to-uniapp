@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-10-30 16:48:08
+ * @LastEditTime: 2021-11-09 16:52:55
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/specialStructure/specialStructure-transfromer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\specialStructure\specialStructure-transfromer.js
  *
  */
 
@@ -102,7 +102,7 @@ function transfromSpecialStructure ($jsAst, fileKey) {
 
                 //注：之所以这里判断，是因为前面对代码进行了一行拆分多行的操作，导致上面的那个判断行不通了!!!
                 var isMatchCondition2 = (item.match['$$$2'][0].type === 'IfStatement' &&
-                    item.match['$$$2'][1].type === 'ReturnStatement')
+                item.match['$$$2'][1] && item.match['$$$2'][1].type === 'ReturnStatement')
 
                 if (item.match['$$$1'].length === 3 && (isMatchCondition1 || isMatchCondition2)) {
                     var dataNode = item.match['1'][0].node

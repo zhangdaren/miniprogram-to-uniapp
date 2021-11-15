@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-08 17:59:17
+ * @LastEditTime: 2021-11-15 14:31:23
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
@@ -34,9 +34,28 @@ const { getPageSimpleVariableTypeInfo } = require(appRoot + '/src/transformers/v
 
 const Page = require(appRoot + "/src/page")
 
+const pkg = require('../../package.json');
+
+
+
 //TODO: 注意事项，其实global上面挂了很多很多东西
 // global = { ...global, ...options }
 //注意，不能像上面这样给global增加东西，会报错的。。 比如：prettier-eslint
+
+
+/**
+ * 检测是否为uniapp发布后的项目
+ * @param {*} sourceFolder
+ */
+function checkCompileProject (sourceFolder) {
+    var appJs = path.join(sourceFolder, "app.js")
+    var content = fs.readFileSync(appJs, 'utf-8')
+    if (content === `require("./common/runtime.js"),require("./common/vendor.js"),require("./common/main.js");`) {
+        return true
+    } else {
+        return false
+    }
+}
 
 
 /**
@@ -49,6 +68,12 @@ const Page = require(appRoot + "/src/page")
 async function transform (sourceFolder, targetFolder, outputChannel) {
     return new Promise(async function (resolve, reject) {
         var allPageData = {}
+
+        var isCompileProject = checkCompileProject(sourceFolder)
+        if (isCompileProject) {
+            reject("[Error]检测到当前项目可能是uniapp发布后的小程序项目，不支持转换！")
+            return
+        }
 
         const startTime = new Date()
         var files = utils.getAllFile(sourceFolder)
@@ -123,6 +148,7 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
                     case '.axml':
                     case '.swan':
                         fileData['wxml'] = file
+                        fileData['wxmlExtname'] = extname
 
                         //TODO: 小程序类型
                         // global.mpType = utils.getMPType(extname)
@@ -148,11 +174,10 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
                         break
                     case '.json':
                         //粗暴获取上层目录的名称~~~
-                        let pFolderName = pathUtils.getParentFolderName(file)
-                        if (fileNameNoExt !== pFolderName && fileName != 'app.json' && fileName != 'index.json') {
+                        // let pFolderName = pathUtils.getParentFolderName(file)
+                        if (!fileKey.includes("/") && fileName !== "app.json") {
                             fs.copySync(file, newFile)
                         }
-
                         ///这里要判断是文件名是否为上层目录名，如果是的话就可以
                         fileData['json'] = file
                         break
@@ -197,14 +222,14 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
 
         var pageList = Object.keys(allPageData)
         var total = pageList.length * 2
-        var bar = new ProgressBar('  转换进度 [:bar] :rate/bps :percent 预计剩余:etas ', {
+        var bar = new ProgressBar('进度 [:bar] :rate/bps :percent :etas ', {
             complete: '█',
             incomplete: '░',
-            width: 60,
+            width: 30,
             total: total
         })
 
-        //顺序不能错
+        //顺序不能错!!!
         await transformPageList(allPageData, bar, outputChannel, total)
         await transformOtherComponents(allPageData, bar, outputChannel, total)
 
@@ -230,6 +255,7 @@ async function transformPageList (allPageData, bar, outputChannel, total) {
             var jsonFile = fileGroupData["json"] || ""
             var wxssFile = fileGroupData["wxss"] || ""
             var cssLanguage = fileGroupData["cssLanguage"] || ""
+            var wxmlExtname = fileGroupData["wxmlExtname"] || ""
 
             var options = {
                 jsFile,
@@ -238,6 +264,7 @@ async function transformPageList (allPageData, bar, outputChannel, total) {
                 wxssFile,
                 fileKey,
                 cssLanguage,
+                wxmlExtname,
             }
 
             var page = new Page(options)
@@ -395,6 +422,13 @@ async function projectHandle (sourceFolder, options = {}) {
     }
 
     initConsole(targetFolder, options.outputChannel)
+
+    console.log(`miniprogram-to-uniapp v2 转换日志\n`)
+
+    console.log(`工具版本：${pkg.version}`)
+    console.log(`转换模式：${options.isVueAppCliMode ? 'Vue-CLi': 'HBuilder X'}`)
+    console.log(`是否合并css：${options.isMergeWxssToVue ? '是': '否'}`)
+    console.log(`\n`)
 
     console.log(`项目 '${ path.basename(sourceFolder) }' 开始转换...`)
     console.log("sourceFolder = " + sourceFolder)

@@ -231,7 +231,6 @@ function transformObservers ($jsAst, fileKey) {
         }).root()
         //清除未添加内容的watch对象
         .replace("export default {$$$1, watch:{$$$2}}", (match, nodePath) => {
-            console.log()
             if (match['$$$2'].length) {
                 return null  //不修改原来的
             } else {

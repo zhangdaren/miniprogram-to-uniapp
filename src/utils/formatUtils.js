@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2021-10-30 16:44:14
+ * @LastEditTime: 2021-11-15 11:22:47
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/utils/formatUtils.js
+ * @FilePath: \miniprogram-to-uniapp\src\utils\formatUtils.js
  *
  */
 
@@ -46,6 +46,7 @@ var prettierOptions = {
     trailingComma: "none",                 // 这一条是hbx格式规则，去掉对象或数组末节点的逗号
     bracketSpacing: true,                  // 对象文字在括号之间打印空格
     htmlWhitespaceSensitivity: "ignore",   // "ignore" 所有标签周围的空白(或缺少空白)被认为是无关紧要的。
+    // requirePragma: true,                 // 格式化css需要的，否则格式化出错（用scss格式没问题，先用scss）
 }
 
 //Beautify options
@@ -121,8 +122,13 @@ function getPrettierOptions (type) {
         case "js":
             parser = "babel"
             break
+        case "css":
+        case "scss":
+        case "less":
+            parser = "scss"
+            break
         default:
-            //其他如json,css,scss,less等
+            //其他如json等
             parser = type
             break
     }

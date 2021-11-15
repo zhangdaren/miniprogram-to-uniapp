@@ -17,6 +17,7 @@ updater({ 'pkg': pkg }).then(() => {
 
     program
         .version(pkg.version)
+        // .version(pkg.version, '-v, --version')  //响应-v
         .usage('[options]')
         .option('-i, --input', 'the input path for miniprogram project')
         .option('-c, --cli', 'the type of output project is vue-cli, which default value is false', false)
@@ -29,7 +30,7 @@ updater({ 'pkg': pkg }).then(() => {
         console.log();
         console.log(chalk.gray('    # transform a miniprogram project to uni-app project'));
         console.log();
-        console.log('    $ wtu -i ./miniprogram-project [-z -r -m]');
+        console.log('    $ wtu -i ./miniprogram-project [-m]');
         console.log();
     });
 

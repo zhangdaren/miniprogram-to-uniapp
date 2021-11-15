@@ -12,3 +12,4 @@ docs/
 # vuepress temp file
 .temp
 next
+.github

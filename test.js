@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2021-11-09 10:35:43
+ * @LastEditTime: 2021-11-15 11:37:39
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\test.js
@@ -20,7 +20,7 @@ const { transform } = require('./index')
 /**
  *  仅用于测试
  */
-function test () {
+async function test () {
     try {
         // var sourceFolder = "./demo/test-20210606"
         // var sourceFolder = "./demo/test-20210903"
@@ -35,7 +35,11 @@ function test () {
         // var sourceFolder = "./demo/weui-demo"
         // var sourceFolder = "./demo/taoanmo-old"
 
-        var sourceFolder = "./demo/test-20211001"
+        // var sourceFolder = "./demo/459hejian"
+
+        // var sourceFolder = "./demo/test-20211001"
+        var sourceFolder = "./demo/tt-app-mall-master"
+
         // var sourceFolder = "./demo/1108mp"
 
         // var sourceFolder = "./demo/xiaochengxu"
@@ -43,9 +47,9 @@ function test () {
         sourceFolder = path.join(__dirname, sourceFolder)
         sourceFolder = utils.normalizePath(sourceFolder)
 
-        transform(sourceFolder)
+        await transform(sourceFolder)
     } catch (error) {
-
+        console.log("transform error", error)
     }
 }
 

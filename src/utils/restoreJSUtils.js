@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 15:40:27
- * @LastEditTime: 2021-11-09 14:08:56
+ * @LastEditTime: 2021-11-15 11:53:43
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\restoreJSUtils.js
@@ -1041,7 +1041,7 @@ function fixSpecialCode2 ($ast) {
  * js反混淆，仅支持babel ast
  * @param {*} ast
  */
-function restoreJS (ast) {
+function restoreJS (ast, mpKeyword) {
 
     //修复特殊代码结构
     try {

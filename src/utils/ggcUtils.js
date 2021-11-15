@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-08 17:51:33
+ * @LastEditTime: 2021-11-09 18:21:19
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\ggcUtils.js
@@ -39,7 +39,7 @@ const expList = [
     },
     {
         type: "Webpack",
-        exp: `(global["webpackJsonp"]=global["webpackJsonp"]||[])`,
+        exp: [`(global["webpackJsonp"]=global["webpackJsonp"]||[])`, `(global.webpackJsonp=global.webpackJsonp||[])`]
     },
     {
         type: "VantComponent",
@@ -463,37 +463,37 @@ function getDataOrPropsOrMethodsList ($jsAst, type, isCreate = false) {
     //没找到时，那就创建它
     if (!list && isCreate) {
         var replaceSelector = `export default {
-                $$$
+                $$$list
             }`
         var replaceMap = {
             DATA: `export default {
                     data() {
                         return {}
                     },
-                    $$$
+                    $$$list
                 }`,
             PROPS: `export default {
                     props:{},
-                    $$$
+                    $$$list
                 }`,
             METHODS: `export default {
-                    $$$,
+                    $$$list,
                     methods:{}
                 }`,
             WATCH: `export default {
-                    $$$,
+                    $$$list,
                     watch:{}
                 }`,
             COMPONENTS: `export default {
                     components: {},
-                    $$$
+                    $$$list
                 }`,
             BEHAVIORS: `export default {
                     mixins: [],
-                    $$$
+                    $$$list
                 }`,
             COMPUTED: `export default {
-                    $$$,
+                    $$$list,
                     computed: {}
                 }`
         }
@@ -505,10 +505,6 @@ function getDataOrPropsOrMethodsList ($jsAst, type, isCreate = false) {
 
     return list || []
 }
-
-
-
-
 
 
 

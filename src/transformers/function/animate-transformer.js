@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-10-16 11:03:33
- * @LastEditTime: 2021-10-30 16:47:53
+ * @LastEditTime: 2021-11-15 10:45:42
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/function/animate-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\function\animate-transformer.js
  *
  */
 
@@ -22,26 +22,21 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
  * @param {*} item
  */
 function animateFnHandle (item) {
-
-    //TODO:未完
-    // item.before('\n// #ifdef MP-WEIXIN \n')
-    // console.log(item.clone().generate())
-
-
     // TODO: 这里还有问题，gogocode不支持这么搞
     // item.before(item.clone().replace('$_$this.animate($$$List)', '$_$this.$scope.animate($$$List)').generate())
 
+    //给函数添加注释时，需找父级
+    var parent = item.parent({ type: 'ExpressionStatement' })
+
     // 曲线救国
-    // var str = item.generate()
-    // var ast = $(str).replace('$_$this.animate($$$List)', '$_$this.$scope.animate($$$List)')
-    // item.before(ast)
+    var str = item.generate()
+    var mpAst = $(str).replace('$_$this.animate($$$List)', '$_$this.$scope.animate($$$List)')
+    parent.before(mpAst)
+    //添加小程序条件编译
+    mpAst.before('\n// #ifdef MP-WEIXIN \n').after('\n// #endif\n\n')
 
-
-    // item.before('\n// #endif\n')
-
-    // item.before("\n//before\n").after("\n//after\n")
-
-    // item.before('\n// #ifndef MP-WEIXIN \n').after('\n// #endif\n')
+    //添加非小程序条件编译
+    parent.before('\n// #ifndef MP-WEIXIN \n').after('\n// #endif\n')
 }
 
 
