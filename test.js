@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2021-11-15 11:37:39
+ * @LastEditTime: 2021-11-16 16:59:15
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\test.js
@@ -32,13 +32,13 @@ async function test () {
 
         // var sourceFolder = "./demo/_-700529215_8-miniapp0603"
 
-        // var sourceFolder = "./demo/weui-demo"
+        var sourceFolder = "./demo/weui-demo"
         // var sourceFolder = "./demo/taoanmo-old"
 
         // var sourceFolder = "./demo/459hejian"
 
         // var sourceFolder = "./demo/test-20211001"
-        var sourceFolder = "./demo/tt-app-mall-master"
+        // var sourceFolder = "./demo/tt-app-mall-master"
 
         // var sourceFolder = "./demo/1108mp"
 
@@ -54,3 +54,8 @@ async function test () {
 }
 
 test()
+
+//没有teyp
+{/* <icon class="weui-icon-checked"></icon> */}
+
+//error  outerClass 类型不对

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-15 14:31:23
+ * @LastEditTime: 2021-11-16 15:18:00
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
@@ -34,7 +34,7 @@ const { getPageSimpleVariableTypeInfo } = require(appRoot + '/src/transformers/v
 
 const Page = require(appRoot + "/src/page")
 
-const pkg = require('../../package.json');
+const pkg = require('../../package.json')
 
 
 
@@ -49,8 +49,13 @@ const pkg = require('../../package.json');
  */
 function checkCompileProject (sourceFolder) {
     var appJs = path.join(sourceFolder, "app.js")
-    var content = fs.readFileSync(appJs, 'utf-8')
-    if (content === `require("./common/runtime.js"),require("./common/vendor.js"),require("./common/main.js");`) {
+    var content = ""
+    try {
+        content = fs.readFileSync(appJs, 'utf-8')
+    } catch (error) {
+        //可能没有这个文件
+    }
+    if (content && content === `require("./common/runtime.js"),require("./common/vendor.js"),require("./common/main.js");`) {
         return true
     } else {
         return false
@@ -425,9 +430,9 @@ async function projectHandle (sourceFolder, options = {}) {
 
     console.log(`miniprogram-to-uniapp v2 转换日志\n`)
 
-    console.log(`工具版本：${pkg.version}`)
-    console.log(`转换模式：${options.isVueAppCliMode ? 'Vue-CLi': 'HBuilder X'}`)
-    console.log(`是否合并css：${options.isMergeWxssToVue ? '是': '否'}`)
+    console.log(`工具版本：${ pkg.version }`)
+    console.log(`转换模式：${ options.isVueAppCliMode ? 'Vue-CLi' : 'HBuilder X' }`)
+    console.log(`是否合并css：${ options.isMergeWxssToVue ? '是' : '否' }`)
     console.log(`\n`)
 
     console.log(`项目 '${ path.basename(sourceFolder) }' 开始转换...`)

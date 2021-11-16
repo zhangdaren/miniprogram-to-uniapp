@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-09 18:21:19
+ * @LastEditTime: 2021-11-16 16:56:15
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\ggcUtils.js
@@ -20,9 +20,9 @@ const restoreJSUtils = require("./restoreJSUtils")
 const staticAssetsReg = /^\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff)$/i
 
 //支持的文件的正则，用于替换引入路径
-const assetsFileReg = /^((\/|\.+\/).*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))$/i
+const assetsFileReg = /^((\/|\.+\/)*.*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))$/i
 
-const multiSssetsFileReg = /['"]?((\/|\.+\/).*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
+const multiSssetsFileReg = /['"]?((\/|\.+\/)*.*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
 
 const expList = [
     {

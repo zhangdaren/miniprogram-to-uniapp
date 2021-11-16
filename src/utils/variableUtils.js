@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-30 17:07:30
- * @LastEditTime: 2021-11-02 18:54:02
+ * @LastEditTime: 2021-11-16 16:14:50
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\variableUtils.js
@@ -127,14 +127,18 @@ function addNodePath (dataPath, key, valueType, isLast, isOnlyOne, variableTypeI
         return dataPath
     }
 
-    // console.log("key -> ", key)
-
     var subDataPath = properties.find(o => o.key && (o.key.name === key || o.key.value === key))
     if (subDataPath) {
-        if (t.isStringLiteral(subDataPath.value)) {
-            subDataPath.value = t.objectExpression([])
+        if (isLast) {
+            //注： 已经存在这个对象，并且，它是最后一个时，这里不进行替换了
+            //不然可能会导致原有的属性的值被替换为{}
+        } else {
+            //TODO: 这个判断也有点存疑
+            if (t.isStringLiteral(subDataPath.value)) {
+                subDataPath.value = t.objectExpression([])
+            }
+            return subDataPath.value
         }
-        return subDataPath.value
     } else {
         if (isLast) {
             //最后一个时，要调整类型！！！！
@@ -232,7 +236,7 @@ function guessValueTypeByName (name) {
         type = obj.type
     }
 
-    if (otherWords.includes(name)) {
+    if (otherWords.includes(name) || /ss$/.test(name)) {
         type = "String"
     }
 

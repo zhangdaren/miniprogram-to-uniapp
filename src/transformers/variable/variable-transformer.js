@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-19 11:15:31
- * @LastEditTime: 2021-11-08 17:42:12
+ * @LastEditTime: 2021-11-16 16:18:13
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\variable\variable-transformer.js
@@ -730,6 +730,9 @@ function getPageSimpleVariableTypeInfo ($jsAst, $wxmlAst, allPageData) {
 
     var importComponentList = global.importComponentList
 
+    //中文正则
+    var reg_cn = /[\u4e00-\u9fa5]/
+
     var variableTypeInfo = {}
 
     $wxmlAst.find('<$_$tag></$_$tag>')
@@ -784,8 +787,11 @@ function getPageSimpleVariableTypeInfo ($jsAst, $wxmlAst, allPageData) {
                                     // console.log("这个属性是Bool，添加v-bind:" + attr + '="' + value + '"')
                                 }
                             } else {
-                                variableTypeInfo[value] = type
-                                // console.log("加进来的属性", attr + '="' + value + '"', "属性类型为：", type)
+                                //中文的不添加
+                                if(!reg_cn.test(value)){
+                                    variableTypeInfo[value] = type
+                                    // console.log("加进来的属性", attr + '="' + value + '"', "属性类型为：", type)
+                                }
                             }
                         } else if (type === "Number" && utils.isNumberString(value)) {
                             if (attrNode.content[0] !== ":") {

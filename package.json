@@ -37,7 +37,7 @@
         "progress": "^2.0.3"
     },
     "deprecated": false,
-    "description": "Try to transform Weixin miniprogram project to Uni-app project",
+    "description": "轻松将各种小程序转换为 uni-app 项目",
     "devDependencies": {
         "jest": "^27.0.6"
     },
@@ -54,7 +54,7 @@
         "transformation"
     ],
     "license": "MIT",
-    "main": "./src/index.js",
+    "main": "index.js",
     "repository": {
         "type": "git",
         "url": "git+ssh://git@github.com/zhangdaren/miniprogram-to-uniapp.git"
@@ -63,5 +63,5 @@
         "test": "jest",
         "debugger": "node --inspect-brk ./node_modules/jest/bin/jest --runInBand --no-cache --no-watchman"
     },
-    "version": "2.0.6"
+    "version": "2.0.7"
 }

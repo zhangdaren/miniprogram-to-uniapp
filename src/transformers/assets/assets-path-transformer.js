@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-11-08 18:13:17
+ * @LastEditTime: 2021-11-16 16:58:34
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\assets\assets-path-transformer.js
@@ -88,6 +88,7 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
             //TODO:  <image class="wc-ftimg" mode="aspectFit" :src="imgsrc + '/wechatimg/form/edit.png'"></image>
             // if (!assetsFileReg.test(src)) return
 
+            // console.log("src----", src)
 
             let fileDir = path.dirname(wxmlFile)
             var newSrc = src.replace(ggcUtils.multiSssetsFileReg, function (match, $1) {
@@ -107,7 +108,7 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
             // let fileDir = path.dirname(wxmlFile)
             // let newSrc = pathUtils.repiarAssetPath(src, global.miniprogramRoot, fileDir)
             // // console.log("newSrc--", newSrc)
-            srcNode.content = newSrc
+             srcNode.content = newSrc
         })
         .root()
 }
