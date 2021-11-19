@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-30 16:41:07
+ * @LastEditTime: 2021-11-18 15:01:38
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/script/page/page-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\script\page\page-transformer.js
  *
  */
 
@@ -58,10 +58,9 @@ function transformPageAst ($ast, fileKey) {
 
     // ggcUtils.transformAppDotGlobalData($ast)
     ggcUtils.transformGetApp($ast)
-    ggcUtils.transformThisDotKeywordExpression($ast, "data")
+    // ggcUtils.transformThisDotKeywordExpression($ast, "data")
 
     transformLifecycleFunction($ast, fileKey)
-
 
     var methodsNode = ggcUtils.getLifecycleNode($ast, "Page", "methods", true)
 

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2021-10-30 16:44:00
+ * @LastEditTime: 2021-11-19 14:45:45
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/project/configHandle.js
+ * @FilePath: \miniprogram-to-uniapp\src\project\configHandle.js
  *
  */
 const fs = require('fs-extra')
@@ -58,16 +58,11 @@ function subPackagesHandle (subPackages, routerData) {
     return reuslt
 }
 
-
 /**
- * 生成page.json
- * @param {*} configData
- * @param {*} routerData
- * @param {*} miniprogramRoot
- * @param {*} targetFolder
+ * 处理全局组件，将它全部放进easycom里
  * @param {*} appJSON
  */
-function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder, appJSON) {
+function transfromGlobalUsingComponents (appJSON) {
 
     //app.json里面引用的全局组件
     let globalUsingComponents = appJSON.usingComponents || {}
@@ -76,38 +71,6 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder
     // global.hasVant = Object.keys(globalUsingComponents).some(key => {
     //     return utils.isVant(key);
     // }) || global.hasVant;
-
-    //将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
-    let pages = []
-    for (const key in appJSON.pages) {
-        let pagePath = appJSON.pages[key] || ""
-        pagePath = utils.normalizePath(pagePath)
-        let data = routerData[pagePath]
-
-        // let usingComponents = {};
-
-        // if (data && JSON.stringify(data) != "{}") {
-        // 	usingComponents = data.usingComponents;
-        // }
-
-        let obj
-        let dataBak = {}
-        if (data) {
-            dataBak = clone(data)
-            if (!global.hasVant) {
-                delete dataBak.usingComponents
-            }
-        }
-        obj = {
-            "path": pagePath,
-            "style": {
-                ...dataBak
-            }
-        }
-        pages.push(obj)
-    }
-    appJSON.pages = pages
-
 
     //在app.json里面引用的组件通通移入到easycom里面加载
     //TODO: 过滤非支持的？小程序专有的，怎么条件编译？没法插入注释。，。，。，
@@ -168,11 +131,58 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder
         easycom[obj.key] = obj.value
     })
 
-    appJSON["easycom"] = {
-        "autoscan": true,
-        "custom": { ...easycom }
+    var componentNum = Object.keys(easycom).length
+    if (componentNum) {
+        appJSON["easycom"] = {
+            "autoscan": true,
+            "custom": { ...easycom }
+        }
     }
+}
 
+
+/**
+ * 生成page.json
+ * @param {*} configData
+ * @param {*} routerData
+ * @param {*} miniprogramRoot
+ * @param {*} targetFolder
+ * @param {*} appJSON
+ */
+function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder, appJSON) {
+
+    //将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
+    let pages = []
+    for (const key in appJSON.pages) {
+        let pagePath = appJSON.pages[key] || ""
+        pagePath = utils.normalizePath(pagePath)
+        let data = routerData[pagePath]
+
+        // let usingComponents = {};
+
+        // if (data && JSON.stringify(data) != "{}") {
+        // 	usingComponents = data.usingComponents;
+        // }
+
+        let obj
+        let dataBak = {}
+        if (data) {
+            dataBak = clone(data)
+            if (!global.hasVant) {
+                delete dataBak.usingComponents
+            }
+        }
+        obj = {
+            "path": pagePath,
+            "style": {
+                ...dataBak
+            }
+        }
+        pages.push(obj)
+    }
+    appJSON.pages = pages
+
+    transfromGlobalUsingComponents(appJSON)
 
     //替换window节点为globalStyle
     appJSON["globalStyle"] = clone(appJSON["window"] || {})
@@ -237,7 +247,7 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder
             var iconPath = item.iconPath
             var selectedIconPath = item.selectedIconPath
 
-            if(!iconPath || !selectedIconPath) continue
+            if (!iconPath || !selectedIconPath) continue
 
             if (global.isTransformAssetsPath) {
                 item.iconPath = pathUtils.getAssetsNewPath(iconPath)
@@ -301,13 +311,13 @@ function generateManifest (configData, routerData, miniprogramRoot, targetFolder
     //
 
     if (appJSON["networkTimeout"]) {
-        var networkTimeout =appJSON["networkTimeout"]
+        var networkTimeout = appJSON["networkTimeout"]
         if (utils.isNumber(networkTimeout)) {
             networkTimeout = {
-                "request":networkTimeout,
-                "connectSocket":networkTimeout,
-                "uploadFile":networkTimeout,
-                "downloadFile":networkTimeout,
+                "request": networkTimeout,
+                "connectSocket": networkTimeout,
+                "uploadFile": networkTimeout,
+                "downloadFile": networkTimeout,
             }
         }
         manifestJson["networkTimeout"] = networkTimeout
@@ -461,6 +471,16 @@ async function configHandle (configData, routerData, miniprogramRoot, targetFold
         generatePageJSON(configData, routerData, miniprogramRoot, targetFolder, appJSON)
         generateManifest(configData, routerData, miniprogramRoot, targetFolder, appJSON)
         generateMainJS(configData, routerData, miniprogramRoot, targetFolder, appJSON)
+
+        //增加uni.scss
+        let source_uniScss = path.join(__dirname, "/template/uni.scss")
+        var target_uniScss = path.join(targetFolder, "uni.scss")
+        fs.copySync(source_uniScss, target_uniScss)
+
+        //复制uni_modules
+        let source_uniModules = path.join(__dirname, "/template/uni_modules")
+        var target_uniModules = path.join(targetFolder, "uni_modules")
+        fs.copySync(source_uniModules, target_uniModules)
 
         resolve()
     })

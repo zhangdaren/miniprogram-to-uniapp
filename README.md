@@ -79,20 +79,20 @@ $ wtu -i ./miniprogram-project -c
 
 | 小程序       | 转换支持 | 转换文档 |
 | :----------- | :------: | :------: |
-| 微信小程序   |    ✔     |   链接   |
-| QQ 小程序    |    ✔     |   链接   |
-| 头条小程序   |    ✔     |   链接   |
-| 支付宝小程序 |    ✔     |   链接   |
-| 百度小程序   |    ✔     |   链接   |
+| 微信小程序   |    ✔     |          |
+| QQ 小程序    |    ✔     |          |
+| 头条小程序   |    ✔     |          |
+| 支付宝小程序 |    ✔     |          |
+| 百度小程序   |    ✔     |          |
 
 ### 2.第三方组件支持度
 
 | 组件                     | 转换支持 | 转换文档 |
 | :----------------------- | :------: | :------: |
-| mode 为 region 的 picker |    ✔     |   链接   |
-| wxParse                  |    ✔     |   链接   |
-| We-UI                    |  开发中  |   链接   |
-| Vant                     |    ✖️    |   链接   |
+| mode 为 region 的 picker |    ✔     |          |
+| wxParse                  |    ✔     |          |
+| We-UI                    |  开发中  |          |
+| Vant                     |    ✖️    |          |
 
 ### 3.小程序功能转换完成度
 
@@ -126,16 +126,16 @@ $ wtu -i ./miniprogram-project -c
 
 ### 3.暂不支持的项目、组件和语法
 
-| 功能                                                      | 转换支持 | 转换文档 |
-| :-------------------------------------------------------- | :------: | -------- |
-| 使用 uniapp 发布的小程序项目                              |    ✖️    |          |
-| 使用 redux 开发的小程序(代表为：网易云信小程序 DEMO)      |    ✖️    |          |
-| 使用 wxpage 开发的小程序(https://github.com/tvfe/wxpage)  |    ✖️    |          |
-| 使用腾讯 omi 开发的小程序(https://github.com/Tencent/omi) |    ✖️    |          |
-| 小程序抽象节点 componentGenerics                          |    ✖️    |          |
-| 组件间关系 relations                                      |    ✖️    |          |
-| component 里的 pageLifetimes 生命周期                     |    ✖️    |          |
-| echarts 组件                                              |    ✖️    |          |
+| 功能                                                                       | 转换支持 | 转换文档 |
+| :------------------------------------------------------------------------- | :------: | -------- |
+| <font color="red" size="4" face="bold">使用 uniapp 发布的小程序项目</font> |    ✖️    |          |
+| 使用 redux 开发的小程序(代表为：网易云信小程序 DEMO)                       |    ✖️    |          |
+| 使用 wxpage 开发的小程序(https://github.com/tvfe/wxpage)                   |    ✖️    |          |
+| 使用腾讯 omi 开发的小程序(https://github.com/Tencent/omi)                  |    ✖️    |          |
+| 小程序抽象节点 componentGenerics                                           |    ✖️    |          |
+| 组件间关系 relations                                                       |    ✖️    |          |
+| component 里的 pageLifetimes 生命周期                                      |    ✖️    |          |
+| echarts 组件                                                               |    ✖️    |          |
 
 文档正在完善中，敬请期待~
 

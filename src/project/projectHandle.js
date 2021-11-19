@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-16 15:18:00
+ * @LastEditTime: 2021-11-19 17:21:26
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
@@ -228,8 +228,8 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
         var pageList = Object.keys(allPageData)
         var total = pageList.length * 2
         var bar = new ProgressBar('进度 [:bar] :rate/bps :percent :etas ', {
-            complete: '█',
-            incomplete: '░',
+            complete: '#',
+            incomplete: '-',
             width: 30,
             total: total
         })
@@ -324,11 +324,13 @@ async function transformOtherComponents (allPageData, bar, outputChannel, total)
                 transformTemplateTag(wxmlAst, wxmlFile, allPageData)
             }
 
-            try {
-                var variableTypeInfo = getPageSimpleVariableTypeInfo(jsAst, wxmlAst, allPageData)
-                pageData.variableHandle(variableTypeInfo)
-            } catch (error) {
-                console.log("[Error]variableHandle: ", fileKey, jsAst.generate())
+            if (jsAst) {
+                try {
+                    var variableTypeInfo = getPageSimpleVariableTypeInfo(jsAst, wxmlAst, allPageData)
+                    pageData.variableHandle(variableTypeInfo)
+                } catch (error) {
+                    console.log("[Error]variableHandle: ", fileKey, jsAst.generate())
+                }
             }
 
             pageData.generate()
@@ -430,7 +432,7 @@ async function projectHandle (sourceFolder, options = {}) {
 
     console.log(`miniprogram-to-uniapp v2 转换日志\n`)
 
-    console.log(`工具版本：${ pkg.version }`)
+    console.log(`工具版本：v${ pkg.version }`)
     console.log(`转换模式：${ options.isVueAppCliMode ? 'Vue-CLi' : 'HBuilder X' }`)
     console.log(`是否合并css：${ options.isMergeWxssToVue ? '是' : '否' }`)
     console.log(`\n`)

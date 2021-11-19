@@ -57,8 +57,8 @@ function transformCustomPageAst ($ast, fileKey, name) {
 
     // ggcUtils.transformAppDotGlobalData($ast)
     ggcUtils.transformGetApp($ast)
-    ggcUtils.transformThisDotKeywordExpression($ast, "data")
-    ggcUtils.transformThisDotKeywordExpression($ast, "properties")
+    // ggcUtils.transformThisDotKeywordExpression($ast, "data")
+    // ggcUtils.transformThisDotKeywordExpression($ast, "properties")
 
     $ast
         .find(`${name}($_$object)`)

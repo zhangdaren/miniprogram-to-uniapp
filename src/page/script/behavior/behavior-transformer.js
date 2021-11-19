@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-30 16:40:26
+ * @LastEditTime: 2021-11-18 15:00:31
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/script/behavior/behavior-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\script\behavior\behavior-transformer.js
  *
  */
 
@@ -56,8 +56,8 @@ function transformBehaviorAst ($ast, fileKey) {
 
     // ggcUtils.transformAppDotGlobalData($ast)
     ggcUtils.transformGetApp($ast)
-    ggcUtils.transformThisDotKeywordExpression($ast, "data")
-    ggcUtils.transformThisDotKeywordExpression($ast, "properties")
+    // ggcUtils.transformThisDotKeywordExpression($ast, "data")
+    // ggcUtils.transformThisDotKeywordExpression($ast, "properties")
 
     $ast
         .find("Behavior($_$object)")

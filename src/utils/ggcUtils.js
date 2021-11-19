@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-16 16:56:15
+ * @LastEditTime: 2021-11-19 15:16:19
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\ggcUtils.js
@@ -20,9 +20,9 @@ const restoreJSUtils = require("./restoreJSUtils")
 const staticAssetsReg = /^\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff)$/i
 
 //支持的文件的正则，用于替换引入路径
-const assetsFileReg = /^((\/|\.+\/)*.*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))$/i
+const assetsFileReg = /^((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))$/i
 
-const multiSssetsFileReg = /['"]?((\/|\.+\/)*.*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
+const multiSssetsFileReg = /['"]?((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
 
 const expList = [
     {
@@ -225,6 +225,7 @@ function transformThisDotKeywordExpression ($ast, keyword = "data", globalDataPr
         .each(function (item) {
             var nodePath = item["0"].nodePath
             var object = nodePath.node.object
+
             if (t.isThisExpression(object)) {
                 item.replaceBy(object)
             } else if (t.isIdentifier(object)) {
@@ -364,16 +365,16 @@ const propTypes = {
  * @param {*} $wxmlAst
  * @returns
  */
-function getWxmlAstModuleList($wxmlAst){
+function getWxmlAstModuleList ($wxmlAst) {
     if (!$wxmlAst) return []
 
-    var list = [];
+    var list = []
     $wxmlAst.find(`<script module="$_$1"></script>`).each(function (item) {
-        var node =item.match[1]
+        var node = item.match[1]
         var moduleName = node[0].value
         list.push(moduleName)
     })
-    return list;
+    return list
 }
 
 /**
@@ -649,14 +650,15 @@ function getPropTypeByPropList (propList, keyName) {
         var propName = item.key && (item.key.name || item.key.value) || ""
         if (propName === keyName) {
             var properties = item.value.properties
-            properties.find(function (subItem) {
-                var name = subItem.key.name || subItem.key.value
-                if (name === "type") {
-                    type = subItem.value.name
-                }
-            })
+            if(properties){
+                properties.find(function (subItem) {
+                    var name = subItem.key.name || subItem.key.value
+                    if (name === "type") {
+                        type = subItem.value.name
+                    }
+                })
+            }
         }
-
     })
     return type
 }

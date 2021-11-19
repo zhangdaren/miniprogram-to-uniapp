@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-16 16:45:30
+ * @LastEditTime: 2021-11-19 15:57:48
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\template\template-transformer.js
@@ -374,7 +374,7 @@ function transformFor (node, state) {
 
         if (vKey || vForKey) {
             vKey = vForKey || vKey
-            if (vKey === '*this' || vKey === "index") {
+            if (vKey === '*this' || vKey === "this" || vKey === "index") {
                 //保留关键字 *this 代表在 for 循环中的 item 本身，这种表示需要 item 本身是一个唯一的字符串或者数字
                 //注意：如果:key是一个对象，会报错的，因此还是用index吧。下同
                 // vKey = vItem
@@ -634,6 +634,9 @@ function transformAttrs (node, state) {
 
     transformFor(node, state)
 
+    //小程序scroll-view属性,需要有值，不然就是boolean
+    var scollAttrList = ['scroll-top', 'scroll-left']
+
     //干掉<image binderror src="xxx"></image>里面的binderror
     attributes = attributes.filter(function (item, i) {
         let { key: keyNode, value: valueNode } = item
@@ -649,6 +652,16 @@ function transformAttrs (node, state) {
 
         if (!isNotAttrContent) {
             transformAttr(keyNode, valueNode, state)
+        }
+
+        // scroll-top	Number		设置竖向滚动条位置
+        // scroll-left	Number		设置横向滚动条位置
+        // 解决<scroll-view scroll-left></scroll-view>没有给值，默认是true
+        if (!valueNode && scollAttrList.includes(keyNode.content)) {
+            item.value = {
+                content: '0',
+                type: 'token:attribute-value'
+            }
         }
 
         return !isNotAttrContent

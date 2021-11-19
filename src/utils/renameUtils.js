@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2021-11-09 13:49:35
+ * @LastEditTime: 2021-11-18 18:53:44
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\renameUtils.js
@@ -181,6 +181,77 @@ function renameThisDotXXX ($jsAst, oldName, newName, type) {
         .root()
 }
 
+
+
+
+/**
+ * 对this.data.xxx进行重名  [增强版]
+ * this.data.xxx --> this.data.newName
+ * @param {*} $jsAst
+ * @param {*} oldName
+ * @param {*} newName
+ * @param {*} type      要改的是变量还是方法(取值：DATA, METHODS)
+ * @returns
+ */
+function renameThisDotDataDotXXX ($jsAst, oldName, newName, type) {
+    if (!$jsAst) return
+
+    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "PROPS")
+    var propNameList = propList.map(function (item) {
+        return item.key && (item.key.name || item.key.value)
+    })
+
+    //TODO: 这里应该有四种情形
+    // var tt = function(){
+    //     var a = this.data.seach;
+    //     var b = this['data'].seach;
+    //     var c = this['data']['seach'];
+    //     var d =  this.data['seach'];
+    // }
+
+    $jsAst
+        .find('$_$this.data.$_$value')
+        .each(function (item) {
+
+            var thisNode = item.match["this"][0].node
+            var valueNode = item.match["value"][0].node
+
+            var nodePath = item['0'].nodePath
+            var parentNode = nodePath.parentPath.node
+            if (thisNode.type === 'ThisExpression') {
+                if (type === "METHODS") {
+                    if (t.isCallExpression(parentNode)) {
+                        renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
+                    }
+                } else {
+                    renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
+                }
+            } else {
+                var objectName = thisNode.name
+                var res = nodePath.scope.lookup(objectName)
+                if (res && res.bindings[objectName]) {
+                    var scopeNode = res.bindings[objectName][0]
+                    var scopeParentNode = scopeNode.parentPath
+                    if (
+                        scopeParentNode.node.type === 'VariableDeclarator' &&
+                        scopeParentNode.node.init.type === 'ThisExpression'
+                    ) {
+                        //确定是this的别名
+                        if (type === "METHODS") {
+                            if (t.isCallExpression(parentNode)) {
+                                renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
+                            }
+                        } else {
+                            renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
+                        }
+                    }
+                }
+            }
+        })
+        .root()
+}
+
+
 /**
  * 对setData表达式里面的变量进行重名
  * this.setData({
@@ -298,6 +369,48 @@ function spreadSyntaxHandle ($jsAst, oldName, newName) {
 }
 
 /**
+ * 变量与函数同名时，对【this.函数】也进行替换
+ * 注意：必须在未对this.data.xxx转换为this.xxx之前调用，否则可能无效！
+ *
+ * this.oldName --> this.newName
+ * @param {*} $jsAst
+ * @param {*} oldName
+ * @param {*} newName
+ * @param {*} type
+ * @returns
+ */
+function renameThisDotFun ($jsAst, oldName, newName, type) {
+    if (!$jsAst) return
+
+    $jsAst.find(`$_$this.${ oldName }`).each(function (item) {
+        var thisNode = item.match["this"][0].node
+
+        var nodePath = item[0].nodePath
+        var property = nodePath.node.property
+
+        if (thisNode.type === 'ThisExpression') {
+            property.name = newName
+            property.value = newName
+        } else {
+            var objectName = thisNode.name
+            var res = nodePath.scope.lookup(objectName)
+            if (res && res.bindings[objectName]) {
+                var scopeNode = res.bindings[objectName][0]
+                var scopeParentNode = scopeNode.parentPath
+                if (
+                    scopeParentNode.node.type === 'VariableDeclarator' &&
+                    scopeParentNode.node.init.type === 'ThisExpression'
+                ) {
+                    property.name = newName
+                    property.value = newName
+                }
+            }
+        }
+    })
+        .root()
+}
+
+/**
  *
  * 替换js里面的变量名，含data、生命周期和methods等
  *
@@ -315,8 +428,12 @@ function renameScriptVariable ($jsAst, oldName, newName, type) {
     //1.找到data里面的变量并重名
     renameDataOrMethods($jsAst, oldName, newName, type)
 
-    //2.找到所有this.xxx进行重名
-    renameThisDotXXX($jsAst, oldName, newName, type)
+    //2.找到所有this.data.xxx进行重名
+    // renameThisDotXXX($jsAst, oldName, newName, type)
+    renameThisDotDataDotXXX($jsAst, oldName, newName, type)
+
+    //3.对this.xxx进行替换，如果是函数与变量重名了
+    renameThisDotFun($jsAst, oldName, newName, type)
 
     //3.扩展运算符的处理(buttons 在prop里)
     //const { buttons, icon } = this;  --> ?
@@ -498,7 +615,7 @@ function renameTemplateAttrVariable (code, oldName, newName, isOnlyReplaceFuncti
                 //     </navigator>
                 //     <view>
                 // </template>
-                res= res.replace(/"/g, "'")
+                res = res.replace(/"/g, "'")
             } catch (error) {
                 console.log("[Error]renameTemplateAttrVariable: newName有问题，无法替换。 error: ", error)
                 console.log("[Error]renameTemplateAttrVariable: newName有问题，无法替换。 newName: ", newName)

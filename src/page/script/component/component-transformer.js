@@ -85,8 +85,8 @@ function transformComponentAst ($ast, fileKey) {
 
     // ggcUtils.transformAppDotGlobalData($ast)
     ggcUtils.transformGetApp($ast)
-    ggcUtils.transformThisDotKeywordExpression($ast, "data")
-    ggcUtils.transformThisDotKeywordExpression($ast, "properties")
+    // ggcUtils.transformThisDotKeywordExpression($ast, "data")
+    // ggcUtils.transformThisDotKeywordExpression($ast, "properties")
 
     //lifetimes处理
     // 组件生命周期声明对象，将组件的生命周期收归到该字段进行声明，原有声明方式仍旧有效，如同时存在两种声明方式，则lifetimes字段内声明方式优先级最高

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 15:40:27
- * @LastEditTime: 2021-11-15 11:53:43
+ * @LastEditTime: 2021-11-18 17:53:03
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\restoreJSUtils.js
@@ -599,18 +599,22 @@ function repairThisExpression (ast) {
                             let id = varPath.id
                             let init = varPath.init
                             if (t.isThisExpression(init) && t.isIdentifier(id)) {
-                                //重名为that
-                                path.scope.rename(id.name, "that")
-
-                                if (hasThis) {
-                                    //合并this声明
-                                    if (declarations.length > 1) {
-                                        declarations.splice(index, 1)
-                                    } else {
-                                        subPath.remove()
-                                    }
+                                if (path.scope.bindings["that"]) {
+                                    //TODO: 已经有that这个变量名了，此变量暂时不做处理！！！
                                 } else {
-                                    hasThis = true
+                                    //重名为that
+                                    path.scope.rename(id.name, "that")
+
+                                    if (hasThis) {
+                                        //合并this声明
+                                        if (declarations.length > 1) {
+                                            declarations.splice(index, 1)
+                                        } else {
+                                            subPath.remove()
+                                        }
+                                    } else {
+                                        hasThis = true
+                                    }
                                 }
                             }
                         })

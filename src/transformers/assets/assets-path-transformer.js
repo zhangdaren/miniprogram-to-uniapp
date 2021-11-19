@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-11-16 16:58:34
+ * @LastEditTime: 2021-11-19 15:32:26
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\assets\assets-path-transformer.js
@@ -72,6 +72,10 @@ function repireScriptSourcePath ($jsAst, jsFile) {
  */
 function repireTemplateSourcePath ($jsAst, wxmlFile) {
     if (!$jsAst) return
+
+    //忽略：<image :src="imgsrc + '/wechatimg/form/edit.png'"></image>
+    var reg_ignore = /^\w+\s*\+['"][^'"]*?['"]$/
+
     $jsAst.find([
         '<$_$1 src="$_$src" $$$>$$$2</$_$1>',
         '<$_$1 data-src="$_$src" $$$>$$$2</$_$1>',
@@ -84,11 +88,13 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
             var srcNode = item.match['src'][0].node
             var src = srcNode.content
 
-            //不合格的路径不进行处理
-            //TODO:  <image class="wc-ftimg" mode="aspectFit" :src="imgsrc + '/wechatimg/form/edit.png'"></image>
-            // if (!assetsFileReg.test(src)) return
-
             // console.log("src----", src)
+
+            //不合格的路径不进行处理
+            //<image class="wc-ftimg" mode="aspectFit" :src="imgsrc + '/wechatimg/form/edit.png'"></image>
+            if (reg_ignore.test(src)) return
+
+            //TODO: 含三元表达式的呢？含变量的呢？  其实这个判断也不好判断
 
             let fileDir = path.dirname(wxmlFile)
             var newSrc = src.replace(ggcUtils.multiSssetsFileReg, function (match, $1) {

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-19 11:15:31
- * @LastEditTime: 2021-11-16 16:18:13
+ * @LastEditTime: 2021-11-18 18:34:49
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\variable\variable-transformer.js
@@ -351,7 +351,7 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
 
                     var first = list[0]
                     //判断list第一个是否在props里面
-                    if (propNameList.includes(first) || wxsModuleNameList.includes(first))  {
+                    if (propNameList.includes(first) || wxsModuleNameList.includes(first)) {
                         return
                     }
                     //item、index、idx等变量将直接返回
@@ -788,7 +788,7 @@ function getPageSimpleVariableTypeInfo ($jsAst, $wxmlAst, allPageData) {
                                 }
                             } else {
                                 //中文的不添加
-                                if(!reg_cn.test(value)){
+                                if (!reg_cn.test(value)) {
                                     variableTypeInfo[value] = type
                                     // console.log("加进来的属性", attr + '="' + value + '"', "属性类型为：", type)
                                 }

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-15 13:57:35
+ * @LastEditTime: 2021-11-19 17:02:30
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\index.js
@@ -51,6 +51,7 @@ const { transfromWeUIScript } = require(appRoot + "/src/transformers/component/w
 
 //function
 const { transformGetCurrentPages } = require(appRoot + "/src/transformers/function/getCurrentPages-transformer")
+const { transformSelectComponent } = require(appRoot + "/src/transformers/function/selectComponent-transformer")
 const { transformTriggerEvent } = require(appRoot + "/src/transformers/function/triggerEvent-transformer")
 const { transformSetData } = require(appRoot + "/src/transformers/function/setData-transformer")
 const { transformAnimate } = require(appRoot + "/src/transformers/function/animate-transformer")
@@ -200,6 +201,9 @@ class Page {
             console.log("[Error]transformGetCurrentPages: ", fileKey, jsAst.generate(), error)
         }
 
+        //处理selectComponent函数
+        transformSelectComponent(jsAst, fileKey)
+
         try {
             transformTriggerEvent(jsAst)
         } catch (error) {
@@ -253,6 +257,11 @@ class Page {
         //处理所有变量，包括未声明、重名的等等等等
         //(必须最后处理! 因为可能某prop的observer里通过this.data.xxx调用了它，不能重名！)
         transformVariable(this.jsAst, this.wxmlAst, variableTypeInfo, this.fileKey)
+
+        //注意：这里有个时机问题！！！必须在变量名处理后再进行处理！！！
+        //将this.data.xxx转换为this.xxx
+        ggcUtils.transformThisDotKeywordExpression(this.jsAst, "data")
+        ggcUtils.transformThisDotKeywordExpression(this.jsAst, "properties")
     }
 
     /**
