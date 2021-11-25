@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-19 11:15:31
- * @LastEditTime: 2021-11-18 18:34:49
+ * @LastEditTime: 2021-11-22 15:27:34
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\variable\variable-transformer.js
@@ -715,7 +715,7 @@ function transformVariable ($jsAst, $wxmlAst, variableTypeInfo, fileKey) {
 }
 
 
-var attrList = ["class", "style", "id", "key",]
+var attrList = ["class", "style", "id", "key"]
 
 /**
  * 这里有两个功能

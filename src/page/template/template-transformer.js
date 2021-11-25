@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-19 15:57:48
+ * @LastEditTime: 2021-11-24 15:27:37
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\template\template-transformer.js
@@ -374,7 +374,7 @@ function transformFor (node, state) {
 
         if (vKey || vForKey) {
             vKey = vForKey || vKey
-            if (vKey === '*this' || vKey === "this" || vKey === "index") {
+            if (vKey === '*this' || vKey === "this" || vKey === "index" || vKey === "item" || vKey === vItem) {
                 //保留关键字 *this 代表在 for 循环中的 item 本身，这种表示需要 item 本身是一个唯一的字符串或者数字
                 //注意：如果:key是一个对象，会报错的，因此还是用index吧。下同
                 // vKey = vItem

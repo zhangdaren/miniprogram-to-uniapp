@@ -61,7 +61,7 @@ $ wtu -i ./miniprogram-project -c
 
 本插件详细使用教程，请参照：[miniprogram-to-uniapp 使用指南](http://ask.dcloud.net.cn/article/36037)。
 
-使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑文档.md](https://github.com/zhangdaren/articles/blob/master/miniprogram-to-uniapp%E5%B7%A5%E5%85%B7%E7%AD%94%E7%96%91.md)
+使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑文档.md](https://www.yuque.com/docs/share/0166a691-6877-4138-818b-2a5ef77216b7)
 
 对于使用有疑问或建议，欢迎加入 QQ 群进行指导和交流。
 

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-11-19 15:32:26
+ * @LastEditTime: 2021-11-24 17:48:14
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\assets\assets-path-transformer.js
@@ -97,24 +97,36 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
             //TODO: 含三元表达式的呢？含变量的呢？  其实这个判断也不好判断
 
             let fileDir = path.dirname(wxmlFile)
-            var newSrc = src.replace(ggcUtils.multiSssetsFileReg, function (match, $1) {
-                let newVal = pathUtils.repiarAssetPath(
-                    $1,
+
+            // var newSrc = src.replace(ggcUtils.multiSssetsFileReg, function (match, $1) {
+            //     let newVal = pathUtils.repiarAssetPath(
+            //         $1,
+            //         global.miniprogramRoot,
+            //         fileDir,
+            //         false   //不使用@/，  <image :src="'@/static/image' + file+  'png'"></image>这种引用不到!
+            //     )
+            //     //如果有引号，则需要添加上
+            //     if (/^['"]/.test(match)) {
+            //         newVal = `'${ newVal }'`
+            //     }
+            //     return newVal
+            // })
+
+            var newSrc = src
+            if (ggcUtils.assetsFileReg.test(src)) {
+                newSrc = pathUtils.repiarAssetPath(
+                    src,
                     global.miniprogramRoot,
                     fileDir,
                     false   //不使用@/，  <image :src="'@/static/image' + file+  'png'"></image>这种引用不到!
                 )
-                //如果有引号，则需要添加上
-                if (/^['"]/.test(match)) {
-                    newVal = `'${ newVal }'`
-                }
-                return newVal
-            })
+            }
+
             // function repiarAssetPath (filePath, root, fileDir) {
             // let fileDir = path.dirname(wxmlFile)
             // let newSrc = pathUtils.repiarAssetPath(src, global.miniprogramRoot, fileDir)
             // // console.log("newSrc--", newSrc)
-             srcNode.content = newSrc
+            srcNode.content = newSrc
         })
         .root()
 }

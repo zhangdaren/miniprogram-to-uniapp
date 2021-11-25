@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-18 15:00:31
+ * @LastEditTime: 2021-11-23 15:23:12
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\script\behavior\behavior-transformer.js
@@ -79,7 +79,7 @@ function transformBehaviorAst ($ast, fileKey) {
                 })
             } else {
                 var littleCode = $ast.generate().substr(0, 250)
-                console.log(`[Error]Behavior异常情况(建议把源代码修改为简单结构，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
+                console.log(`[Error]Behavior异常情况(建议把源代码修改为简单结构，如Behavior({})，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
             }
         })
         .root()

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-19 17:21:26
+ * @LastEditTime: 2021-11-25 16:45:29
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
@@ -36,7 +36,7 @@ const Page = require(appRoot + "/src/page")
 
 const pkg = require('../../package.json')
 
-
+const MAX_FILE_SIZE = 1024 * 500  //最大可处理js大小为500kb
 
 //TODO: 注意事项，其实global上面挂了很多很多东西
 // global = { ...global, ...options }
@@ -95,7 +95,9 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
             // let name = obj.name
             // let isFolder = file.lastIndexOf("/") === file.length - 1
 
-            let isFolder = !path.extname(file)
+            var extname = path.extname(file)
+
+            let isFolder = !extname
 
             // console.log("file", file)
             // console.log("isFolder", isFolder)
@@ -121,10 +123,7 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
 
                 //node_modules 不处理
                 console.log("文件数大于3000时，不处理node_modules目录")
-
             } else {
-                var extname = path.extname(file)
-
                 var fileKey = pathUtils.getFileKey(file)
 
                 //custom-tab-bar目录不进行转换
@@ -145,7 +144,14 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
 
                 switch (extname) {
                     case '.js':
-                        fileData['js'] = file
+                        var stats = fs.statSync(file)
+                        if (stats.size > MAX_FILE_SIZE) {
+                            console.log(`[Tip]文件(${fileKey}.js)体积大于 ${MAX_FILE_SIZE/1000} kb ，跳过处理`)
+                            //直接复制
+                            fs.copySync(file, newFile)
+                        } else {
+                            fileData['js'] = file
+                        }
                         break
                     case '.wxml':
                     case '.qml':
@@ -293,7 +299,7 @@ async function transformPageList (allPageData, bar, outputChannel, total) {
 
             count++
             if (outputChannel) {
-                outputChannel.log(`转换进度: ${ count } / ${ total }`)
+                outputChannel.appendLine(`转换进度: ${ count } / ${ total }   fileKey：` + fileKey)
             }
         }
         resolve()
@@ -343,7 +349,7 @@ async function transformOtherComponents (allPageData, bar, outputChannel, total)
 
             count++
             if (outputChannel) {
-                outputChannel.log(`转换进度: ${ count + total / 2 } / ${ total }`)
+                outputChannel.appendLine(`转换进度: ${ count + total / 2 } / ${ total }   fileKey：` + fileKey)
             }
         }
         resolve()
@@ -435,7 +441,7 @@ async function projectHandle (sourceFolder, options = {}) {
     console.log(`工具版本：v${ pkg.version }`)
     console.log(`转换模式：${ options.isVueAppCliMode ? 'Vue-CLi' : 'HBuilder X' }`)
     console.log(`是否合并css：${ options.isMergeWxssToVue ? '是' : '否' }`)
-    console.log(`\n`)
+
 
     console.log(`项目 '${ path.basename(sourceFolder) }' 开始转换...`)
     console.log("sourceFolder = " + sourceFolder)

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-30 16:40:58
+ * @LastEditTime: 2021-11-23 15:23:32
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/script/customPage/customPage-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\script\customPage\customPage-transformer.js
  *
  */
 

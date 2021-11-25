@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2021-11-18 18:53:44
+ * @LastEditTime: 2021-11-24 18:15:31
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\renameUtils.js
@@ -568,8 +568,13 @@ function renameTemplateAttrVariable (code, oldName, newName, isOnlyReplaceFuncti
     //     })
     //     .root().generate()
 
-    //另一种实现方式
     var res = code
+
+    //如果变量是true、false，不处理
+    //扩展到所有js关键字，不能作为变量！！！
+    if (utils.isJavascriptKeyWord(oldName)) return res
+
+    //另一种实现方式
     if (code === oldName) {
         //如果就是一个单词，那没必要这样那样处理了
         res = newName

@@ -91,7 +91,7 @@ function transformPageAst ($ast, fileKey) {
                 })
             } else {
                 var littleCode = $ast.generate().substr(0, 300);
-                console.log(`[Error]Page异常情况(建议把源代码修改为简单结构，再尝试转换)\nfile:${fileKey}\n`, littleCode)
+                console.log(`[Error]Page异常情况(建议把源代码修改为简单结构，如Page({})，再尝试转换)\nfile:${fileKey}\n`, littleCode)
             }
         })
         .root()

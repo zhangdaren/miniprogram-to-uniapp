@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-10-16 23:50:39
+ * @LastEditTime: 2021-11-20 11:58:02
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/other/specialCode-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\other\special-code-transformer.js
  *
  */
 
@@ -26,7 +26,7 @@
 function transformSpecialCode ($jsAst, $wxmlAst) {
     if ($jsAst) {
         $jsAst
-            .replace("$_$1.__route__", "$_$1.route")
+            // .replace("$_$1.__route__", "$_$1.route")
             .replace("$_$1.$scope", "$_$1.$vm")
 
             //注意：表达式里面$_$1与$_$1不是同一个元素

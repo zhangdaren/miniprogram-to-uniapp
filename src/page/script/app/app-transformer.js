@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-30 16:40:11
+ * @LastEditTime: 2021-11-23 15:22:21
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/script/app/app-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\script\app\app-transformer.js
  *
  */
 
@@ -108,7 +108,7 @@ function transformAppAst ($ast, fileKey) {
                 })
             } else {
                 var littleCode = $ast.generate().substr(0, 250);
-                console.log(`[Error]App异常情况(建议把源代码修改为简单结构，再尝试转换)\nfile:${fileKey}\n`, littleCode)
+                console.log(`[Error]App异常情况(建议把源代码修改为简单结构，如App({})，再尝试转换)\nfile:${fileKey}\n`, littleCode)
             }
         })
         .root()

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:59:58
- * @LastEditTime: 2021-11-15 11:39:56
+ * @LastEditTime: 2021-11-20 11:57:36
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\function\getCurrentPages-transformer.js
@@ -22,6 +22,19 @@ var appRoot = "../../../.."
  * @param {*} fileKey
  */
 function transformGetCurrentPages ($ast, fileKey) {
+
+    // var pages = getCurrentPages();
+    // var currentPage = pages[pages.length - 1];
+    // var typeid = currentPage.options.typeid || 0;   //这个options是url上面的参数
+    // var urlData = {
+    //     path: currentPage.route,   //加了$vm后，这个获取不到
+    //     typeid: typeid
+    // };
+    // return urlData;
+
+    //貌似有点问题，在微信小程序里。。。
+    return
+
     if (!$ast) return
     $ast
         .find({ type: 'MemberExpression' })

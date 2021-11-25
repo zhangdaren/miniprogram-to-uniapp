@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2021-11-19 20:31:44
+ * @LastEditTime: 2021-11-25 16:05:27
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/test.js
+ * @FilePath: \miniprogram-to-uniapp\test.js
  *
  */
 
@@ -39,9 +39,13 @@ async function test () {
 
         // var sourceFolder = "./demo/test-20211001"
 
-        // var sourceFolder = "./demo/test-20211118"
+        var sourceFolder = "./demo/test-20211118"
 
-        var sourceFolder = "./demo/eymini-master"
+        // var sourceFolder = "./demo/test-20211125"
+
+        // var sourceFolder = "./demo/eymini-master"
+
+        // var sourceFolder = "./demo/wxapp(4)-app-fix"
 //
         // var sourceFolder = "./demo/tt-app-mall-master"
 
