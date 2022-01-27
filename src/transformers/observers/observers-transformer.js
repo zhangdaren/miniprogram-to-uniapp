@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:44:02
- * @LastEditTime: 2021-10-30 16:46:16
+ * @LastEditTime: 2021-11-26 16:35:16
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/observers/observers-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\observers\observers-transformer.js
  *
  */
 
@@ -25,7 +25,7 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
  * @param {*} properties  node参数所在的数组
  * @param {*} index       node参数所在的数组index
  */
-function transfromWathItem (node, properties = [], index = -1) {
+function transformWatchItem (node, properties = [], index = -1) {
     var reg = /\.\*\*$/
 
     var keyName = node.key.name || node.key.value
@@ -219,13 +219,13 @@ function transformObservers ($jsAst, fileKey) {
                         var varPath = t.variableDeclaration("const", [t.variableDeclarator(objectPattern, t.identifier("newValue"))])
                         funExpBody.unshift(varPath)
 
-                        transfromWathItem(node, properties, i)
+                        transformWatchItem(node, properties, i)
 
                         //在computed添加
                         addComputedItem($jsAst, keyName)
                     }
                 } else {
-                    transfromWathItem(node, properties, i)
+                    transformWatchItem(node, properties, i)
                 }
             })
         }).root()

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-26 19:38:45
+ * @LastEditTime: 2022-01-10 11:16:43
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\pathUtils.js
@@ -63,6 +63,7 @@ function relativePath (filePath, root, fileDir) {
     const reg_signle = /[\w-_]+/
     const reg_weui = /^weui-miniprogram\//
 
+    var extname = path.extname(filePath)
 
     if (filePath.indexOf("weui-miniprogram") > -1) {
         console.log("---- weui-miniprogram --")
@@ -91,8 +92,11 @@ function relativePath (filePath, root, fileDir) {
 
             filePath = path.relative(fileDir, filePath)
 
-            if (!/^[\.\/@]/.test(filePath)) {
-                filePath = './' + filePath
+
+            if (extname) {
+                if (!/^[\.\/@]/.test(filePath)) {
+                    filePath = './' + filePath
+                }
             }
         }
     } else {
@@ -132,8 +136,8 @@ function relativePath (filePath, root, fileDir) {
  * @param {*} fileDir      当前文件所在目录
  * @param {*} userAtSymbol 是否在根路径前面增加@符号，默认true
  */
-function repiarAssetPath (filePath, root, fileDir, userAtSymbol = true) {
-    // console.log("repiarAssetPath", filePath, fileDir)
+function  repairAssetPath (filePath, root, fileDir, userAtSymbol = true) {
+    // console.log(" repairAssetPath", filePath, fileDir)
     if (!filePath || utils.isURL(filePath)) return filePath
     if (!/^[\.\/]/.test(filePath)) {
         filePath = './' + filePath
@@ -146,7 +150,7 @@ function repiarAssetPath (filePath, root, fileDir, userAtSymbol = true) {
         absPath = path.join(fileDir, filePath)
     }
     let relPath = utils.normalizePath(path.relative(root, absPath))
-    relPath = getAssetsNewPath(relPath, global.targetFolder, fileDir)
+    relPath = getAssetsNewPath(relPath, global.targetSourceFolder, fileDir)
     if (userAtSymbol && /^\//.test(relPath)) {
         //如果是以/开头的，表示根目录
         relPath = "@" + relPath
@@ -189,13 +193,13 @@ function getAssetsNewPath (filePath, rootFolder = '') {
     }
     //如果找不到文件：即文件路径不存在时
     if (result === filePath) {
-        result = path.join(global.targetFolder, "static", result)
+        result = path.join(global.targetSourceFolder, "static", result)
     }
     //获取相对于根路径的路径
     if (rootFolder) {
         result = path.relative(rootFolder, result)
     } else {
-        result = path.relative(global.targetFolder, result)
+        result = path.relative(global.targetSourceFolder, result)
     }
 
     if (!/^[\.\/]/.test(result)) {
@@ -225,9 +229,9 @@ function cacheImportComponentList (jsFile, wxmlFile, usingComponents) {
     Object.keys(usingComponents).map(function (componentName) {
         var componentPath = usingComponents[componentName]
 
-        if(componentPath.indexOf("plugin:") === 0){
+        if (componentPath.indexOf("plugin:") === 0) {
             console.log("这个是小程序插件" + componentPath)
-            return;
+            return
         }
 
         var componentFullPath = path.join(fileDir, componentPath)
@@ -247,6 +251,6 @@ module.exports = {
 
     getFileKey,
     getAssetsNewPath,
-    repiarAssetPath,
+     repairAssetPath,
     cacheImportComponentList
 }

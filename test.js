@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2021-11-25 16:05:27
+ * @LastEditTime: 2022-01-26 17:35:40
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\test.js
@@ -41,12 +41,21 @@ async function test () {
 
         var sourceFolder = "./demo/test-20211118"
 
+        // var sourceFolder = "./demo/test-20220119"
+
+        // var sourceFolder = "./demo/Discuz-minapp-2.0"
+
         // var sourceFolder = "./demo/test-20211125"
+
+        // var sourceFolder = "./demo/test-202200125-weiqing"
+
+        // var sourceFolder = "./demo/1214"
+        // var sourceFolder = "./demo/shsy88"
 
         // var sourceFolder = "./demo/eymini-master"
 
         // var sourceFolder = "./demo/wxapp(4)-app-fix"
-//
+        //
         // var sourceFolder = "./demo/tt-app-mall-master"
 
         // var sourceFolder = "./demo/1108mp"
@@ -56,7 +65,11 @@ async function test () {
         sourceFolder = path.join(__dirname, sourceFolder)
         sourceFolder = utils.normalizePath(sourceFolder)
 
-        await transform(sourceFolder)
+        var options = {
+            // isVueAppCliMode:true
+        }
+
+        await transform(sourceFolder, options)
     } catch (error) {
         console.log("transform error", error)
     }
@@ -64,7 +77,20 @@ async function test () {
 
 test()
 
-//没有teyp
-{/* <icon class="weui-icon-checked"></icon> */}
 
-//error  outerClass 类型不对
+// const lessSyntax = require('postcss-less')
+// const ScssSyntax = require('postcss-scss')
+
+// test2()
+// function test2 () {
+
+//     var css = `.banner{
+//             &__info{}
+//             .abc__test{}
+//         }`
+
+//     var ast = lessSyntax.parse(css)
+//     const styleRules = ast.nodes
+//     console.log(JSON.stringify(ast, null, 4))
+// }
+

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:44:02
- * @LastEditTime: 2021-11-15 11:04:34
+ * @LastEditTime: 2022-01-06 14:24:37
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\function\setData-transformer.js
@@ -83,12 +83,15 @@ function getParamsExpressionString (keyNode, thisName, scope, fileKey) {
                 codeStr = thisName + dotStr + "[" + keyStr + "]"
             }
         } else {
+            codeStr = thisName + "." + keyStr
             //找不到，修复不了
-            console.log(`[Tip]找不到setData里面的变量${ keyNode.name }的声明处，暂无法修复。 file:${ fileKey }.js`)
+            // console.log(`[Tip]找不到setData里面的变量${ keyNode.name }的声明处，暂无法修复。 file:${ fileKey }.js`)
         }
     }
     return codeStr
 }
+
+
 
 /**
  * 针对setData里面含有数组时的处理
@@ -110,27 +113,67 @@ function transformSetData ($ast, fileKey) {
 
             var scope = item[0].nodePath.scope
 
-            var i = list.length - 1
-            while (i >= 0) {
-                var op = list[i]
-                var value = op.value
-                var keyNode = op.key
-                var computed = op.computed
-                if (computed) {
+            var bool = true
+            if (bool) {
+                //局部
+                var i = list.length - 1
+                while (i >= 0) {
+                    var op = list[i]
+                    var value = op.value
+                    var keyNode = op.key
+                    var computed = op.computed
 
                     var thisName = $(thisNode).generate()
-                    //
-                    var codeStr = getParamsExpressionString(keyNode, thisName, scope, fileKey)
+                    if (computed) {
+                        var codeStr = getParamsExpressionString(keyNode, thisName, scope, fileKey)
 
-                    if (codeStr) {
+                        if (codeStr) {
+                            // //尝试修复一下
+                            var newExp = codeStr + "=" + $(value).generate() + "\n"
+                            item.before(newExp)
+
+                            listNode.splice(i, 1)
+                        }
+                    }
+                    i--
+                }
+            } else {
+                //全部
+                //TODO:还是有问题，比如：
+                // t.invoice_info.company || this.setData({
+                //     invoicenumber: ""
+                // });
+                var len = list.length - 1
+                var i = 0
+                while (i <= list.length - 1) {
+                    var op = list[i]
+                    var value = op.value
+                    var keyNode = op.key
+                    var computed = op.computed
+
+                    var thisName = $(thisNode).generate()
+                    if (computed) {
+                        var codeStr = getParamsExpressionString(keyNode, thisName, scope, fileKey)
+
+                        if (codeStr) {
+                            // //尝试修复一下
+                            var newExp = codeStr + "=" + $(value).generate() + "\n"
+                            item.before(newExp)
+
+                            listNode.splice(i, 1)
+                        }
+                    } else {
+                        var keyStr = $(keyNode).generate()
+                        codeStr = thisName + "." + keyStr.replace(/['"]/g, '')
+
                         // //尝试修复一下
                         var newExp = codeStr + "=" + $(value).generate() + "\n"
                         item.before(newExp)
 
                         listNode.splice(i, 1)
                     }
+                    i++
                 }
-                i--
             }
 
             //TODO: 回调事件的处理

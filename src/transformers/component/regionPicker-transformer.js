@@ -50,15 +50,15 @@ function transformRegionPicker ($wxmlAst, fileKey) {
         console.log(comments)
 
         //复制目录
-        var componentsFolder = path.join(global.targetFolder, 'components')
+        var componentsFolder = path.join(global.targetSourceFolder, 'components')
         if (!fs.existsSync(componentsFolder)) {
             fs.mkdirSync(componentsFolder)
         }
         const sourceFolder = path.join(__dirname, '../../project/template/components/region-picker')
-        const targetFolder = path.join(global.targetFolder, 'components/region-picker')
+        const targetSourceFolder = path.join(global.targetSourceFolder, 'components/region-picker')
 
-        if (!fs.existsSync(targetFolder)) {
-            fs.copySync(sourceFolder, targetFolder)
+        if (!fs.existsSync(targetSourceFolder)) {
+            fs.copySync(sourceFolder, targetSourceFolder)
         }
     }
 

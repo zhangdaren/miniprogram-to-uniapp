@@ -108,7 +108,7 @@ const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
  * @param {*} $jsAst
  * @returns
  */
-function transfromWeUIScript ($jsAst) {
+function transformWeUIScript ($jsAst) {
     if(!$jsAst) return
 
     var hasWeui = ggcUtils.checkWeUI($jsAst)
@@ -124,5 +124,5 @@ function transfromWeUIScript ($jsAst) {
 
 
 module.exports = {
-    transfromWeUIScript
+    transformWeUIScript
 }

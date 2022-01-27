@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-30 17:07:30
- * @LastEditTime: 2021-11-16 16:14:50
+ * @LastEditTime: 2022-01-10 16:12:29
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\variableUtils.js
@@ -527,8 +527,11 @@ function getExpressionVariableByAst (jsAst, originalType) {
 
     jsAst
         .find({ type: "MemberExpression" }).each(function (item) {
-            var list = getVariableByExpression(item.node, originalType)
-            expList.push(...list)
+            var parentType = item.parent().attr("type")
+            if (parentType !== 'CallExpression') {
+                var list = getVariableByExpression(item.node, originalType)
+                expList.push(...list)
+            }
         }).root().replace({ type: "MemberExpression" }, "null")
 
     return expList
@@ -595,6 +598,16 @@ function getExpressionVariableList (attr, value) {
 
     //去重
     expList = utils.uniqueArray(expList, "code")
+
+    //处理storeRecommand.length
+    var reg = /\.length$/
+    expList.map(obj => {
+        var code = obj.code
+        if (reg.test(code)) {
+            obj.type = "Array"
+            obj.code = code.replace(reg, '')
+        }
+    })
 
     // console.log("value", value)
     // console.log("expList", JSON.stringify(expList))

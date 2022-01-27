@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-24 15:27:37
+ * @LastEditTime: 2022-01-25 18:01:26
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\template\template-transformer.js
@@ -28,9 +28,9 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 const { parseMustache } = require(appRoot + "/src/utils/mustacheUtils")
 
 //资源文件
-const { repireScriptSourcePath,
-    repireTemplateSourcePath,
-    repiarAstStringLiteralAssetPath
+const { repairScriptSourcePath,
+    repairTemplateSourcePath,
+    repairAstStringLiteralAssetPath
 } = require(appRoot + '/src/transformers/assets/assets-path-transformer')
 
 
@@ -64,7 +64,6 @@ function getAttrMap (prefix) {
             'model:value': 'v-model',  //简易双向绑定
         }
     }
-
     return obj
 }
 
@@ -202,7 +201,7 @@ function transformDirective (keyNode, valueNode, state) {
     var name = keyNode.content
 
     var resultAttr = false
-    var reslutValue = false
+    var resultValue = false
 
     if (ATTRS[name]) {
         resultAttr = true
@@ -212,9 +211,14 @@ function transformDirective (keyNode, valueNode, state) {
         var newContent = parseMustache(valueNode.content)
         newContent = newContent.replace(/"/g, "'")
         valueNode.content = newContent
-        reslutValue = true
+        resultValue = true
+
+        //如果v-else有内容时，则需要改成v-else-if
+        if (ATTRS[name] === "v-else") {
+            keyNode.content = "v-else-if"
+        }
     }
-    return resultAttr || reslutValue
+    return resultAttr || resultValue
 }
 
 const bindRE = /bind:?/
@@ -329,6 +333,11 @@ function transformFor (node, state) {
         }
 
         let vKey = parseMustache(attribs[FOR.key], true)
+        //fix: wx:key="1"
+        if (/^\d+$/.test(vKey)) {
+            vKey = "index"
+        }
+
         let vForKey = parseMustache(attribs[FOR.forKey], true)
         const vItem = parseMustache(attribs[FOR.item], true) || FOR_DEFAULT.item
         let vIndex = parseMustache(attribs[FOR.index], true) || (
@@ -650,6 +659,11 @@ function transformAttrs (node, state) {
             item.endWrapper.content = '"'
         }
 
+        //去除里面的转义引号
+        if (valueNode && valueNode.content) {
+            valueNode.content = valueNode.content.replace(/\(\\"/g, "(").replace(/\\"\)/g, "(")
+        }
+
         if (!isNotAttrContent) {
             transformAttr(keyNode, valueNode, state)
         }
@@ -742,7 +756,7 @@ function mergeClassContent (str1, str2) {
  * @param {*} $ast
  * @returns
  */
-function transformduplicateAttr ($ast) {
+function transformDuplicateAttr ($ast) {
     if (!$ast) return
 
     $ast.find('<$_$1 $$$attr>$$$2</$_$1>').each(function (item) {
@@ -853,7 +867,7 @@ function transformTemplateAst ($ast, wxmlFile, wxmlExtname) {
     removeForAttr($ast, state)
 
     //转换资源路径
-    repireTemplateSourcePath($ast, wxmlFile)
+    repairTemplateSourcePath($ast, wxmlFile)
 
     //转换事件名含动态参数
     transformEventDynamicCode($ast)
@@ -862,7 +876,7 @@ function transformTemplateAst ($ast, wxmlFile, wxmlExtname) {
     transformOfficialAccount($ast)
 
     //对标签属性进行合并去重
-    transformduplicateAttr($ast)
+    transformDuplicateAttr($ast)
 
     return $ast
 }

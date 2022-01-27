@@ -26,7 +26,7 @@ const formatUtils = require(appRoot + '/src/utils/formatUtils.js')
  * @param {*} $ast
  * @param {*} jsFile 所在文件
  */
-function repireScriptSourcePath ($jsAst, jsFile) {
+function  repairScriptSourcePath ($jsAst, jsFile) {
     if (!$jsAst) return
 
     $jsAst.find([
@@ -54,10 +54,10 @@ function repireScriptSourcePath ($jsAst, jsFile) {
 
             if (!ggcUtils.staticAssetsReg.test(src)) return
 
-            // function repiarAssetPath (filePath, root, fileDir) {
+            // function  repairAssetPath (filePath, root, fileDir) {
             let fileDir = path.dirname(jsFile)
             let extname = path.extname(jsFile)
-            let newSrc = pathUtils.repiarAssetPath(src, global.miniprogramRoot, fileDir, false)
+            let newSrc = pathUtils. repairAssetPath(src, global.miniprogramRoot, fileDir, false)
 
             item.attr("value", newSrc)
         }
@@ -70,7 +70,7 @@ function repireScriptSourcePath ($jsAst, jsFile) {
  * @param {*} $ast
  * @param {*} wxmlFile 所在文件
  */
-function repireTemplateSourcePath ($jsAst, wxmlFile) {
+function repairTemplateSourcePath ($jsAst, wxmlFile) {
     if (!$jsAst) return
 
     //忽略：<image :src="imgsrc + '/wechatimg/form/edit.png'"></image>
@@ -99,7 +99,7 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
             let fileDir = path.dirname(wxmlFile)
 
             // var newSrc = src.replace(ggcUtils.multiSssetsFileReg, function (match, $1) {
-            //     let newVal = pathUtils.repiarAssetPath(
+            //     let newVal = pathUtils. repairAssetPath(
             //         $1,
             //         global.miniprogramRoot,
             //         fileDir,
@@ -114,7 +114,7 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
 
             var newSrc = src
             if (ggcUtils.assetsFileReg.test(src)) {
-                newSrc = pathUtils.repiarAssetPath(
+                newSrc = pathUtils. repairAssetPath(
                     src,
                     global.miniprogramRoot,
                     fileDir,
@@ -122,9 +122,9 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
                 )
             }
 
-            // function repiarAssetPath (filePath, root, fileDir) {
+            // function  repairAssetPath (filePath, root, fileDir) {
             // let fileDir = path.dirname(wxmlFile)
-            // let newSrc = pathUtils.repiarAssetPath(src, global.miniprogramRoot, fileDir)
+            // let newSrc = pathUtils. repairAssetPath(src, global.miniprogramRoot, fileDir)
             // // console.log("newSrc--", newSrc)
             srcNode.content = newSrc
         })
@@ -141,7 +141,7 @@ function repireTemplateSourcePath ($jsAst, wxmlFile) {
  * @param {*} $wxmlAst
  * @param {*} fileDir
  */
-function repiarAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
+function  repairAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
     if ($jsAst) {
         $jsAst.find({ type: 'StringLiteral' })
             .each(function (item) {
@@ -150,7 +150,7 @@ function repiarAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
                     //TODO: 这里有疑问，为啥要replace？而不是直接就转换呢？
                     //答，会有很多路径
                     // var newValue = value.replace(assetsFileReg, function (match, $1) {
-                    //     let newVal = pathUtils.repiarAssetPath(
+                    //     let newVal = pathUtils. repairAssetPath(
                     //         value,
                     //         global.miniprogramRoot,
                     //         fileDir,
@@ -160,7 +160,7 @@ function repiarAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
                     // })
 
                     //直接转换就行了
-                    let newSrc = pathUtils.repiarAssetPath(value, global.miniprogramRoot, fileDir, false)
+                    let newSrc = pathUtils. repairAssetPath(value, global.miniprogramRoot, fileDir, false)
                     item.attr('value', newSrc)
                 }
             }).root()
@@ -213,7 +213,7 @@ function repiarAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
  * @param {*} root      根目录
  * @param {*} fileDir   当前文件所在目录
  */
-function repireRequireAndImportPath (file, root, fileDir) {
+function  repairRequireAndImportPath (file, root, fileDir) {
     if (!file) return file
 
     // TODO:单个词是否需要过滤一下?
@@ -259,8 +259,8 @@ function transformAssetsPath ($jsAst, $wxmlAst) {
 module.exports = {
     transformAssetsPath,
 
-    repireScriptSourcePath,
-    repireTemplateSourcePath,
-    repiarAstStringLiteralAssetPath,
-    repireRequireAndImportPath
+     repairScriptSourcePath,
+    repairTemplateSourcePath,
+     repairAstStringLiteralAssetPath,
+     repairRequireAndImportPath
 }

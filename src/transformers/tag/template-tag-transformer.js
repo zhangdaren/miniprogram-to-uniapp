@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2021-10-30 16:44:25
+ * @LastEditTime: 2022-01-06 15:12:22
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/tag/template-tag-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\tag\template-tag-transformer.js
  *
  */
 
@@ -22,8 +22,7 @@ const { getMustacheTokens, parseMustache, stringifyMustache } = require(appRoot 
 
 const { renameTemplateVariable } = require(appRoot + "/src/utils/renameUtils")
 
-function addTemplateTagDataToGlobal (wxmlAst) {
-    var that = this
+function addTemplateTagDataToGlobal (wxmlAst, fileKey) {
     if (wxmlAst) {
         if (!global.templateData) {
             global.templateData = {}
@@ -39,6 +38,9 @@ function addTemplateTagDataToGlobal (wxmlAst) {
                 }
                 // console.log("template name=", name)
                 global.templateData[name]["ast"] = item
+                global.templateData[name]["fileKey"] = fileKey
+
+                //TODO: 注释它
             }).root()
 
         wxmlAst.find([
@@ -50,6 +52,7 @@ function addTemplateTagDataToGlobal (wxmlAst) {
             .each(function (item) {
                 var isMatch = item.match['is']
                 var dataMatch = item.match['data']
+                var attrs = item.match['$$$$']
 
                 //TODO: 这种是动态的。。要判断一下
                 {/* <template is="{{xxxx}}" data="{{text: 'forbar', abc, 'd':5, ...tt, b:[1,2,3]}}" class="abc"/> */ }
@@ -70,14 +73,15 @@ function addTemplateTagDataToGlobal (wxmlAst) {
                 if (global.templateData[is] && global.templateData[is]["ast"]) {
                     // console.log("找到了，就在当前页面")
                     var newAst = global.templateData[is]["ast"]
-                    replaceTemplateTag(item, data, newAst)
+                    replaceTemplateTag(item, data, newAst, attrs)
                 } else {
                     // console.log("template is=", is)
 
                     global.templateData[is] = {
                         ast: null,
                         data,
-                        fileKey: that.fileKey
+                        fileKey: fileKey,
+                        attrs
                     }
                 }
             }).root()
@@ -90,7 +94,7 @@ function addTemplateTagDataToGlobal (wxmlAst) {
  * @param {*} dataAttr
  * @param {*} newAst
  */
-function replaceTemplateTag (templateTagAst, dataAttr, newAst) {
+function replaceTemplateTag (templateTagAst, dataAttr, newAst, attrs) {
     //把参数改了
     const object = `var obj = {${ dataAttr }}`
 
@@ -125,9 +129,15 @@ function replaceTemplateTag (templateTagAst, dataAttr, newAst) {
     newAst.attr("content.name", "block").root()
     //
     //节点替换
-    templateTagAst.before(`<!-- parse ${templateTagAst.generate()} -->`)
+    templateTagAst.before(`<!-- parse ${ templateTagAst.generate() } -->`)
     templateTagAst.replaceBy(newAst)
     // item.append( ...newAst.attr("content.children"))
+
+    //添加template原有属性
+    var attributes = templateTagAst.attr("content.attributes")
+    attributes.push(...attrs)
+    templateTagAst.attr("content.attributes", attributes)
+
     templateTagAst.attr("content.name", "block").root()
 }
 
@@ -172,7 +182,7 @@ function transformTemplateTag (wxmlAst, wxmlFile) {
                 item.replaceBy(`<!-- ${ item.generate() } -->`)
 
                 var fileKey = pathUtils.getFileKey(wxmlFile)
-                console.log("[Error]template没有找到这个wxml   is=" + is + "    fileKey: "+  fileKey)
+                console.log("[Error]template没有找到这个wxml   is=" + is + "    fileKey: " + fileKey)
                 return
             }
             var templatePageData = global.templateData[is]

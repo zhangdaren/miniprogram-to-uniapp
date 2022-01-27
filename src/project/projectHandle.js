@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-25 16:45:29
+ * @LastEditTime: 2022-01-10 15:28:52
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
@@ -28,7 +28,8 @@ const configUtils = require(appRoot + '/src/utils/configUtils.js')
 const { configHandle, parseAppJSON } = require('./configHandle')
 
 const { transformTemplateTag, addTemplateTagDataToGlobal } = require(appRoot + "/src/transformers/tag/template-tag-transformer")
-const { transformIncludeTag } = require(appRoot + "/src/transformers/tag/indule-tag-transformer")
+const { transformIncludeTag } = require(appRoot + "/src/transformers/tag/include-tag-transformer")
+const { transformVueCLI } = require(appRoot + "/src/transformers/project/vue-cli-transformer")
 
 const { getPageSimpleVariableTypeInfo } = require(appRoot + '/src/transformers/variable/variable-transformer')
 
@@ -36,7 +37,7 @@ const Page = require(appRoot + "/src/page")
 
 const pkg = require('../../package.json')
 
-const MAX_FILE_SIZE = 1024 * 500  //最大可处理js大小为500kb
+const MAX_FILE_SIZE = 1024 * 100  //最大可处理js大小
 
 //TODO: 注意事项，其实global上面挂了很多很多东西
 // global = { ...global, ...options }
@@ -55,8 +56,10 @@ function checkCompileProject (sourceFolder) {
     } catch (error) {
         //可能没有这个文件
     }
-    if (content && content === `require("./common/runtime.js"),require("./common/vendor.js"),require("./common/main.js");`) {
-        return true
+    if (content) {
+        var list = ["./common/runtime.js", "./common/vendor.js", "./common/main.js"]
+        var result = list.every(str => content.includes(str))
+        return result
     } else {
         return false
     }
@@ -66,11 +69,11 @@ function checkCompileProject (sourceFolder) {
 /**
  *
  * @param {*} sourceFolder
- * @param {*} targetFolder
+ * @param {*} targetSourceFolder
  * @param {*} outputChannel  hbx插件专用
  * @returns
  */
-async function transform (sourceFolder, targetFolder, outputChannel) {
+async function transform (sourceFolder, targetSourceFolder, outputChannel) {
     return new Promise(async function (resolve, reject) {
         var allPageData = {}
 
@@ -95,15 +98,24 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
             // let name = obj.name
             // let isFolder = file.lastIndexOf("/") === file.length - 1
 
-            var extname = path.extname(file)
+            var basename = path.basename(file)
+            if(basename === ".DS_Store") return;
 
+            //快速判断是否为目录
+            var extname = path.extname(file)
             let isFolder = !extname
+
+            if(isFolder){
+                //二次判断是否是文件，因为有些文件没有后缀名，比如LICENSE
+                var stat = fs.statSync(file);
+                isFolder = stat.isDirectory()
+            }
 
             // console.log("file", file)
             // console.log("isFolder", isFolder)
 
             var relPath = path.relative(sourceFolder, file)
-            var newFile = path.join(targetFolder, relPath)
+            var newFile = path.join(targetSourceFolder, relPath)
 
             if (isFolder) {
                 //去除最后的杠，他的使命已完成。仅使用fastGlob遍历文件才需要这玩意！！！
@@ -112,17 +124,16 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
                 var folderName = path.basename(file)
                 if (folderName === "__test__") {
                     //weui-miniprogram 源码里面的目录，无须转换
-                } else if (num > 3000 && folderName === "node_modules") {
+                } else if (folderName === "node_modules") {
                     fs.copySync(file, newFile)
                 } else {
                     if (!fs.existsSync(newFile)) {
                         fs.mkdirSync(newFile)
                     }
                 }
-            } else if (num > 3000 && file.includes("node_modules")) {
-
+            } else if (file.includes("node_modules")) {
                 //node_modules 不处理
-                console.log("文件数大于3000时，不处理node_modules目录")
+                console.log("不处理node_modules目录")
             } else {
                 var fileKey = pathUtils.getFileKey(file)
 
@@ -146,7 +157,7 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
                     case '.js':
                         var stats = fs.statSync(file)
                         if (stats.size > MAX_FILE_SIZE) {
-                            console.log(`[Tip]文件(${fileKey}.js)体积大于 ${MAX_FILE_SIZE/1000} kb ，跳过处理`)
+                            console.log(`[Tip]文件(${ fileKey }.js)体积大于 ${ MAX_FILE_SIZE / 1000 } kb ，跳过处理`)
                             //直接复制
                             fs.copySync(file, newFile)
                         } else {
@@ -207,7 +218,6 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
                             if (global.isVueAppCliMode) {
                                 let relFolder = path.relative(miniprogramRoot, pFolder)
                                 let key = relFolder.replace(/\\/g, '/')
-                                global.assetsFolderObject.add(key)
                                 fs.copySync(file, newFile)
                             } else {
                                 // 2021-07-31
@@ -218,7 +228,7 @@ async function transform (sourceFolder, targetFolder, outputChannel) {
                                 if (!global.assetInfo[relPath])
                                     global.assetInfo[relPath] = {}
                                 global.assetInfo[relPath]['oldPath'] = file
-                                let targetFile = path.join(targetFolder, 'static', relPath)
+                                let targetFile = path.join(targetSourceFolder, 'static', relPath)
                                 global.assetInfo[relPath]['newPath'] = targetFile
 
                                 fs.copySync(file, targetFile)
@@ -288,7 +298,7 @@ async function transformPageList (allPageData, bar, outputChannel, total) {
 
             pathUtils.cacheImportComponentList(jsFile, wxmlFile, page.usingComponents)
 
-            addTemplateTagDataToGlobal(page.wxmlAst)
+            addTemplateTagDataToGlobal(page.wxmlAst, fileKey)
 
             allPageData[fileKey]["data"] = page
 
@@ -397,6 +407,11 @@ function initConsole (folder, outputChannel) {
     }
 }
 
+function closeReadStream(stream) {
+    if (!stream) return;
+    if (stream.close) stream.close();
+    else if (stream.destroy) stream.destroy();
+}
 
 /**
  * 项目转换
@@ -422,19 +437,31 @@ async function projectHandle (sourceFolder, options = {}) {
 
     let miniprogramRoot = sourceFolder
 
-    //因后面会清空输出目录，为防止误删除其他目录/文件，所以这里不给自定义!!!
-    var targetFolder = sourceFolder + '_uni'
-    // if (isVueAppCliMode) {
-    //     targetFolder = sourceFolder + '_uni_vue-cli'
-    // } else {
-    //     targetFolder = sourceFolder + '_uni'
-    // }
 
-    if (!fs.existsSync(targetFolder)) {
-        fs.mkdirSync(targetFolder)
+    //因后面会清空输出目录，为防止误删除其他目录/文件，所以这里不给自定义!!!
+    //目标项目目录
+    var targetProjectFolder = sourceFolder + '_uni'
+    //目录项目src目录，也可能与项目目录一致
+    var targetSourceFolder = sourceFolder + '_uni'
+
+    if (options.isVueAppCliMode) {
+        targetProjectFolder = sourceFolder + '_uni_vue-cli'
+        targetSourceFolder = path.join(targetProjectFolder, "src")
+
+        if (!fs.existsSync(targetProjectFolder)) {
+            fs.mkdirSync(targetProjectFolder)
+        }
+
+        if (!fs.existsSync(targetSourceFolder)) {
+            fs.mkdirSync(targetSourceFolder)
+        }
+    } else {
+        if (!fs.existsSync(targetSourceFolder)) {
+            fs.mkdirSync(targetSourceFolder)
+        }
     }
 
-    initConsole(targetFolder, options.outputChannel)
+    initConsole(targetProjectFolder, options.outputChannel)
 
     console.log(`miniprogram-to-uniapp v2 转换日志\n`)
 
@@ -448,7 +475,8 @@ async function projectHandle (sourceFolder, options = {}) {
 
     //定义全局变量
     global.miniprogramRoot = sourceFolder
-    global.targetFolder = targetFolder
+    global.targetProjectFolder = targetProjectFolder
+    global.targetSourceFolder = targetSourceFolder
     global.assetInfo = {}
     global.routerData = {}
     global.payApiCount = 0
@@ -482,8 +510,17 @@ async function projectHandle (sourceFolder, options = {}) {
     //云开发目录 复制
     if (configData.cloudfunctionRoot) {
         var sourceCloudfunctionRoot = path.join(sourceFolder, configData.cloudfunctionRoot)
-        const targetCloudfunctionRoot = path.join(targetFolder, configData.cloudfunctionRoot)
+        const targetCloudfunctionRoot = path.join(targetSourceFolder, configData.cloudfunctionRoot)
         fs.copySync(sourceCloudfunctionRoot, targetCloudfunctionRoot)
+    }
+
+    //vue-cli模式
+    if (options.isVueAppCliMode) {
+        transformVueCLI(
+            configData,
+            targetProjectFolder,
+            true
+        )
     }
 
     /////////////////////定义全局变量//////////////////////////
@@ -495,10 +532,13 @@ async function projectHandle (sourceFolder, options = {}) {
     pathUtils.cacheImportComponentList("", "", appJSON.usingComponents)
 
     /////////////////////////////////////////////
-    await transform(miniprogramRoot, targetFolder, options.outputChannel)
+    await transform(miniprogramRoot, targetSourceFolder, options.outputChannel)
 
     //处理配置文件
-    await configHandle(configData, global.routerData, miniprogramRoot, targetFolder)
+    await configHandle(configData, global.routerData, miniprogramRoot, targetSourceFolder)
+
+
+
 }
 
 

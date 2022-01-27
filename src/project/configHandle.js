@@ -62,7 +62,7 @@ function subPackagesHandle (subPackages, routerData) {
  * 处理全局组件，将它全部放进easycom里
  * @param {*} appJSON
  */
-function transfromGlobalUsingComponents (appJSON) {
+function transformGlobalUsingComponents (appJSON) {
 
     //app.json里面引用的全局组件
     let globalUsingComponents = appJSON.usingComponents || {}
@@ -146,10 +146,10 @@ function transfromGlobalUsingComponents (appJSON) {
  * @param {*} configData
  * @param {*} routerData
  * @param {*} miniprogramRoot
- * @param {*} targetFolder
+ * @param {*} targetSourceFolder
  * @param {*} appJSON
  */
-function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder, appJSON) {
+function generatePageJSON (configData, routerData, miniprogramRoot, targetSourceFolder, appJSON) {
 
     //将pages节点里的数据，提取routerData对应的标题，写入到pages节点里
     let pages = []
@@ -182,7 +182,7 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder
     }
     appJSON.pages = pages
 
-    transfromGlobalUsingComponents(appJSON)
+    transformGlobalUsingComponents(appJSON)
 
     //替换window节点为globalStyle
     appJSON["globalStyle"] = clone(appJSON["window"] || {})
@@ -259,14 +259,14 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder
                     let iconAbsPath = path.join(global.miniprogramRoot, iconPath)
                     let selectedIconAbsPath = path.join(global.miniprogramRoot, selectedIconPath)
                     //
-                    let targetIconAbsPath = path.join(global.targetFolder, "static", iconPath)
-                    let targetSelectedIconAbsPath = path.join(global.targetFolder, "static", selectedIconPath)
+                    let targetIconAbsPath = path.join(global.targetSourceFolder, "static", iconPath)
+                    let targetSelectedIconAbsPath = path.join(global.targetSourceFolder, "static", selectedIconPath)
                     //
                     if (!fs.existsSync(targetIconAbsPath)) fs.copySync(iconAbsPath, targetIconAbsPath)
                     if (!fs.existsSync(targetSelectedIconAbsPath)) fs.copySync(selectedIconAbsPath, targetSelectedIconAbsPath)
                     //
-                    iconPath = path.relative(global.targetFolder, targetIconAbsPath)
-                    selectedIconPath = path.relative(global.targetFolder, targetIconAbsPath)
+                    iconPath = path.relative(global.targetSourceFolder, targetIconAbsPath)
+                    selectedIconPath = path.relative(global.targetSourceFolder, targetSelectedIconAbsPath)
 
                     // xx\\xx.png --> xx/xx.png
                     item.iconPath = utils.normalizePath(iconPath)
@@ -277,9 +277,9 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder
     }
 
     //写入pages.json
-    let file_pages = path.join(targetFolder, "pages.json")
+    let file_pages = path.join(targetSourceFolder, "pages.json")
     fs.writeFileSync(file_pages, JSON.stringify(appJSON, null, '\t'))
-    console.log(`write ${ path.relative(global.targetFolder, file_pages) } success!`)
+    console.log(`write ${ path.relative(global.targetSourceFolder, file_pages) } success!`)
 
 }
 
@@ -288,10 +288,10 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetFolder
  * @param {*} configData
  * @param {*} routerData
  * @param {*} miniprogramRoot
- * @param {*} targetFolder
+ * @param {*} targetSourceFolder
  * @param {*} appJSON
  */
-function generateManifest (configData, routerData, miniprogramRoot, targetFolder, appJSON) {
+function generateManifest (configData, routerData, miniprogramRoot, targetSourceFolder, appJSON) {
     //注：因json里不能含有注释，因些template/manifest.json文件里的注释已经被删除。
     let file_manifest = path.join(__dirname, "/template/mani_fest.json")
     let manifestJson = {}
@@ -356,9 +356,9 @@ function generateManifest (configData, routerData, miniprogramRoot, targetFolder
     }
 
     //manifest.json
-    file_manifest = path.join(targetFolder, "manifest.json")
+    file_manifest = path.join(targetSourceFolder, "manifest.json")
     fs.writeFileSync(file_manifest, JSON.stringify(manifestJson, null, '\t'))
-    console.log(`write ${ path.relative(global.targetFolder, file_manifest) } success!`)
+    console.log(`write ${ path.relative(global.targetSourceFolder, file_manifest) } success!`)
 
 }
 
@@ -367,15 +367,15 @@ function generateManifest (configData, routerData, miniprogramRoot, targetFolder
  * @param {*} configData
  * @param {*} routerData
  * @param {*} miniprogramRoot
- * @param {*} targetFolder
+ * @param {*} targetSourceFolder
  * @param {*} appJSON
  */
-function generateMainJS (configData, routerData, miniprogramRoot, targetFolder, appJSON) {
+function generateMainJS (configData, routerData, miniprogramRoot, targetSourceFolder, appJSON) {
     let mainContent = "import App from './App'\r\n\r\n"
 
     //polyfill folder
     const sourcePolyfill = path.join(__dirname, '/template/polyfill')
-    const targetPolyfill = path.join(targetFolder, 'polyfill')
+    const targetPolyfill = path.join(targetSourceFolder, 'polyfill')
     fs.copySync(sourcePolyfill, targetPolyfill)
 
     //引入polyfill，用户自行决定是否需要polyfill
@@ -420,9 +420,9 @@ function generateMainJS (configData, routerData, miniprogramRoot, targetFolder, 
     mainContent = formatUtils.formatCode(mainContent, "js", "main.js")
 
     //
-    let file_main = path.join(targetFolder, "main.js")
+    let file_main = path.join(targetSourceFolder, "main.js")
     fs.writeFileSync(file_main, mainContent)
-    console.log(`write ${ path.relative(global.targetFolder, file_main) } success!`)
+    console.log(`write ${ path.relative(global.targetSourceFolder, file_main) } success!`)
 }
 
 /**
@@ -460,26 +460,26 @@ function parseAppJSON (miniprogramRoot) {
  * @param {*} configData        小程序配置数据
  * @param {*} routerData        所有的路由页面数据
  * @param {*} miniprogramRoot   小程序主体所在目录
- * @param {*} targetFolder      最终要生成的目录
+ * @param {*} targetSourceFolder      最终要生成的目录
  */
-async function configHandle (configData, routerData, miniprogramRoot, targetFolder) {
+async function configHandle (configData, routerData, miniprogramRoot, targetSourceFolder) {
     await new Promise((resolve, reject) => {
 
         var appJSON = parseAppJSON(miniprogramRoot)
 
         //下面几个按page、manifest、main这个顺序！
-        generatePageJSON(configData, routerData, miniprogramRoot, targetFolder, appJSON)
-        generateManifest(configData, routerData, miniprogramRoot, targetFolder, appJSON)
-        generateMainJS(configData, routerData, miniprogramRoot, targetFolder, appJSON)
+        generatePageJSON(configData, routerData, miniprogramRoot, targetSourceFolder, appJSON)
+        generateManifest(configData, routerData, miniprogramRoot, targetSourceFolder, appJSON)
+        generateMainJS(configData, routerData, miniprogramRoot, targetSourceFolder, appJSON)
 
         //增加uni.scss
         let source_uniScss = path.join(__dirname, "/template/uni.scss")
-        var target_uniScss = path.join(targetFolder, "uni.scss")
+        var target_uniScss = path.join(targetSourceFolder, "uni.scss")
         fs.copySync(source_uniScss, target_uniScss)
 
         //复制uni_modules
         let source_uniModules = path.join(__dirname, "/template/uni_modules")
-        var target_uniModules = path.join(targetFolder, "uni_modules")
+        var target_uniModules = path.join(targetSourceFolder, "uni_modules")
         fs.copySync(source_uniModules, target_uniModules)
 
         resolve()

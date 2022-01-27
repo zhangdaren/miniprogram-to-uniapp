@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2021-11-19 20:51:31
+ * @LastEditTime: 2021-11-30 10:09:25
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/wxParse-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\component\wxParse-transformer.js
  *
  */
 
@@ -143,7 +143,6 @@ function transformWxParseTemplate ($wxmlAst) {
             '<template is="wxParse" data="$_$data" $$$></template>'])
         .each(function (item) {
             // console.log(match, nodePath)
-            console.log("item", item)
             var data = item[0].match["data"][0].value
             var attrListNode = item.match["$$$$"]
 

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-23 15:22:21
+ * @LastEditTime: 2021-12-14 16:23:38
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\script\app\app-transformer.js
@@ -46,6 +46,11 @@ const lifecycleFunction = {
 function transformAppAst ($ast, fileKey) {
     var globalDataNode = ggcUtils.getLifecycleNode($ast, "App", "globalData", true)
 
+    //解决globalData: require('siteinfo.js')这种结构，
+    //转换为: globalData: { ...require('siteinfo.js') }
+    if (t.isCallExpression(globalDataNode.value)) {
+        globalDataNode.value = t.objectExpression([t.spreadElement(globalDataNode.value)])
+    }
     ggcUtils.transformGetApp($ast)
 
     $ast
@@ -107,8 +112,8 @@ function transformAppAst ($ast, fileKey) {
                     })
                 })
             } else {
-                var littleCode = $ast.generate().substr(0, 250);
-                console.log(`[Error]App异常情况(建议把源代码修改为简单结构，如App({})，再尝试转换)\nfile:${fileKey}\n`, littleCode)
+                var littleCode = $ast.generate().substr(0, 250)
+                console.log(`[Error]App异常情况(建议把源代码修改为简单结构，如App({})，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
             }
         })
         .root()

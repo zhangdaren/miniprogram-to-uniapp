@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-30 16:46:49
+ * @LastEditTime: 2021-12-22 11:28:17
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/style/style-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\style\style-transformer.js
  *
  */
 const fs = require('fs-extra')
@@ -15,7 +15,7 @@ const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const postcss = require('postcss')
 const lessSyntax = require('postcss-less')
-const ScssSyntax = require('postcss-scss')
+const scssSyntax = require('postcss-scss')
 
 
 /**
@@ -99,7 +99,7 @@ async function transformStyleFile (file_wxss) {
             })
 
             //处理iconfont和top
-            fileContent = transfromIconfont(fileContent, extname, fileKey)
+            fileContent = transformIconfont(fileContent, extname, fileKey)
 
             resolve(fileContent)
         })
@@ -115,14 +115,14 @@ async function transformStyleFile (file_wxss) {
  * @param {*} fileContent
  * @returns
  */
-function transfromIconfont (fileContent, extname, fileKey) {
+function transformIconfont (fileContent, extname, fileKey) {
     var ast = null
     switch (extname) {
         case ".less":
             ast = lessSyntax.parse(fileContent)
             break
         case ".scss":
-            ast = ScssSyntax.parse(fileContent)
+            ast = scssSyntax.parse(fileContent)
             break
         default:
             ast = postcss.parse(fileContent)

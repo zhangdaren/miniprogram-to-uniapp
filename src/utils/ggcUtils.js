@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-19 15:16:19
+ * @LastEditTime: 2022-01-07 16:21:19
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\ggcUtils.js
@@ -39,7 +39,11 @@ const expList = [
     },
     {
         type: "Webpack",
-        exp: [`(global["webpackJsonp"]=global["webpackJsonp"]||[])`, `(global.webpackJsonp=global.webpackJsonp||[])`]
+        exp: [
+            `(global["webpackJsonp"]=global["webpackJsonp"]||[])`,
+            `($_$1["webpackJsonp"]=$_$1["webpackJsonp"]||[])`,
+            `(global.webpackJsonp=global.webpackJsonp||[])`
+        ]
     },
     {
         type: "VantComponent",
@@ -348,7 +352,7 @@ function getApiCount ($ast, name = "requestPayment") {
 
 
 /**
- * 为防代码拼错，建议使用这里的常量
+ * 为防单词拼错，建议使用这里的常量
  */
 const propTypes = {
     DATA: "DATA",

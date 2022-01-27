@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-20 16:36:13
+ * @LastEditTime: 2022-01-19 18:09:06
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\utils.js
@@ -11,6 +11,8 @@ const chalk = require('chalk')
 // const fastGlob = require('fast-glob')
 
 const { fdir } = require("fdir")
+
+const $ = require('gogocode')
 
 const path = require('path')
 const fs = require('fs-extra')
@@ -880,6 +882,21 @@ function getMiniprogramType () {
 }
 
 
+var regList = [
+    /\bLicensed\b/i,
+    /\blicenses\b/i,
+    /\bcopyright\b/i,
+    /http:\/\/www\.w3\.org/i,
+    /DOM\sLevel\s/i,
+]
+/**
+ * 判断当前文件是否为js的sdk，粗略判断，需先判断是否为单js文件
+ * @param {*} content
+ */
+function isSDKFile (content) {
+    var result = regList.some(reg => reg.test(content))
+    return result
+}
 
 
 module.exports = {
@@ -890,6 +907,8 @@ module.exports = {
     isObject,
     isFunction,
     isEmpty,
+
+    isSDKFile,
 
     numberReg,
 

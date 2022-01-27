@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-11-18 15:01:38
+ * @LastEditTime: 2022-01-25 18:15:07
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\script\page\page-transformer.js
@@ -90,20 +90,23 @@ function transformPageAst ($ast, fileKey) {
                     return isMatch
                 })
             } else {
-                var littleCode = $ast.generate().substr(0, 300);
-                console.log(`[Error]Page异常情况(建议把源代码修改为简单结构，如Page({})，再尝试转换)\nfile:${fileKey}\n`, littleCode)
+                var littleCode = $ast.generate().substr(0, 300)
+                console.log(`[Error]Page异常情况(建议把源代码修改为简单结构，如Page({})，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
             }
         })
         .root()
         .replace("Page({data:$_$1,$$$})", `Page({data() {
             return $_$1;
         },$$$})`)
-        .replace("Page($$$)", "export default $$$")
+
+    try {
+        $ast.replace("Page($$$)", "export default $$$")
+    } catch (error) {
+        console.error("解析页面异常", error)
+    }
 
     return $ast
 }
-
-
 
 
 module.exports = { transformPageAst }

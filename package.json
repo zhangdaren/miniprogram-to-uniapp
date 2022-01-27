@@ -25,7 +25,7 @@
         "commander": "^2.20.1",
         "fdir": "^5.1.0",
         "fs-extra": "^10.0.0",
-        "gogocode": "^1.0.40",
+        "gogocode": "^1.0.45",
         "js-beautify": "^1.14.0",
         "mustache": "^4.2.0",
         "node-pinyin": "^0.2.3",
@@ -63,5 +63,5 @@
         "test": "jest",
         "debugger": "node --inspect-brk ./node_modules/jest/bin/jest --runInBand --no-cache --no-watchman"
     },
-    "version": "2.0.10"
+    "version": "2.0.11"
 }

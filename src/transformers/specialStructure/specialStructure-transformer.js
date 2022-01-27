@@ -4,7 +4,7 @@
  * @LastEditTime: 2021-11-09 16:52:55
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\specialStructure\specialStructure-transfromer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\specialStructure\specialStructure-transformer.js
  *
  */
 
@@ -91,7 +91,7 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
  * @param {*} $ast
  * @returns
  */
-function transfromSpecialStructure ($jsAst, fileKey) {
+function transformSpecialStructure ($jsAst, fileKey) {
     if ($jsAst) {
 
         $jsAst
@@ -177,4 +177,4 @@ function transfromSpecialStructure ($jsAst, fileKey) {
     return $jsAst
 }
 
-module.exports = { transfromSpecialStructure }
+module.exports = { transformSpecialStructure }

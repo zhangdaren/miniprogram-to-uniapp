@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 15:40:27
- * @LastEditTime: 2021-11-18 17:53:03
+ * @LastEditTime: 2022-01-26 09:50:00
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\restoreJSUtils.js
@@ -14,10 +14,12 @@ const path = require('path')
 const fs = require('fs-extra')
 
 const t = require("@babel/types")
+const { parseExpression } = require("@babel/parser")
+
+
 
 var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
-const { parseExpression } = require("@babel/parser")
 
 const parser = require('@babel/parser')
 const traverse = require('@babel/traverse').default
@@ -940,7 +942,7 @@ const javascriptParser = new JavascriptParser()
  * @param {*} keyNode       递归使用，当前节点的名称对象
  * @returns
  */
-function transfromSequenceExpression (path, targetPath, keyNode) {
+function transformSequenceExpression (path, targetPath, keyNode) {
     if (!t.isSequenceExpression(path)) return
 
     var expressions = path.expressions || path.node.expressions || []
@@ -957,7 +959,7 @@ function transfromSequenceExpression (path, targetPath, keyNode) {
                     properties.map(function (node) {
                         if (t.isObjectProperty(node)) {
                             if (t.isSequenceExpression(node.value)) {
-                                transfromSequenceExpression(node.value, path, node.key)
+                                transformSequenceExpression(node.value, path, node.key)
                             } else {
                                 objExpression.properties.push(node)
                             }
@@ -1005,7 +1007,7 @@ function transfromSequenceExpression (path, targetPath, keyNode) {
 function fixSpecialCode (ast) {
     traverse(ast, {
         SequenceExpression (path) {
-            transfromSequenceExpression(path)
+            transformSequenceExpression(path)
         }
     })
 }
@@ -1015,11 +1017,36 @@ function fixSpecialCode (ast) {
  * @param {*} $ast
  * @returns
  */
-function fixSpecialCode2 ($ast) {
-    let varName = $ast.find(`Page(($_$1={$$$1}, $$$2))`).match[1][0].value
+function fixSpecialCode2 ($ast, astType) {
+
+    //还有问题！！！！
+    var keyword = ""
+    switch (astType) {
+        case "App":
+        case "Page":
+        case "Behavior":
+        case "Component":
+        case "CustomPage":
+            keyword = astType
+            break
+        default:
+            break
+    }
+
+    if (!keyword) return
+
+    // var result = $ast.find(`${ keyword }(($_$fun($_$1={$$$1}, $$$2),$$$3))`)
+    // if (result.length) {
+    //     $ast.replace(`${ keyword }(($_$fun($_$1={$$$1}, $$$2),$$$3))`,`${ keyword }(($_$1={$$$1}, $$$2),$$$3)`)
+    // }
+
+    // var result = $ast.find(`${ keyword }(($_$1={$$$1}, $$$2))`)
+    // if (!result.length) return
+
+    let varName = $ast.find(`${ keyword }(($_$1={$$$1}, $$$2))`).match[1][0].value
 
     var varName2 = ''
-    var res2 = $ast.find(`Page(($_$1={data:($_$2={$$$1},$$$2)}, $$$3))`)
+    var res2 = $ast.find(`${ keyword }(($_$1={data:($_$2={$$$1},$$$2)}, $$$3))`)
     if (res2.length) {
         varName2 = res2.match[2][0].value
     }
@@ -1036,8 +1063,8 @@ function fixSpecialCode2 ($ast) {
     if (varName2) {
         $ast.replace(`{data:(${ varName2 }={$$$1}, $$$2, ${ varName2 })}`, '{data:{$$$1, $$$2}}')
     }
-    $ast.replace(`Page((${ varName }={$$$1},$$$2,${ varName }))`, 'Page({$$$1, $$$2})')
-    return $ast
+    $ast.replace(`${ keyword }((${ varName }={$$$1},$$$2,${ varName }))`, '${keyword}({$$$1, $$$2})')
+    return $ast.generate()
 }
 
 
@@ -1102,6 +1129,8 @@ module.exports = {
     restoreJS,
 
     addReplaceTag,
+
+    fixSpecialCode2,
 
     renameKeywordToUni,
 }

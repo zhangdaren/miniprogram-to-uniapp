@@ -24,14 +24,14 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 const restoreJSUtils = require(appRoot + "/src/utils/restoreJSUtils")
 
 //资源文件
-const { repireRequireAndImportPath} = require(appRoot + '/src/transformers/assets/assets-path-transformer')
+const {  repairRequireAndImportPath} = require(appRoot + '/src/transformers/assets/assets-path-transformer')
 
 /**
  * 组件处理
  * @param {*} $jsAst
  * @param {*} usingComponents
  */
-function transfromUsingComponents ($jsAst, usingComponents) {
+function transformUsingComponents ($jsAst, usingComponents) {
     if (!$jsAst) return
 
     // 1.在头上添加import,注意组件名
@@ -79,7 +79,7 @@ function transfromUsingComponents ($jsAst, usingComponents) {
             // }
 
             var fileDir = path.dirname(componentPath)
-            componentPath = repireRequireAndImportPath(componentPath, global.miniprogramRoot, fileDir)
+            componentPath =  repairRequireAndImportPath(componentPath, global.miniprogramRoot, fileDir)
 
             var importStr = `import ${ componentName } from "${ componentPath }";\r\n`
             importStrList.push(importStr)
@@ -99,5 +99,5 @@ function transfromUsingComponents ($jsAst, usingComponents) {
 }
 
 module.exports = {
-    transfromUsingComponents
+    transformUsingComponents
 }

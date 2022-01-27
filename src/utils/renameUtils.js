@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2021-11-24 18:15:31
+ * @LastEditTime: 2022-01-19 15:16:08
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\renameUtils.js
@@ -429,7 +429,6 @@ function renameScriptVariable ($jsAst, oldName, newName, type) {
     renameDataOrMethods($jsAst, oldName, newName, type)
 
     //2.找到所有this.data.xxx进行重名
-    // renameThisDotXXX($jsAst, oldName, newName, type)
     renameThisDotDataDotXXX($jsAst, oldName, newName, type)
 
     //3.对this.xxx进行替换，如果是函数与变量重名了
