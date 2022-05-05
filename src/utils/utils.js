@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-01-19 18:09:06
+ * @LastEditTime: 2022-04-07 17:28:20
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\utils.js
@@ -14,7 +14,7 @@ const { fdir } = require("fdir")
 
 const $ = require('gogocode')
 
-const path = require('path')
+const nodePath = require('path')
 const fs = require('fs-extra')
 
 
@@ -55,6 +55,17 @@ function getAllFile (sourceFolder, options) {
     const crawler = new fdir()
         .withFullPaths()   //返回完整路径
         .withDirs()        //返回目录
+        .filter((path, isDirectory) => {
+            var result = true
+            if (isDirectory) {
+                var folderName = nodePath.basename(path)
+                var relativePath = nodePath.relative(sourceFolder, path)
+                if (folderName.startsWith(".") || relativePath.startsWith(".")) {
+                    result = false
+                }
+            }
+            return result
+        })
     // .filter((path, isDirectory) => ignoreList.some((reg) => reg.test(path)))
 
     const files = crawler.crawl(sourceFolder).sync()
@@ -307,14 +318,14 @@ function toLowerLine (str) {
 function getKebabCase (str) {
     return str.replace(/[A-Z]/g, function (i) {
         return '-' + i.toLowerCase()
-    }).replace(/_/g, "-")
+    })
 }
 
 /**
  * 中划线转驼峰式
  * console.log(toCamel('test-to-camel'));   //testToCamel
  * console.log(toCamel('diy-imageSingle')); //diyImageSingle
- * console.log(toCamel('diy_imageSingle')); //diyImageSingle
+ * console.log(toCamel('diy_imageSingle')); //diy_imageSingle
  * @param {*} str
  */
 function toCamel (str) {

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:57:51
- * @LastEditTime: 2021-10-15 20:27:53
+ * @LastEditTime: 2022-05-04 21:24:16
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp2\src\project\template\polyfill\mixins.js
+ * @FilePath: /miniprogram-to-uniapp2/src/project/template/polyfill/mixins.js
  *
  * 如果你想删除本文件，请先确认它使用的范围，感谢合作~
  * 如有疑问，请直接联系: 375890534@qq.com
@@ -107,9 +107,9 @@ export default {
          * 比如：<view bindtap="{{openId==undefined?'denglu':'hy_to'}}">立即</view>
          * @param {*} exp
          */
-        parseEventDynamicCode (exp) {
-            if (typeof (eval("this." + exp)) === 'function') {
-                eval("this." + exp + '()')
+        parseEventDynamicCode (e, exp) {
+            if (typeof (this[exp]) === 'function') {
+                this[exp](e)
             }
         },
         /**
@@ -139,7 +139,7 @@ export default {
             //   }
             // }
             // return clone
-            return JSON.parse(JSON.stringify(obj))
+            return JSON.parse(JSON.stringify(target))
         }
     }
 }

@@ -146,7 +146,7 @@ function transformComponentAst ($ast, fileKey) {
 console.log("transformProperties error", fileKey, error)
     }
 
-    global.props[fileKey] = ggcUtils.getCompoentPropsList($ast)
+    global.props[fileKey] = ggcUtils.getComponentPropsList($ast)
 
     return $ast
 }

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 15:40:27
- * @LastEditTime: 2022-01-26 09:50:00
+ * @LastEditTime: 2022-04-07 18:43:27
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\restoreJSUtils.js
@@ -229,19 +229,27 @@ function oneLineToMultiLine (ast) {
             let consequent = path.node.consequent
             let alternate = path.node.alternate
 
-            if (alternate) {
-                if (!t.isBlockStatement(consequent)) {
-                    path.node.consequent = t.blockStatement([consequent])
+            //如果是多重if，则不会展开,如：
+            // if (options.xyname == '发布相关条款') {
+            // } else if (options.xyname == '用户登录协议') {
+            // } else if (options.xyname == '保证金协议') {
+            // }
+            if (!t.isIfStatement(alternate)) {
+                if (alternate) {
+                    if (!t.isBlockStatement(consequent)) {
+                        path.node.consequent = t.blockStatement([consequent])
+                    }
+
+                    if (!t.isBlockStatement(alternate)) {
+                        path.node.alternate = t.blockStatement([alternate])
+                    }
+                } else {
+                    //没有else
+                    if (!t.isBlockStatement(consequent)) {
+                        path.node.consequent = t.blockStatement([consequent])
+                    }
                 }
 
-                if (!t.isBlockStatement(alternate)) {
-                    path.node.alternate = t.blockStatement([alternate])
-                }
-            } else {
-                //没有else
-                if (!t.isBlockStatement(consequent)) {
-                    path.node.consequent = t.blockStatement([consequent])
-                }
             }
 
         },
@@ -294,7 +302,13 @@ function oneLineToMultiLine (ast) {
                         var consequentBlockStatement = exp.left
                         var alternateBlockStatement = t.blockStatement([t.expressionStatement(exp.right)], [])
                         var ifStatement = t.ifStatement(consequentBlockStatement, alternateBlockStatement)
-                        path.replaceWith(ifStatement)
+
+                        try {
+ path.replaceWith(ifStatement)
+                        } catch (error) {
+console.log('%c [ error ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', error)
+                        }
+
                     } else if (operator === "||") {
                         //TODO:好像不需要转换！！！！！
                         // 转换前： "" == str || /\d/.test(num) || console.log();

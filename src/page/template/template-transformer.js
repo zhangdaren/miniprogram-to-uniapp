@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-01-25 18:01:26
+ * @LastEditTime: 2022-05-04 21:23:34
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\template\template-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/template/template-transformer.js
  *
  */
 
@@ -703,7 +703,7 @@ function transformEventDynamicCode ($wxmlAst) {
                     var value = obj.value.content
                     var reg = /\?|\+/
                     if (attr[0] === "@" && reg.test(value)) {
-                        obj.value.content = "parseEventDynamicCode(" + value + ")"
+                        obj.value.content = `parseEventDynamicCode($event, value)`
                     }
                 }
             })
@@ -718,7 +718,7 @@ function transformOfficialAccount ($ast) {
     var selector = `<official-account $$$></official-account>`
 
     var replacement = `
-        <block>
+        <view>
             <!-- #ifdef MP-WEIXIN -->
             <!-- [miniprogram-to-uniapp] 公众号关注组件 仅微信小程序支持 -->
             <official-account $$$></official-account>
@@ -727,7 +727,7 @@ function transformOfficialAccount ($ast) {
             <!-- #ifndef MP-WEIXIN -->
             <view>当前为非微信小程序环境，不支持公众号关注组件，请自行调整当前节点内容！</view>
             <!-- #endif -->
-        </block>`
+        </view>`
 
     $ast.replace(selector, replacement)
 }
@@ -820,6 +820,30 @@ function getPrefixByExtname (extname) {
 }
 
 /**
+ * 处理异常标签，比如 `<view class="descri2" v-if="{{dgvillage_type}}"></view>`
+ * 拦不住别人在小程序里写vue语法，导致转换报错 = =！
+ * @param {*} $wxmlAst
+ */
+function transformExceptionAttr ($wxmlAst) {
+    if (!$wxmlAst) return
+    $wxmlAst.find('<$_$1 $$$></$_$1>')
+        .each(function (item) {
+            var list = item.match['$$$$']
+            list.map(function (obj) {
+                //判断一下 v-else 这种没value的属性
+                if (obj.value) {
+                    var value = obj.value.content
+                    var reg = /^\{\{(.*?)\}\}$/
+                    if (reg.test(value)) {
+                        obj.value.content = value.replace(reg, "$1")
+                    }
+                }
+            })
+        }).root()
+}
+
+
+/**
  * 转换template ast
  * @param {*} $ast
  * @param {*} wxmlFile
@@ -877,6 +901,9 @@ function transformTemplateAst ($ast, wxmlFile, wxmlExtname) {
 
     //对标签属性进行合并去重
     transformDuplicateAttr($ast)
+
+    //对异常属性进行处理
+    transformExceptionAttr($ast)
 
     return $ast
 }

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2022-01-06 15:12:22
+ * @LastEditTime: 2022-01-30 17:02:02
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\tag\template-tag-transformer.js
@@ -135,7 +135,11 @@ function replaceTemplateTag (templateTagAst, dataAttr, newAst, attrs) {
 
     //添加template原有属性
     var attributes = templateTagAst.attr("content.attributes")
-    attributes.push(...attrs)
+    try {
+        attributes.push(...attrs)
+    } catch (error) {
+        console.error("异常：replaceTemplateTag - attrs ", attrs)
+    }
     templateTagAst.attr("content.attributes", attributes)
 
     templateTagAst.attr("content.name", "block").root()

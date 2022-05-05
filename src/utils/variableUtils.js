@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-30 17:07:30
- * @LastEditTime: 2022-01-10 16:12:29
+ * @LastEditTime: 2022-05-05 18:05:01
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\variableUtils.js
@@ -15,7 +15,7 @@ const t = require("@babel/types")
 const clone = require("clone")
 
 const { util } = require('prettier')
-var appRoot = "../.."
+const appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
 
@@ -96,6 +96,11 @@ function addNodePath (dataPath, key, valueType, isLast, isOnlyOne, variableTypeI
 
     //如果是纯数字，则返回
     if (utils.isNumberString(key)) {
+        return null
+    }
+
+    //如果不是变量名，或可能是true或false，则返回
+    if (!utils.isVariableName(key) || utils.isBooleanString(key)) {
         return null
     }
 

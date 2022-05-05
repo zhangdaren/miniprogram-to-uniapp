@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-01-07 16:21:19
+ * @LastEditTime: 2022-05-05 18:43:14
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\ggcUtils.js
@@ -22,7 +22,7 @@ const staticAssetsReg = /^\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff)$/i
 //支持的文件的正则，用于替换引入路径
 const assetsFileReg = /^((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))$/i
 
-const multiSssetsFileReg = /['"]?((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
+const multiAssetsFileReg = /['"]?((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
 
 const expList = [
     {
@@ -62,10 +62,10 @@ const expList = [
 /**
  * 通过ast获取对应的ast类型
  * @param {*} $ast
- * @param {*} filekey
+ * @param {*} fileKey
  * @returns
  */
-function getAstType ($ast, filekey) {
+function getAstType ($ast, fileKey) {
     let result = expList.find(function (obj) {
         let match = $ast.find(obj.exp)
         if (obj.type === "Webpack" || obj.type === "Behavior") {
@@ -86,7 +86,7 @@ function getAstType ($ast, filekey) {
         }
     })
 
-    // console.log("filekey: ----- ", filekey, result && result.type || "")
+    // console.log("fileKey: ----- ", fileKey, result && result.type || "")
     return result && result.type || ""
 }
 
@@ -202,6 +202,88 @@ function transformGetApp ($ast) {
     return $ast
 }
 
+/**
+ * 如item是否为this对象或this的别名，则返回this或this的别名，否则返回null
+ * item应该是使用selector:`$_$this.data`搜索出来的
+ * @param {*} item
+ * @param {*} selectorName  this在选择器里的名，默认为this
+ * @returns
+ */
+function getThisExpressionName (item, selectorName = 'this') {
+    var result = null
+
+    if (!item) return null
+    if (item.match[selectorName] && item.match[selectorName][0] && item['0']) {
+        var thisNode = item.match[selectorName][0].node
+        var nodePath = item['0'].nodePath
+        if (thisNode.type === 'ThisExpression') {
+            //是this本身
+            result = 'this'
+        } else {
+            var objectName = thisNode.name
+            var res = nodePath.scope.lookup(objectName)
+            if (res && res.bindings[objectName]) {
+                var scopeNode = res.bindings[objectName][0]
+                var scopeParentNode = scopeNode.parentPath
+                if (
+                    scopeParentNode.node.type === 'VariableDeclarator' &&
+                    scopeParentNode.node.init.type === 'ThisExpression'
+                ) {
+                    //是this的别名
+                    result = objectName
+                }
+            }
+        }
+    }
+    return result
+}
+
+/**
+ * 处理this.data = {} 这种场景，转换后为：this.setData({})
+ * this.data = {
+ *    style:"",
+ *    value:"",
+ * }
+ * @param {*} $ast
+ */
+function transformThisDotData ($ast) {
+    if (!$ast) return
+    $ast
+        .find('$_$this.data = $_$value')
+        .each(function (item) {
+
+            var thisNode = item.match["this"][0].node
+            var valueNode = item.match["value"][0].node
+
+            var thisName = getThisExpressionName(item, 'this')
+            if (thisName) {
+                var valueStr = $(valueNode).generate()
+                item.replaceBy(`${ thisName }.setData(${ valueStr })`)
+            }
+        })
+        .root()
+}
+
+
+/**
+ * 处理this.properties = {a:1, b:2} 这种场景，作提示，需手动处理
+ * @param {*} $ast
+ * @param {*} fileKey
+ */
+function transformThisDotProperties ($ast, fileKey) {
+    if (!$ast) return
+    $ast
+        .find('$_$this.properties = $_$value')
+        .each(function (item) {
+            var thisName = getThisExpressionName(item, 'this')
+            if (thisName) {
+                var code = $(item).generate()
+                console.log(`[Error]代码：${code}写法不适应uni-app，需转换后手动调整。  file:${ fileKey }`)
+            }
+        })
+        .root()
+}
+
 
 /**
  * 两个作用：
@@ -213,9 +295,15 @@ function transformGetApp ($ast) {
  * @param {*} $ast
  * @param {*} keyword
  * @param {*} globalDataProperties
+ * @param {*} fileKey
  * @returns
  */
-function transformThisDotKeywordExpression ($ast, keyword = "data", globalDataProperties = []) {
+function transformThisDotKeywordExpression ($ast, keyword = "data", globalDataProperties = [], fileKey) {
+    if (keyword === "data") {
+        transformThisDotData($ast)
+    } else if (keyword === "properties") {
+        transformThisDotProperties($ast, fileKey)
+    }
 
     var globalDataNameList = globalDataProperties.map(function (item) {
         return item.key && (item.key.name || item.key.value)
@@ -527,7 +615,7 @@ function objectMethod2FunctionExpression (path) {
  * 获取components ast里面的props列表
  * @param {*} $jsAst
  */
-function getCompoentPropsList ($jsAst) {
+function getComponentPropsList ($jsAst) {
     var propList = getDataOrPropsOrMethodsList($jsAst, propTypes.PROPS)
 
     var propList = propList.reduce(function (list, item) {
@@ -654,7 +742,7 @@ function getPropTypeByPropList (propList, keyName) {
         var propName = item.key && (item.key.name || item.key.value) || ""
         if (propName === keyName) {
             var properties = item.value.properties
-            if(properties){
+            if (properties) {
                 properties.find(function (subItem) {
                     var name = subItem.key.name || subItem.key.value
                     if (name === "type") {
@@ -690,12 +778,27 @@ function checkWeUI ($jsAst, $wxmlAst) {
 }
 
 
+/**
+ * 强制替换ast对象，避免ast结构异常情况出现
+ * //引自：https://github.com/thx/gogocode/blob/main/packages/gogocode-plugin-element/utils/scriptUtils.js#L62
+ * forceReplace($, fAst, `mode:'history'`, `history: VueRouter.createWebHistory()`);
+ * @param {*} $
+ * @param {*} ast
+ * @param {*} selector
+ * @param {*} replacer
+ */
+ function forceReplace($, ast, selector, replacer) {
+    ast.replaceBy($(ast.generate()).replace(selector, replacer));
+}
+
+
 
 module.exports = {
     getThisName,
+    getThisExpressionName,
     staticAssetsReg,
     assetsFileReg,
-    multiSssetsFileReg,
+    multiAssetsFileReg,
     // transformAppDotGlobalData,
     transformGetApp,
     transformThisDotKeywordExpression,
@@ -710,12 +813,14 @@ module.exports = {
 
     getScopeVariableInitValue,
     objectMethod2FunctionExpression,
-    getCompoentPropsList,
+    getComponentPropsList,
 
     createObjectProperty,
     addWatchHandlerItem,
     getPropTypeByPropList,
 
-    checkWeUI
+    checkWeUI,
+
+    forceReplace
 
 }

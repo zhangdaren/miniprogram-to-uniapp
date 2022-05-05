@@ -26,7 +26,7 @@ Options:
   -V, --version          output the version number [版本信息]
   -i, --input <target>   the input path for weixin miniprogram project [输入目录]
   -h, --help             output usage information [帮助信息]
-#   -c, --cli              the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
+  -c, --cli              the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -m, --merge            merge wxss file into vue file, which default value is false [是否合并wxss到vue文件，默认false]
 
 ```
@@ -45,11 +45,11 @@ $ wtu -i ./miniprogram-project
 $ wtu -i ./miniprogram-project -m
 ```
 
-<!-- ##### 转换项目为 vue-cli 项目:
+##### 转换项目为 vue-cli 项目:
 
 ```sh
 $ wtu -i ./miniprogram-project -c
-``` -->
+```
 
 ## HbuilderX 插件安装
 
@@ -71,7 +71,10 @@ $ wtu -i ./miniprogram-project -c
 
 2 群：361784059 <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=vpt4K1r6Witx29ZsKcb_tqvinhcZzVhK&jump_from=webapi"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uniapp研究二群" title="小程序转uniapp研究二群"></a>(已满)
 
-3 群：603659851 <a target="_blank" href="https://jq.qq.com/?_wv=1027&k=3GSqQMIB"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uniapp研究三群" title="小程序转uniapp研究三群"></a>
+3 群：603659851 <a target="_blank" href="https://jq.qq.com/?_wv=1027&k=3GSqQMIB"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uniapp研究三群" title="小程序转uniapp研究三群"></a>(已满)
+
+4 群：555691239
+
 
 ## 功能进度
 
@@ -92,7 +95,7 @@ $ wtu -i ./miniprogram-project -c
 | mode 为 region 的 picker |    ✔     |          |
 | wxParse                  |    ✔     |          |
 | We-UI                    |  开发中  |          |
-| Vant                     |    ✖️    |          |
+| Vant                     |    ✖️    |   解决方案，请参照群公告       |
 
 ### 3.小程序功能转换完成度
 

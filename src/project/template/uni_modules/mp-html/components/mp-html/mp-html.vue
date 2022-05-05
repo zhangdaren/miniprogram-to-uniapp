@@ -12,7 +12,7 @@
 
 <script>
 /**
- * mp-html v2.2.0
+ * mp-html v2.3.0
  * @description 富文本组件
  * @tutorial https://github.com/jin-yufeng/mp-html
  * @property {String} container-style 容器的样式
@@ -32,15 +32,16 @@
  * @property {Boolean | Number} use-anchor 是否使用锚点链接
  * @event {Function} load dom 结构加载完毕时触发
  * @event {Function} ready 所有图片加载完毕时触发
- * @event {Function} imgTap 图片被点击时触发
- * @event {Function} linkTap 链接被点击时触发
+ * @event {Function} imgtap 图片被点击时触发
+ * @event {Function} linktap 链接被点击时触发
+ * @event {Function} play 音视频播放时触发
  * @event {Function} error 媒体加载出错时触发
  */
 // #ifndef APP-PLUS-NVUE
 import node from './node/node'
 // #endif
+import Parser from './parser'
 const plugins=[]
-const Parser = require('./parser')
 // #ifdef APP-PLUS-NVUE
 const dom = weex.requireModule('dom')
 // #endif
@@ -59,7 +60,10 @@ export default {
       type: String,
       default: ''
     },
-    content: String,
+    content: {
+      type: String,
+      default: ''
+    },
     copyLink: {
       type: [Boolean, String],
       default: true
@@ -98,6 +102,9 @@ export default {
     tagStyle: Object,
     useAnchor: [Boolean, Number]
   },
+  // #ifdef VUE3
+  emits: ['load', 'ready', 'imgtap', 'linktap', 'play', 'error'],
+  // #endif
   // #ifndef APP-PLUS-NVUE
   components: {
     node
@@ -258,6 +265,26 @@ export default {
     },
 
     /**
+     * @description 暂停播放媒体
+     */
+    pauseMedia () {
+      for (let i = (this._videos || []).length; i--;) {
+        this._videos[i].pause()
+      }
+      // #ifdef APP-PLUS
+      const command = 'for(var e=document.getElementsByTagName("video"),i=e.length;i--;)e[i].pause()'
+      // #ifndef APP-PLUS-NVUE
+      let page = this.$parent
+      while (!page.$scope) page = page.$parent
+      page.$scope.$getAppWebview().evalJS(command)
+      // #endif
+      // #ifdef APP-PLUS-NVUE
+      this.$refs.web.evalJs(command)
+      // #endif
+      // #endif
+    },
+
+    /**
      * @description 设置内容
      * @param {String} content html 内容
      * @param {Boolean} append 是否在尾部追加
@@ -385,6 +412,9 @@ export default {
           }
           break
         }
+        case 'onPlay':
+          this.$emit('play')
+          break
         // 获取到锚点的偏移量
         case 'getOffset':
           if (typeof message.offset === 'number') {

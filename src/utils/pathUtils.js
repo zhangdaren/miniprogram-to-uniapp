@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-01-10 11:16:43
+ * @LastEditTime: 2022-05-04 20:49:26
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\pathUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/pathUtils.js
  *
  */
 // const { NodePath } = require('@babel/traverse')
@@ -77,25 +77,30 @@ function relativePath (filePath, root, fileDir) {
         if (fs.existsSync(testFile)) {
             filePath = "@/" + path.relative(root, testFile)
         } else {
-            // console.log("----------------------漏风")
-            if (/^\//.test(filePath)) {
-                //如果是以/开头的，表示根目录
-                filePath = path.join(root, filePath)
+            var curFolderPath = path.join(fileDir, filePath + (extname || ".js"))
+            if (fs.existsSync(curFolderPath)) {
+                filePath = "./" + filePath + (extname || ".js")
             } else {
-                filePath = path.join(fileDir, filePath)
-            }
-            // console.log("---------------filePath 2 ", filePath)
+                // console.log("----------------------漏风")
+                if (/^\//.test(filePath)) {
+                    //如果是以/开头的，表示根目录
+                    filePath = path.join(root, filePath)
+                } else {
+                    filePath = path.join(fileDir, filePath)
+                }
+                // console.log("---------------filePath 2 ", filePath)
 
-            //todo: test @
-            // var xx = path.relative(global.miniprogramRoot, filePath);
-            // console.log("xx", xx)
+                //todo: test @
+                // var xx = path.relative(global.miniprogramRoot, filePath);
+                // console.log("xx", xx)
 
-            filePath = path.relative(fileDir, filePath)
+                filePath = path.relative(fileDir, filePath)
 
 
-            if (extname) {
-                if (!/^[\.\/@]/.test(filePath)) {
-                    filePath = './' + filePath
+                if (extname) {
+                    if (!/^[\.\/@]/.test(filePath)) {
+                        filePath = './' + filePath
+                    }
                 }
             }
         }
@@ -136,7 +141,7 @@ function relativePath (filePath, root, fileDir) {
  * @param {*} fileDir      当前文件所在目录
  * @param {*} userAtSymbol 是否在根路径前面增加@符号，默认true
  */
-function  repairAssetPath (filePath, root, fileDir, userAtSymbol = true) {
+function repairAssetPath (filePath, root, fileDir, userAtSymbol = true) {
     // console.log(" repairAssetPath", filePath, fileDir)
     if (!filePath || utils.isURL(filePath)) return filePath
     if (!/^[\.\/]/.test(filePath)) {
@@ -251,6 +256,6 @@ module.exports = {
 
     getFileKey,
     getAssetsNewPath,
-     repairAssetPath,
+    repairAssetPath,
     cacheImportComponentList
 }

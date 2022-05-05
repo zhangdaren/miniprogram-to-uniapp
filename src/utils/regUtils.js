@@ -15,7 +15,7 @@ const staticAssetsReg = /^\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff)$/i
 //支持的文件的正则，用于替换引入路径
 const assetsFileReg = /^((\/|\.+\/).*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))$/i
 
-const multiSssetsFileReg = /['"]?((\/|\.+\/).*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
+const multiAssetsFileReg = /['"]?((\/|\.+\/).*?\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
 
 
 module.exports = {

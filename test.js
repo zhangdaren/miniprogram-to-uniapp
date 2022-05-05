@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2022-01-26 17:35:40
+ * @LastEditTime: 2022-05-05 17:42:19
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\test.js
@@ -39,13 +39,18 @@ async function test () {
 
         // var sourceFolder = "./demo/test-20211001"
 
-        var sourceFolder = "./demo/test-20211118"
+        // var sourceFolder = "./demo/test-20211118"
 
         // var sourceFolder = "./demo/test-20220119"
 
+        // var sourceFolder = "./demo/wxapp-jw"
+
+        // var sourceFolder = "./demo/wxapp-hasques"
+        // var sourceFolder = "./demo/kdsend"
+
         // var sourceFolder = "./demo/Discuz-minapp-2.0"
 
-        // var sourceFolder = "./demo/test-20211125"
+        var sourceFolder = "./demo/test-20211125"
 
         // var sourceFolder = "./demo/test-202200125-weiqing"
 

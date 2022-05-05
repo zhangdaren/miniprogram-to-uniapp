@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-01-26 09:50:30
+ * @LastEditTime: 2022-05-05 18:25:09
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\index.js
@@ -72,9 +72,9 @@ const { transformSpecialCode } = require(appRoot + '/src/transformers/other/spec
 const { transformSpecialStructure } = require(appRoot + '/src/transformers/specialStructure/specialStructure-transformer')
 
 //资源文件
-const {  repairScriptSourcePath,
+const { repairScriptSourcePath,
     repairTemplateSourcePath,
-     repairAstStringLiteralAssetPath
+    repairAstStringLiteralAssetPath
 } = require(appRoot + '/src/transformers/assets/assets-path-transformer')
 
 class Page {
@@ -182,7 +182,7 @@ class Page {
      * ////////////////////////////////////////////////////////////////
      */
     async transform () {
-        if(!this.astType && this.isSDKFile) return;
+        if (!this.astType && this.isSDKFile) return
 
         //生成jsAst、wxmlAst、style内容(style单独处理了，无ast)
 
@@ -255,7 +255,7 @@ class Page {
 
         //TODO: 尽可能多转换路径
         let fileDir = path.dirname(jsFile || wxmlFile)
-         repairAstStringLiteralAssetPath(jsAst, wxmlAst, fileDir)
+        repairAstStringLiteralAssetPath(jsAst, wxmlAst, fileDir)
 
         //检查代码里是否有不支持的代码
         this.checkCode(jsAst, wxmlAst, fileKey)
@@ -268,9 +268,13 @@ class Page {
      * 变量处理，须在template和include标签处理后再进行处理
      */
     variableHandle (variableTypeInfo) {
-        //处理所有变量，包括未声明、重名的等等等等
-        //(必须最后处理! 因为可能某prop的observer里通过this.data.xxx调用了它，不能重名！)
-        transformVariable(this.jsAst, this.wxmlAst, variableTypeInfo, this.fileKey)
+        try {
+            //处理所有变量，包括未声明、重名的等等等等
+            //(必须最后处理! 因为可能某prop的observer里通过this.data.xxx调用了它，不能重名！)
+            transformVariable(this.jsAst, this.wxmlAst, variableTypeInfo, this.fileKey)
+        } catch (error) {
+            console.log("[Error]variableHandle: ", this.fileKey)
+        }
 
         //注意：这里有个时机问题！！！必须在变量名处理后再进行处理！！！
         if (this.astType && !this.isSDKFile) {
@@ -279,9 +283,9 @@ class Page {
             //http://www.w3.org/TR/REC-DOM-Level-1/ecma-script-language-binding.html
             // renameThisDotXXX($jsAst, oldName, newName, type)
             //将this.data.xxx转换为this.xxx
-            ggcUtils.transformThisDotKeywordExpression(this.jsAst, "data")
+            ggcUtils.transformThisDotKeywordExpression(this.jsAst, "data", [], this.fileKey)
         }
-        ggcUtils.transformThisDotKeywordExpression(this.jsAst, "properties")
+        ggcUtils.transformThisDotKeywordExpression(this.jsAst, "properties", [], this.fileKey)
     }
 
     /**
@@ -370,7 +374,7 @@ class Page {
         transformWeUIScript($ast)
 
         //修复路径
-         repairScriptSourcePath($ast, jsFile)
+        repairScriptSourcePath($ast, jsFile)
 
         // console.log("astType ", this.astType, this.fileKey)
         switch (this.astType) {
@@ -414,6 +418,7 @@ class Page {
         code = code.replace(/\<!-{2,}\s*(.*?)\s*-{2,}\>/g, '<!-- $1 -->')
 
         return code.replace(/url\(\s*\\?['"]\s*\{\{(.*?)\}\}\s*\\?['"]\s*\)/g, "url({{$1}})")
+            .replace(/url\(['"]([^'"].*?)['"]\)/g, "url($1)")
             .replace(/\s*\|\|\s*00\}\}/g, " || '00'}}")   //为了稍微精确一点
             .replace(/\s*==\s*00\s*(\}\}|&&)/g, " == '00' $1")  //为了稍微精确一点  TODO: 后面还是挑出来使用ast替换吧
     }
@@ -476,6 +481,16 @@ class Page {
             return ""
         }
 
+        //去除空属性
+        this.wxmlAst.find(`<$_$1></$_$1>`)
+            .each(item => {
+                item.node.content.attributes.forEach(attr => {
+                    if (attr.value && attr.value.content == "" && attr.key.content === "v-if") {
+                        delete attr.value
+                    }
+                })
+            })
+
         var templateContent = ""
         var list = this.wxmlAst.root().attr("content.children")
         if (!list) return ""
@@ -490,7 +505,7 @@ class Page {
         }
 
         if (tagList.length > 1) {
-            templateContent = `<template>\r\n<block>\r\n${ templateContent }\r\n</block>\r\n</template>`
+            templateContent = `<template>\r\n<view>\r\n${ templateContent }\r\n</view>\r\n</template>`
         } else if (tagList.length === 1) {
             var firstNode = tagList[0].content
             var attributes = firstNode.attributes
@@ -498,7 +513,7 @@ class Page {
 
             var hasFor = attributes.some(obj => obj.key.content.indexOf("for") > -1)
             if (hasFor || firstNode.name !== "view") {
-                templateContent = `<template>\r\n<block>\r\n${ templateContent }\r\n</block>\r\n</template>`
+                templateContent = `<template>\r\n<view>\r\n${ templateContent }\r\n</view>\r\n</template>`
             } else {
                 templateContent = `<template>\r\n${ templateContent }\r\n</template>`
             }

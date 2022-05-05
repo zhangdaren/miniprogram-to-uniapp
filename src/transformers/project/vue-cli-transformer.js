@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:59:08
- * @LastEditTime: 2021-12-07 14:20:45
+ * @LastEditTime: 2022-03-01 17:23:45
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\project\vue-cli-transformer.js
@@ -29,7 +29,7 @@ async function transformVueCLI (configData, outputFolder) {
                     target: "public/index.html"
                 },
                 {
-                    source: "./vue-cli/.gitignore",
+                    source: "./vue-cli/vue-cli.gitignore",
                     target: ".gitignore"
                 },
                 {

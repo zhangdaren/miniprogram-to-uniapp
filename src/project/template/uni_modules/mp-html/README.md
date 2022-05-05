@@ -1,3 +1,9 @@
+## news
+1. 欢迎加入 `QQ` 交流群：`699734691`  
+   ![group](https://6874-html-foe72-1259071903.tcb.qcloud.la/assets/group.jpg?sign=558401bccbd56b01debe1bfac6a3b55e&t=1648801090)  
+2. 示例微信小程序 `富文本插件` 添加 `获取组件包` 功能 [详细](https://jin-yufeng.gitee.io/mp-html/#/overview/quickstart?id=mp)  
+   ![富文本插件](https://6874-html-foe72-1259071903.tcb.qcloud.la/assets/case/%E5%AF%8C%E6%96%87%E6%9C%AC%E6%8F%92%E4%BB%B6.jpg?sign=200e28d06f36049c18d42cdd46270c35&t=1648801110)
+
 ## 功能介绍
 - 全端支持（含 `v3、NVUE`）
 - 支持丰富的标签（包括 `table`、`video`、`svg` 等）
@@ -11,9 +17,27 @@
 查看 [功能介绍](https://jin-yufeng.gitee.io/mp-html/#/overview/feature) 了解更多
 
 ## 使用方法
+- `uni_modules` 方式  
+  1. 点击右上角的 `使用 HBuilder X 导入插件` 按钮直接导入项目或点击 `下载插件 ZIP` 按钮下载插件包并解压到项目的 `uni_modules/mp-html` 目录下  
+  2. 在需要使用页面的 `(n)vue` 文件中添加  
+     ```html
+     <!-- 不需要引入，可直接使用 -->
+     <mp-html :content="html" />
+     ```
+     ```javascript
+     export default {
+       data() {
+         return {
+           html: '<div>Hello World!</div>'
+         }
+       }
+     }
+     ```
+  3. 需要更新版本时在 `HBuilder X` 中右键 `uni_modules/mp-html` 目录选择 `从插件市场更新` 即可  
+
 - 源码方式  
-  1. 点击上方的使用 `HBuilder X` 导入插件或将下载的插件包拷贝到项目根目录下  
-     由于插件市场的 **非 uni_modules 版本** 无法更新，若需使用请从 [github](https://github.com/jin-yufeng/mp-html/tree/master/dist/uni-app) 或 [gitee](https://gitee.com/jin-yufeng/mp-html/tree/master/dist/uni-app) 获取最新版本
+  1. 从 [github](https://github.com/jin-yufeng/mp-html/tree/master/dist/uni-app) 或 [gitee](https://gitee.com/jin-yufeng/mp-html/tree/master/dist/uni-app) 下载源码  
+     插件市场的 **非 uni_modules 版本** 无法更新，不建议从插件市场获取  
   2. 在需要使用页面的 `(n)vue` 文件中添加  
      ```html
      <mp-html :content="html" />
@@ -55,6 +79,10 @@
          }
        }
      }
+     ```
+  3. 需要更新版本时执行以下命令即可  
+     ```bash
+     npm update mp-html
      ```
   
   使用 *cli* 方式运行的项目，通过 *npm* 方式引入时，需要在 *vue.config.js* 中配置 *transpileDependencies*，详情可见 [#330](https://github.com/jin-yufeng/mp-html/issues/330#issuecomment-913617687)  
@@ -116,7 +144,7 @@
 | 名称 | 作用 |
 |:---:|---|
 | audio | 音乐播放器 |
-| editable | 富文本编辑（[示例项目](https://6874-html-foe72-1259071903.tcb.qcloud.la/editable.zip?sign=cc0017be203fb3dbca62d33a0c15792e&t=1608447445)） |
+| editable | 富文本 **编辑**（[示例项目](https://6874-html-foe72-1259071903.tcb.qcloud.la/editable.zip?sign=cc0017be203fb3dbca62d33a0c15792e&t=1608447445)） |
 | emoji | 解析 emoji |
 | highlight | 代码块高亮显示 |
 | markdown | 渲染 markdown |
@@ -140,9 +168,6 @@
 4. 拷贝 `dist/uni-app` 中的内容到项目根目录  
 
 查看 [插件](https://jin-yufeng.gitee.io/mp-html/#/advanced/plugin) 了解更多
-
-## 示例体验
-![富文本插件](https://gitee.com/jin-yufeng/mp-html/raw/master/docs/assets/case/富文本插件.jpg)
 
 ## 关于 nvue
 `nvue` 使用原生渲染，不支持部分 `css` 样式，为实现和 `html` 相同的效果，组件内部通过 `web-view` 进行渲染，性能上差于原生，根据 `weex` 官方建议，`web` 标签仅应用在非常规的降级场景。因此，如果通过原生的方式（如 `richtext`）能够满足需要，则不建议使用本组件，如果有较多的富文本内容，则可以直接使用 `vue` 页面  

@@ -1,7 +1,7 @@
 {
     "id": "mp-html",
     "displayName": "mp-html 富文本组件【全端支持，可编辑】",
-    "version": "v2.2.0",
+    "version": "v2.3.0",
     "description": "一个强大的富文本组件，高效轻量，功能丰富",
     "keywords": [
         "富文本",
@@ -71,7 +71,7 @@
                 },
                 "Vue": {
                     "vue2": "y",
-                    "vue3": "u"
+                    "vue3": "y"
                 }
             }
         }

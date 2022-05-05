@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-11-24 17:48:14
+ * @LastEditTime: 2022-05-04 20:57:15
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\assets\assets-path-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/assets/assets-path-transformer.js
  *
  */
 const $ = require('gogocode')
@@ -26,12 +26,13 @@ const formatUtils = require(appRoot + '/src/utils/formatUtils.js')
  * @param {*} $ast
  * @param {*} jsFile 所在文件
  */
-function  repairScriptSourcePath ($jsAst, jsFile) {
+function repairScriptSourcePath ($jsAst, jsFile) {
     if (!$jsAst) return
 
     $jsAst.find([
         `require('$_$src')`,
-        `import $_$1 from '$_$src'`
+        `import $_$1 from '$_$src'`,
+        `import { $$$1 } from '$_$src'`
     ]).each(function (item) {
         var src = item.match["src"][0].value
 
@@ -57,7 +58,7 @@ function  repairScriptSourcePath ($jsAst, jsFile) {
             // function  repairAssetPath (filePath, root, fileDir) {
             let fileDir = path.dirname(jsFile)
             let extname = path.extname(jsFile)
-            let newSrc = pathUtils. repairAssetPath(src, global.miniprogramRoot, fileDir, false)
+            let newSrc = pathUtils.repairAssetPath(src, global.miniprogramRoot, fileDir, false)
 
             item.attr("value", newSrc)
         }
@@ -98,7 +99,7 @@ function repairTemplateSourcePath ($jsAst, wxmlFile) {
 
             let fileDir = path.dirname(wxmlFile)
 
-            // var newSrc = src.replace(ggcUtils.multiSssetsFileReg, function (match, $1) {
+            // var newSrc = src.replace(ggcUtils.multiAssetsFileReg, function (match, $1) {
             //     let newVal = pathUtils. repairAssetPath(
             //         $1,
             //         global.miniprogramRoot,
@@ -114,7 +115,7 @@ function repairTemplateSourcePath ($jsAst, wxmlFile) {
 
             var newSrc = src
             if (ggcUtils.assetsFileReg.test(src)) {
-                newSrc = pathUtils. repairAssetPath(
+                newSrc = pathUtils.repairAssetPath(
                     src,
                     global.miniprogramRoot,
                     fileDir,
@@ -137,11 +138,17 @@ function repairTemplateSourcePath ($jsAst, wxmlFile) {
  * 对js代码里面的路径进行资源路径处理
  * 注：这里理论上应该使用/代表绝对路径，而不应该使用@/，
  * 因为有时候，比如地图或第三方需要使用图片时，不识别@符号！！！！
+ *
+ * !!!有bug
+ * 原因是很多不必要的也被转换了，比如：
+ * msg.sendContent.indexOf('.png') > -1
+ *
+ *
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  * @param {*} fileDir
  */
-function  repairAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
+function repairAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
     if ($jsAst) {
         $jsAst.find({ type: 'StringLiteral' })
             .each(function (item) {
@@ -160,7 +167,7 @@ function  repairAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
                     // })
 
                     //直接转换就行了
-                    let newSrc = pathUtils. repairAssetPath(value, global.miniprogramRoot, fileDir, false)
+                    let newSrc = pathUtils.repairAssetPath(value, global.miniprogramRoot, fileDir, false)
                     item.attr('value', newSrc)
                 }
             }).root()
@@ -213,7 +220,7 @@ function  repairAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
  * @param {*} root      根目录
  * @param {*} fileDir   当前文件所在目录
  */
-function  repairRequireAndImportPath (file, root, fileDir) {
+function repairRequireAndImportPath (file, root, fileDir) {
     if (!file) return file
 
     // TODO:单个词是否需要过滤一下?
@@ -259,8 +266,8 @@ function transformAssetsPath ($jsAst, $wxmlAst) {
 module.exports = {
     transformAssetsPath,
 
-     repairScriptSourcePath,
+    repairScriptSourcePath,
     repairTemplateSourcePath,
-     repairAstStringLiteralAssetPath,
-     repairRequireAndImportPath
+    repairAstStringLiteralAssetPath,
+    repairRequireAndImportPath
 }

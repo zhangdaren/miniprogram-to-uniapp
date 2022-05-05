@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2022-01-19 15:16:08
+ * @LastEditTime: 2022-03-03 18:45:21
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\renameUtils.js
@@ -216,9 +216,8 @@ function renameThisDotDataDotXXX ($jsAst, oldName, newName, type) {
             var thisNode = item.match["this"][0].node
             var valueNode = item.match["value"][0].node
 
-            var nodePath = item['0'].nodePath
-            var parentNode = nodePath.parentPath.node
-            if (thisNode.type === 'ThisExpression') {
+            var thisName = getThisExpressionName(item, 'this')
+            if (thisName) {
                 if (type === "METHODS") {
                     if (t.isCallExpression(parentNode)) {
                         renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
@@ -226,27 +225,39 @@ function renameThisDotDataDotXXX ($jsAst, oldName, newName, type) {
                 } else {
                     renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
                 }
-            } else {
-                var objectName = thisNode.name
-                var res = nodePath.scope.lookup(objectName)
-                if (res && res.bindings[objectName]) {
-                    var scopeNode = res.bindings[objectName][0]
-                    var scopeParentNode = scopeNode.parentPath
-                    if (
-                        scopeParentNode.node.type === 'VariableDeclarator' &&
-                        scopeParentNode.node.init.type === 'ThisExpression'
-                    ) {
-                        //确定是this的别名
-                        if (type === "METHODS") {
-                            if (t.isCallExpression(parentNode)) {
-                                renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
-                            }
-                        } else {
-                            renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
-                        }
-                    }
-                }
             }
+
+            // var nodePath = item['0'].nodePath
+            // var parentNode = nodePath.parentPath.node
+            // if (thisNode.type === 'ThisExpression') {
+            //     if (type === "METHODS") {
+            //         if (t.isCallExpression(parentNode)) {
+            //             renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
+            //         }
+            //     } else {
+            //         renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
+            //     }
+            // } else {
+            //     var objectName = thisNode.name
+            //     var res = nodePath.scope.lookup(objectName)
+            //     if (res && res.bindings[objectName]) {
+            //         var scopeNode = res.bindings[objectName][0]
+            //         var scopeParentNode = scopeNode.parentPath
+            //         if (
+            //             scopeParentNode.node.type === 'VariableDeclarator' &&
+            //             scopeParentNode.node.init.type === 'ThisExpression'
+            //         ) {
+            //             //确定是this的别名
+            //             if (type === "METHODS") {
+            //                 if (t.isCallExpression(parentNode)) {
+            //                     renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
+            //                 }
+            //             } else {
+            //                 renameProperty(valueNode, oldName, newName, propNameList, $jsAst)
+            //             }
+            //         }
+            //     }
+            // }
         })
         .root()
 }
@@ -388,24 +399,30 @@ function renameThisDotFun ($jsAst, oldName, newName, type) {
         var nodePath = item[0].nodePath
         var property = nodePath.node.property
 
-        if (thisNode.type === 'ThisExpression') {
+        var thisName = getThisExpressionName(item, 'this')
+        if (thisName) {
             property.name = newName
             property.value = newName
-        } else {
-            var objectName = thisNode.name
-            var res = nodePath.scope.lookup(objectName)
-            if (res && res.bindings[objectName]) {
-                var scopeNode = res.bindings[objectName][0]
-                var scopeParentNode = scopeNode.parentPath
-                if (
-                    scopeParentNode.node.type === 'VariableDeclarator' &&
-                    scopeParentNode.node.init.type === 'ThisExpression'
-                ) {
-                    property.name = newName
-                    property.value = newName
-                }
-            }
         }
+
+        // if (thisNode.type === 'ThisExpression') {
+        //     property.name = newName
+        //     property.value = newName
+        // } else {
+        //     var objectName = thisNode.name
+        //     var res = nodePath.scope.lookup(objectName)
+        //     if (res && res.bindings[objectName]) {
+        //         var scopeNode = res.bindings[objectName][0]
+        //         var scopeParentNode = scopeNode.parentPath
+        //         if (
+        //             scopeParentNode.node.type === 'VariableDeclarator' &&
+        //             scopeParentNode.node.init.type === 'ThisExpression'
+        //         ) {
+        //             property.name = newName
+        //             property.value = newName
+        //         }
+        //     }
+        // }
     })
         .root()
 }

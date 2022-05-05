@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-01-10 15:28:52
+ * @LastEditTime: 2022-04-20 10:39:29
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
@@ -98,18 +98,12 @@ async function transform (sourceFolder, targetSourceFolder, outputChannel) {
             // let name = obj.name
             // let isFolder = file.lastIndexOf("/") === file.length - 1
 
-            var basename = path.basename(file)
-            if(basename === ".DS_Store") return;
-
             //快速判断是否为目录
             var extname = path.extname(file)
-            let isFolder = !extname
 
-            if(isFolder){
-                //二次判断是否是文件，因为有些文件没有后缀名，比如LICENSE
-                var stat = fs.statSync(file);
-                isFolder = stat.isDirectory()
-            }
+            //判断是否为目录，暂时无更好更快的办法判断= =，后缀名不行，有些目录是叫“pro2.0”
+            var stat = fs.statSync(file)
+            let isFolder = stat.isDirectory()
 
             // console.log("file", file)
             // console.log("isFolder", isFolder)
@@ -138,8 +132,7 @@ async function transform (sourceFolder, targetSourceFolder, outputChannel) {
                 var fileKey = pathUtils.getFileKey(file)
 
                 //custom-tab-bar目录不进行转换
-                var reg = /[\///]custom-tab-bar[\///]/
-                if (reg.test(fileKey)) {
+                if (fileKey.includes("custom-tab-bar")) {
                     fs.copySync(file, newFile)
                     return
                 }
@@ -234,6 +227,7 @@ async function transform (sourceFolder, targetSourceFolder, outputChannel) {
                                 fs.copySync(file, targetFile)
                             }
                         } else {
+                            // console.log("file",file, extname)
                             fs.copySync(file, newFile)
                         }
                         break
@@ -341,12 +335,8 @@ async function transformOtherComponents (allPageData, bar, outputChannel, total)
             }
 
             if (jsAst) {
-                try {
-                    var variableTypeInfo = getPageSimpleVariableTypeInfo(jsAst, wxmlAst, allPageData)
-                    pageData.variableHandle(variableTypeInfo)
-                } catch (error) {
-                    console.log("[Error]variableHandle: ", fileKey, jsAst.generate())
-                }
+                var variableTypeInfo = getPageSimpleVariableTypeInfo(jsAst, wxmlAst, allPageData)
+                pageData.variableHandle(variableTypeInfo)
             }
 
             pageData.generate()
@@ -407,10 +397,10 @@ function initConsole (folder, outputChannel) {
     }
 }
 
-function closeReadStream(stream) {
-    if (!stream) return;
-    if (stream.close) stream.close();
-    else if (stream.destroy) stream.destroy();
+function closeReadStream (stream) {
+    if (!stream) return
+    if (stream.close) stream.close()
+    else if (stream.destroy) stream.destroy()
 }
 
 /**
