@@ -1,8 +1,8 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:44:02
- * @LastEditTime: 2021-11-26 16:35:16
- * @LastEditors: zhang peng
+ * @LastEditTime: 2022-06-15 18:09:51
+ * @LastEditors: 郭沛佳
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\observers\observers-transformer.js
  *
@@ -82,9 +82,17 @@ function transformWatchItem (node, properties = [], index = -1) {
  *  }
  *
  * @param {*} $jsAst
- * @param {*} keyName
+ * @param {*} _keyName
  */
-function addComputedItem ($jsAst, keyName) {
+ function addComputedItem ($jsAst, _keyName) {
+    /**
+     * 处理诸如 "a, b, c" 的情况。关键在于【空格的存在】，
+     * 不经过这个处理，后面的 var newKeyName = keyName.replace(/,/g, "_") 会产出
+     *
+     * "a_ b_ c"的情况，导致报错
+     *
+     */
+    var keyName = _keyName.replace(/\s/g, "");
     var computedList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.COMPUTED, true)
 
     var keyList = keyName.split(",")
