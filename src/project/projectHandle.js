@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-04-20 10:39:29
+ * @LastEditTime: 2022-07-09 17:53:27
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
@@ -37,7 +37,7 @@ const Page = require(appRoot + "/src/page")
 
 const pkg = require('../../package.json')
 
-const MAX_FILE_SIZE = 1024 * 100  //最大可处理js大小
+const MAX_FILE_SIZE = 1024 * 200  //最大可处理js大小
 
 //TODO: 注意事项，其实global上面挂了很多很多东西
 // global = { ...global, ...options }
@@ -45,7 +45,7 @@ const MAX_FILE_SIZE = 1024 * 100  //最大可处理js大小
 
 
 /**
- * 检测是否为uniapp发布后的项目
+ * 检测是否为uni-app发布后的项目
  * @param {*} sourceFolder
  */
 function checkCompileProject (sourceFolder) {
@@ -131,12 +131,6 @@ async function transform (sourceFolder, targetSourceFolder, outputChannel) {
             } else {
                 var fileKey = pathUtils.getFileKey(file)
 
-                //custom-tab-bar目录不进行转换
-                if (fileKey.includes("custom-tab-bar")) {
-                    fs.copySync(file, newFile)
-                    return
-                }
-
                 if (!allPageData[fileKey]) {
                     allPageData[fileKey] = {}
                 }
@@ -148,6 +142,7 @@ async function transform (sourceFolder, targetSourceFolder, outputChannel) {
 
                 switch (extname) {
                     case '.js':
+
                         var stats = fs.statSync(file)
                         if (stats.size > MAX_FILE_SIZE) {
                             console.log(`[Tip]文件(${ fileKey }.js)体积大于 ${ MAX_FILE_SIZE / 1000 } kb ，跳过处理`)
@@ -156,6 +151,19 @@ async function transform (sourceFolder, targetSourceFolder, outputChannel) {
                         } else {
                             fileData['js'] = file
                         }
+
+                        // var tsFile = file.replace(/\.js$/, ".ts")
+                        // if (!fs.existsSync(tsFile)) {
+                        //     //如果同名ts文件不存在
+                        //     var stats = fs.statSync(file)
+                        //     if (stats.size > MAX_FILE_SIZE) {
+                        //         console.log(`[Tip]文件(${ fileKey }.js)体积大于 ${ MAX_FILE_SIZE / 1000 } kb ，跳过处理`)
+                        //         //直接复制
+                        //         fs.copySync(file, newFile)
+                        //     } else {
+                        //         fileData['js'] = file
+                        //     }
+                        // }
                         break
                     case '.wxml':
                     case '.qml':
@@ -185,7 +193,18 @@ async function transform (sourceFolder, targetSourceFolder, outputChannel) {
                         fileData['cssLanguage'] = "scss"
                         break
                     case '.ts':
-                        //ts文件不动
+                        //如果有ts文件，优先用ts
+                        // var stats = fs.statSync(file)
+                        // if (stats.size > MAX_FILE_SIZE) {
+                        //     console.log(`[Tip]文件(${ fileKey }.js)体积大于 ${ MAX_FILE_SIZE / 1000 } kb ，跳过处理`)
+                        //     //直接复制
+                        //     fs.copySync(file, newFile)
+                        // } else {
+                        //     fileData['js'] = file
+                        //     fileData['jsFileType'] = "TYPE_SCRIPT"
+                        // }
+
+                        //暂先忽略ts，
                         break
                     case '.json':
                         //粗暴获取上层目录的名称~~~
@@ -266,6 +285,7 @@ async function transformPageList (allPageData, bar, outputChannel, total) {
             var fileGroupData = allPageData[fileKey]
 
             var jsFile = fileGroupData["js"] || ""
+            var jsFileType = fileGroupData["jsFileType"] || ""
             var wxmlFile = fileGroupData["wxml"] || ""
             var jsonFile = fileGroupData["json"] || ""
             var wxssFile = fileGroupData["wxss"] || ""
@@ -274,6 +294,7 @@ async function transformPageList (allPageData, bar, outputChannel, total) {
 
             var options = {
                 jsFile,
+                jsFileType,
                 wxmlFile,
                 jsonFile,
                 wxssFile,
@@ -374,10 +395,11 @@ function initConsole (folder, outputChannel) {
         fs.unlinkSync(logPath)
     }
 
-    var logFile = fs.createWriteStream(logPath, { flags: 'a' })
+    // var logFile = fs.createWriteStream(logPath, { flags: 'a' })
     console.log = function () {
         var log = util.format.apply(null, arguments) + '\n'
-        logFile.write(log)
+        // logFile.write(log)  //TODO:貌似不生效了，不知道是node16还是因为win10
+        fs.appendFileSync( logPath, log)
         process.stdout.write(log)
 
         //hbuilderx console log
@@ -387,7 +409,8 @@ function initConsole (folder, outputChannel) {
     }
     console.error = function () {
         var log = util.format.apply(null, arguments) + '\n'
-        logFile.write(log)
+        // logFile.write(log)
+        fs.appendFileSync( logPath, log)
         process.stdout.write(log)
 
         //hbuilderx console log
@@ -496,6 +519,9 @@ async function projectHandle (sourceFolder, options = {}) {
 
     //小程序项目目录，不一定就等于输入目录，有无云开发的目录结构是不相同的。
     miniprogramRoot = configData.miniprogramRoot
+
+    //项目里用到的npm包
+    global.dependencies = configData.dependencies || {}
 
     //云开发目录 复制
     if (configData.cloudfunctionRoot) {

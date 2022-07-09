@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-05-04 20:49:26
+ * @LastEditTime: 2022-07-09 11:29:58
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/utils/pathUtils.js
+ * @FilePath: \miniprogram-to-uniapp\src\utils\pathUtils.js
  *
  */
 // const { NodePath } = require('@babel/traverse')
@@ -42,8 +42,9 @@ function getParentFolderName (filePath) {
  * @param {*} filePath  文件相对路径
  * @param {*} root      根目录
  * @param {*} fileDir   当前文件所在目录
+ * @param {*} defaultExtname   默认后缀名
  */
-function relativePath (filePath, root, fileDir) {
+function relativePath (filePath, root, fileDir, defaultExtname = "") {
     if (!filePath) return filePath
 
     //去掉js后缀名
@@ -60,7 +61,7 @@ function relativePath (filePath, root, fileDir) {
     // import PubSub, { publish } from 'pubsub-js'
     // import moment from "moment"
 
-    const reg_signle = /[\w-_]+/
+    const reg_single = /^[\w-_]+$/
     const reg_weui = /^weui-miniprogram\//
 
     var extname = path.extname(filePath)
@@ -69,7 +70,10 @@ function relativePath (filePath, root, fileDir) {
         console.log("---- weui-miniprogram --")
     }
 
-    if (reg_signle.test(filePath) || reg_weui.test(filePath)) {
+    if (reg_single.test(filePath) && global.dependencies[filePath]) {
+        //当这个包能在dependencies里找到时，则不进行处理
+    } else if (reg_single.test(filePath) || reg_weui.test(filePath)) {
+        //TODO: 这里还要优化，不需要判断miniprogram_npm，后面处理时weui再议
         var testFile = path.join(root, "miniprogram_npm", filePath)
 
         // console.log("---------------filePath 1 ", filePath)
@@ -77,9 +81,9 @@ function relativePath (filePath, root, fileDir) {
         if (fs.existsSync(testFile)) {
             filePath = "@/" + path.relative(root, testFile)
         } else {
-            var curFolderPath = path.join(fileDir, filePath + (extname || ".js"))
+            var curFolderPath = path.join(fileDir, filePath + (extname || defaultExtname))
             if (fs.existsSync(curFolderPath)) {
-                filePath = "./" + filePath + (extname || ".js")
+                filePath = "./" + filePath + (extname || defaultExtname)
             } else {
                 // console.log("----------------------漏风")
                 if (/^\//.test(filePath)) {

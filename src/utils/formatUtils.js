@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2021-11-15 11:22:47
+ * @LastEditTime: 2022-05-07 17:32:04
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\formatUtils.js
@@ -15,7 +15,15 @@ const fs = require('fs-extra')
 const t = require("@babel/types")
 const clone = require("clone")
 
-const prettier = require("prettier")
+// const prettier = require("prettier")
+
+
+const prettier = require("./prettier/standalone.js")
+const html = require("./prettier/parser-html.js")
+const postcss = require("./prettier/parser-postcss.js")
+const babel = require("./prettier/parser-babel.js")
+
+
 var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 
@@ -133,6 +141,7 @@ function getPrettierOptions (type) {
             break
     }
     prettierOptions.parser = parser
+    prettierOptions.plugins = [html, babel, postcss]
     return prettierOptions
 }
 
@@ -179,7 +188,7 @@ function formateByPrettier (code, extname, fileKey, showErrorCdoeLog) {
     } catch (error) {
         if (showErrorCdoeLog) {
             console.log("格式化Error: fileKey: " + fileKey + "     type:" + extname + "       error：", error)
-            console.log("格式化Error: code: " + code)
+            // console.log("格式化Error: code: " + code)
         } else {
             console.log("格式化Error: fileKey: " + fileKey)
         }

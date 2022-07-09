@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2022-03-03 18:45:21
+ * @LastEditTime: 2022-06-28 09:35:16
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\renameUtils.js
@@ -213,10 +213,13 @@ function renameThisDotDataDotXXX ($jsAst, oldName, newName, type) {
         .find('$_$this.data.$_$value')
         .each(function (item) {
 
+            var nodePath = item['0'].nodePath
+            var parentNode = nodePath.parentPath.node
+
             var thisNode = item.match["this"][0].node
             var valueNode = item.match["value"][0].node
 
-            var thisName = getThisExpressionName(item, 'this')
+            var thisName = ggcUtils.getThisExpressionName(item, 'this')
             if (thisName) {
                 if (type === "METHODS") {
                     if (t.isCallExpression(parentNode)) {
@@ -399,7 +402,7 @@ function renameThisDotFun ($jsAst, oldName, newName, type) {
         var nodePath = item[0].nodePath
         var property = nodePath.node.property
 
-        var thisName = getThisExpressionName(item, 'this')
+        var thisName = ggcUtils.getThisExpressionName(item, 'this')
         if (thisName) {
             property.name = newName
             property.value = newName
@@ -588,7 +591,7 @@ function renameTemplateAttrVariable (code, oldName, newName, isOnlyReplaceFuncti
 
     //如果变量是true、false，不处理
     //扩展到所有js关键字，不能作为变量！！！
-    if (utils.isJavascriptKeyWord(oldName)) return res
+    if (utils.isJavascriptKeyWord(oldName) && !isOnlyReplaceFunction) return res
 
     //另一种实现方式
     if (code === oldName) {

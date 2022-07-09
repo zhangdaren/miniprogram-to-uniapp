@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:59:08
- * @LastEditTime: 2022-03-01 17:23:45
+ * @LastEditTime: 2022-07-09 17:08:00
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\project\vue-cli-transformer.js
@@ -29,7 +29,7 @@ async function transformVueCLI (configData, outputFolder) {
                     target: "public/index.html"
                 },
                 {
-                    source: "./vue-cli/vue-cli.gitignore",
+                    source: "./vue-cli/.gitignore",
                     target: ".gitignore"
                 },
                 {
@@ -40,7 +40,8 @@ async function transformVueCLI (configData, outputFolder) {
                     source: "./vue-cli/package.json",
                     target: "package.json",
                     replaceArray: [
-                        "<%= PROJECT_NAME %>"
+                        "<%= PROJECT_NAME %>",
+                        "<%= DEPENDENCIES %>"
                     ],
                 },
                 {
@@ -50,13 +51,14 @@ async function transformVueCLI (configData, outputFolder) {
                 {
                     source: "./vue-cli/README.md",
                     target: "README.md",
-                    replaceArray: [
-                        "<%= PROJECT_NAME %>"
-                    ],
                 },
                 {
-                    source: "./vue-cli/tsconfig.json",
-                    target: "tsconfig.json",
+                    source: "./vue-cli/jsconfig.json",
+                    target: "jsconfig.json",
+                },
+                {
+                    source: "./vue-cli/sfc.d.ts",
+                    target: "sfc.d.ts",
                 },
             ]
 
@@ -77,6 +79,16 @@ async function transformVueCLI (configData, outputFolder) {
                                 //package.json里的name字段，有时会有中文，将导致npm i时报错，这里转换为拼音
                                 let name = pinyin(configData.name, { style: "normal" }).join("")
                                 fileContent = fileContent.replace(flag, name)
+                                break
+                            case "<%= DEPENDENCIES %>":
+                                //追加原项目的npm模块
+                                const list = []
+                                for (let key in global.dependencies) {
+                                    const value = global.dependencies[key]
+                                    list.push(`"    ${ key }": "${ value }"`)
+                                }
+                                const str = list.join(",\n")
+                                fileContent = fileContent.replace(flag, `,\n${ str }`)
                                 break
                             default:
                                 break

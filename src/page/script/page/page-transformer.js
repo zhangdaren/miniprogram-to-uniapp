@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-01-25 18:15:07
+ * @LastEditTime: 2022-06-08 21:16:59
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\script\page\page-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/script/page/page-transformer.js
  *
  */
 
@@ -62,6 +62,7 @@ function transformPageAst ($ast, fileKey) {
 
     transformLifecycleFunction($ast, fileKey)
 
+    var dataNode = ggcUtils.getLifecycleNode($ast, "Page", "data", true)
     var methodsNode = ggcUtils.getLifecycleNode($ast, "Page", "methods", true)
 
     $ast
@@ -82,8 +83,15 @@ function transformPageAst ($ast, fileKey) {
                                 subItem.key.name = subItem.key.value = newName
                             }
                         } else {
-                            //其他的如果是函数的话就都放入methods
-                            methodsNode.value.properties.push(subItem)
+                            const subItemValue = subItem.value
+                            if (subItem.method || t.isArrowFunctionExpression(subItemValue) || t.isFunctionExpression(subItemValue)
+                            || t.isCallExpression(subItemValue)) {
+                                //如果是函数的话就都放入methods
+                                methodsNode.value.properties.push(subItem)
+                            } else {
+                                //如果是其他变量，就加入到data
+                                dataNode.value.properties.push(subItem)
+                            }
                             isMatch = false
                         }
                     }

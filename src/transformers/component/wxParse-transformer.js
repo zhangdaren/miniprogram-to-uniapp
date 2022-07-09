@@ -28,7 +28,7 @@ const { parseMustache } = require(appRoot + "/src/utils/mustacheUtils")
  * @param {*} $ast
  * @returns
  */
-function removeReqireWxparseCode ($ast) {
+function removeRequireWxParseCode ($ast) {
     if (!$ast) return
 
     var reg = /\/wxParse\/|wxParse\.js/i
@@ -58,6 +58,16 @@ function removeReqireWxparseCode ($ast) {
                     isRemoved = true
                 }
             })
+
+            if (isRemoved) {
+                //如果父级都没有定义语句了，那一并删除
+                if (!item.parent().node.declarations) {
+                    item.remove()
+                }
+            } else {
+                //处理: require("../../../../utils/wxParse.js");
+                item.remove()
+            }
         }
     }).root()
 }
@@ -171,9 +181,9 @@ function transformWxParseTemplate ($wxmlAst) {
                 attrListNode.map(function (obj) {
                     var { key, value } = obj
 
-                    if(value){
+                    if (value) {
                         attrList.push(`${ key.content }="${ value.content }"`)
-                    }else{
+                    } else {
                         attrList.push(`${ key.content }`)
                     }
                 })
@@ -207,7 +217,7 @@ function transformWxParseTemplate ($wxmlAst) {
 function transformWxParse ($jsAst, $wxmlAst) {
 
     if ($jsAst) {
-        removeReqireWxparseCode($jsAst)
+        removeRequireWxParseCode($jsAst)
         transformWxParseScript($jsAst)
     }
 

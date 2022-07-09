@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-05-04 21:23:34
+ * @LastEditTime: 2022-06-08 20:58:12
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/page/template/template-transformer.js
@@ -24,6 +24,7 @@ const t = require("@babel/types")
 
 var appRoot = "../../.."
 const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
+const utils = require(appRoot + "/src/utils/utils")
 
 const { parseMustache } = require(appRoot + "/src/utils/mustacheUtils")
 
@@ -125,7 +126,7 @@ function getForMap (prefix) {
  * @param {*} prefix 小程序前缀
  * @returns
  */
-function getfilterAttrList (prefix) {
+function getFilterAttrList (prefix) {
     var list = [
         `${ prefix }:for`,
         `${ prefix }:for-item`,
@@ -333,8 +334,10 @@ function transformFor (node, state) {
         }
 
         let vKey = parseMustache(attribs[FOR.key], true)
-        //fix: wx:key="1"
-        if (/^\d+$/.test(vKey)) {
+        //fix: 1.wx:key="1"
+        //     2.js关键字作为index名，如：
+        //     <view class="i-index-demo-item" wx:for="{{item.list}}" wx:for-index="in" wx:key="{{in}}" wx:for-item="it"></view>
+        if (/^\d+$/.test(vKey) || utils.isJavascriptKeyWord(vKey)) {
             vKey = "index"
         }
 
@@ -365,6 +368,8 @@ function transformFor (node, state) {
         }
 
         var vForAttr = `(${ vItem },${ vIndex }) in (${ parseMustache(vFor) })`
+
+        vForAttr = vForAttr.replace(/'/g, `"`)
 
         //添加v-for
         var forObj = {
@@ -415,10 +420,10 @@ function transformFor (node, state) {
         var content = node.attr("content")
         content.attributes = attributes.filter(function (attr, index) {
             var key = attr.key.content
-            return !getfilterAttrList(state.prefix).includes(key)
+            return !getFilterAttrList(state.prefix).includes(key)
         })
         content.attributes = []
-        // node.attr('content.attributes', newAttributes)
+        node.attr('content.attributes', attributes)
     }
 }
 
@@ -550,6 +555,8 @@ function logicalNegation (code) {
     } else if (t.isIdentifier(expression)) {
         // console.log("--t.isIdentifier(expression)--", code)
         res = `!${ code }`
+    } else {
+        res = `!(${ code })`
     }
 
     // console.log("res", res)
@@ -569,7 +576,7 @@ function transformAttr (keyNode, valueNode, state) {
     var prefix = state.prefix
     var name = keyNode.content
 
-    var forAttrList = getfilterAttrList(prefix)
+    var forAttrList = getFilterAttrList(prefix)
 
     if (
         name.indexOf('v-') === 0
@@ -604,9 +611,37 @@ function transformAttr (keyNode, valueNode, state) {
             //这里必须处理一下，如果template的值是使用的单引号，后面会出问题，导致引号不匹配！！！
             //<text class='iconfont {{item.icon}}'></text>
 
-            var newValueContent = parseMustache(value)
-            //
-            newValueContent = newValueContent.replace(/"/g, "'")
+            var newValueContent = value
+            if (keyNode.content == ":class" && /^\[|\]$/.test(newValueContent)) {
+                //处理这种
+                // <view class="[\"expert-popup\",{{ispopup?'on':''}}">
+                //   <view bindtap="allitembtn" class="[\"all-exitem\",{{popupindex==index?'textact':''}}]" data-index="{{index}}" wx:for="{{compre}}">{{item}}</view>
+                // </view>
+                // <view class="[\"expert-popup\",{{isstate?'on':''}}">
+                //     <view bindtap="screenitembtn" class="[\"all-exitem\",{{screenindex==index?'textact':''}}]" data-index="{{index}}" wx:for="{{screen}}">{{item}}</view>
+                // </view>
+
+                //<view class="searchall-tab">
+                //    <view bindtap="searchtabs" class="[\"searchtab-item\",{{searchindex==index?'tabact':''}}" data-index="{{index}}" wx:for="{{searchtab}}">{{item}}</view>
+                //</view>
+
+                //page/index.js 已经将\"转义了 `.replace(/\\"/g, `&quot;`)`
+
+
+                //擦屁股，看到有些代码前面有[，后面就没有]了
+                if (!/^\[/.test(newValueContent)) {
+                    newValueContent = "[" + newValueContent
+                } else if (!/\]$/.test(newValueContent)) {
+                    newValueContent = newValueContent + "]"
+                }
+
+                //直接将{{}}去掉就行，TODO: 暂时先这么处理
+                newValueContent = newValueContent.replace(/[\{\{|\}\}]/g, "")
+            } else {
+                newValueContent = parseMustache(value)
+                newValueContent = newValueContent.replace(/"/g, "'")
+            }
+
             valueNode.content = newValueContent
         } else {
             //如果属性的值为true或false，则将属性增加v-bind:
@@ -644,7 +679,7 @@ function transformAttrs (node, state) {
     transformFor(node, state)
 
     //小程序scroll-view属性,需要有值，不然就是boolean
-    var scollAttrList = ['scroll-top', 'scroll-left']
+    var scrollAttrList = ['scroll-top', 'scroll-left']
 
     //干掉<image binderror src="xxx"></image>里面的binderror
     attributes = attributes.filter(function (item, i) {
@@ -671,7 +706,7 @@ function transformAttrs (node, state) {
         // scroll-top	Number		设置竖向滚动条位置
         // scroll-left	Number		设置横向滚动条位置
         // 解决<scroll-view scroll-left></scroll-view>没有给值，默认是true
-        if (!valueNode && scollAttrList.includes(keyNode.content)) {
+        if (!valueNode && scrollAttrList.includes(keyNode.content)) {
             item.value = {
                 content: '0',
                 type: 'token:attribute-value'
@@ -703,7 +738,7 @@ function transformEventDynamicCode ($wxmlAst) {
                     var value = obj.value.content
                     var reg = /\?|\+/
                     if (attr[0] === "@" && reg.test(value)) {
-                        obj.value.content = `parseEventDynamicCode($event, value)`
+                        obj.value.content = `parseEventDynamicCode($event, ${ value })`
                     }
                 }
             })
@@ -842,6 +877,35 @@ function transformExceptionAttr ($wxmlAst) {
         }).root()
 }
 
+/**
+ * 替换无绑定的属性里面的双引号为&quot;
+ */
+function replaceQuoteDouble($ast){
+    $ast
+    .find(`<$_$1 $$$1>$$$2</$_$1>`)
+    .each(node => {
+        var attributes = node.attr('content.attributes')
+
+        if (!attributes) {
+            return
+        }
+
+        //处理标签属性
+        if (attributes) {
+            attributes.forEach(function (attr) {
+                var valueNode = attr.value
+
+                if (attr.value) {
+                    var value = valueNode.content
+
+                    if (value && !value.includes('{{')) {
+                        valueNode.content = value.replace(/"/g, `&quot;`)
+                    }
+                }
+            })
+        }
+    })
+}
 
 /**
  * 转换template ast
@@ -872,12 +936,13 @@ function transformTemplateAst ($ast, wxmlFile, wxmlExtname) {
         prefix
     }
 
+    //替换双引号为&quot;
+    replaceQuoteDouble($ast)
+
     $ast
         .find(`<$_$1 $$$1>$$$2</$_$1>`)
         .each(node => {
             var attributes = node.attr('content.attributes')
-
-            var tagName = node.attr("content.name")
 
             if (!attributes) {
                 // if (!attributes || tagName === "template") {

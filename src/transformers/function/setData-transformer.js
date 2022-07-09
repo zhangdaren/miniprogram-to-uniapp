@@ -30,8 +30,9 @@ function getParamsExpressionString (keyNode, thisName, scope, fileKey) {
     var codeStr = ""
 
     //检测setData里面的变量 [${ name }] 是数组形式，uniapp不支持，已尝试进行修复
-    var keyStr = $(keyNode).generate()
+    var oldKeyStr = keyStr = $(keyNode).generate()
 
+    const reg = /^\[.*?\]$/
     if (t.isTemplateLiteral(keyNode)) {
         //含模板字符串
         // this.setData({
@@ -39,9 +40,15 @@ function getParamsExpressionString (keyNode, thisName, scope, fileKey) {
         //     acitveIndex: index,
         // })
 
+        //有多级
         // this.setData({
         //     [`${style}.xxx.${name}`]: 11
         // });
+
+        //无多级
+        // this.setData({
+        //    [`${key}Value`]: myvalue,
+        // })
 
         //先替换在[]里的变量
         keyStr = keyStr.replace(/\[\$\{([^\{]*)\}\]/g, "[$1]")
@@ -49,7 +56,21 @@ function getParamsExpressionString (keyNode, thisName, scope, fileKey) {
         keyStr = keyStr.replace(/\$\{([^\{]*)\}/g, "[$1]")
         keyStr = keyStr.replace(/`/g, "")
 
-        var dotStr = keyStr[0] === "[" ? "" : "."
+        var dotStr = ""
+        if (/^\[|\]$/.test(keyStr)) {
+            dotStr = ""
+            //前后有括号的情况
+            if (keyStr.includes(".")) {
+                //多级
+            } else {
+                //单级
+                keyStr = `[${ oldKeyStr }]`
+            }
+        } else {
+            //无括号的情况
+            dotStr = "."
+        }
+
         codeStr = thisName + dotStr + keyStr
 
     } else if (t.isBinaryExpression(keyNode)) {
@@ -59,7 +80,20 @@ function getParamsExpressionString (keyNode, thisName, scope, fileKey) {
         // });
         keyStr = keyStr.replace(/["']\s*\+\s*|\s*\+\s*["']|["']/g, "")
 
-        var dotStr = keyStr[0] === "[" ? "" : "."
+        var dotStr = ""
+        if (/^\[|\]$/.test(keyStr)) {
+            dotStr = ""
+            //前后有括号的情况
+            if (keyStr.includes(".")) {
+                //多级
+            } else {
+                //单级
+                keyStr = `[${ oldKeyStr }]`
+            }
+        } else {
+            //无括号的情况
+            dotStr = "."
+        }
         codeStr = thisName + dotStr + keyStr
     } else if (t.isIdentifier(keyNode)) {
         //变量的形式:
@@ -130,7 +164,11 @@ function transformSetData ($ast, fileKey) {
                         if (codeStr) {
                             // //尝试修复一下
                             var newExp = codeStr + "=" + $(value).generate() + "\n"
-                            item.before(newExp)
+                            try {
+                                item.before(newExp)
+                            } catch (error) {
+                                console.log('1111 :>> ', 1111)
+                            }
 
                             listNode.splice(i, 1)
                         }

@@ -13,33 +13,32 @@
     },
     "bundleDependencies": [],
     "dependencies": {
-        "@babel/generator": "^7.15.4",
-        "@babel/parser": "^7.15.7",
-        "@babel/plugin-proposal-object-rest-spread": "^7.16.0",
-        "@babel/traverse": "^7.15.4",
-        "@babel/types": "^7.15.6",
+        "@babel/generator": "^7.17.10",
+        "@babel/parser": "^7.17.10",
+        "@babel/plugin-proposal-object-rest-spread": "^7.17.3",
+        "@babel/traverse": "^7.17.10",
+        "@babel/types": "^7.17.10",
         "app-root-path": "^3.0.0",
         "best-require": "^1.1.4",
-        "chalk": "^4.1.2",
+        "chalk": "4.1.2",
         "clone": "^2.1.2",
-        "commander": "^2.20.1",
-        "fdir": "^5.1.0",
-        "fs-extra": "^10.0.0",
-        "gogocode": "^1.0.45",
-        "js-beautify": "^1.14.0",
+        "commander": "^9.3.0",
+        "fdir": "^5.2.0",
+        "fs-extra": "^10.1.0",
+        "gogocode": "1.0.53",
+        "js-beautify": "^1.14.3",
         "mustache": "^4.2.0",
         "node-pinyin": "^0.2.3",
         "pkg-updater": "^1.0.4",
-        "postcss": "^8.3.6",
-        "postcss-less": "^5.0.0",
-        "postcss-scss": "^4.0.0",
-        "prettier": "^2.4.0",
+        "postcss": "^8.4.13",
+        "postcss-less": "^6.0.0",
+        "postcss-scss": "^4.0.4",
         "progress": "^2.0.3"
     },
     "deprecated": false,
     "description": "轻松将各种小程序转换为 uni-app 项目",
     "devDependencies": {
-        "jest": "^27.0.6"
+        "jest": "^28.1.0"
     },
     "homepage": "https://github.com/zhangdaren/miniprogram-to-uniapp#readme",
     "keywords": [
@@ -63,5 +62,5 @@
         "test": "jest",
         "debugger": "node --inspect-brk ./node_modules/jest/bin/jest --runInBand --no-cache --no-watchman"
     },
-    "version": "2.0.14"
+    "version": "2.0.21"
 }

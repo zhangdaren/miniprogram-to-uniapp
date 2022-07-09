@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2022-05-05 17:42:19
+ * @LastEditTime: 2022-07-09 17:14:02
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\test.js
@@ -43,6 +43,19 @@ async function test () {
 
         // var sourceFolder = "./demo/test-20220119"
 
+        // var sourceFolder = "./demo/test-20220606"
+        var sourceFolder = "./demo/接龙"
+
+        // var sourceFolder = "./demo/test-wca2uni0701"
+
+        // var sourceFolder = "./demo/test-wca2uni"
+
+        // var sourceFolder = "./demo/a前端"
+
+        // var sourceFolder = "./demo/ts-applet-demo-master"
+
+        // var sourceFolder = "./demo/mjmc"
+
         // var sourceFolder = "./demo/wxapp-jw"
 
         // var sourceFolder = "./demo/wxapp-hasques"
@@ -50,7 +63,7 @@ async function test () {
 
         // var sourceFolder = "./demo/Discuz-minapp-2.0"
 
-        var sourceFolder = "./demo/test-20211125"
+        // var sourceFolder = "./demo/test-20211125"
 
         // var sourceFolder = "./demo/test-202200125-weiqing"
 
@@ -72,6 +85,7 @@ async function test () {
 
         var options = {
             // isVueAppCliMode:true
+            isMergeWxssToVue:true
         }
 
         await transform(sourceFolder, options)

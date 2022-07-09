@@ -43,11 +43,12 @@ updater({ 'pkg': pkg }).then(() => {
     help();
 
     let src = program.args[0];
-    let dist = "";
-    let isVueAppCliMode = program.cli;
-    let isMergeWxssToVue = program.merge;
+    const dist = "";
+    const opts = program.opts();
+    const isVueAppCliMode = opts.cli;
+    const isMergeWxssToVue = opts.merge;
 
-    let options = {
+    const options = {
         dist,
         isVueAppCliMode,
         isMergeWxssToVue,

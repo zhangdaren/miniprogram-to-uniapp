@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-05-05 18:43:14
+ * @LastEditTime: 2022-07-09 09:57:06
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\ggcUtils.js
@@ -24,7 +24,7 @@ const assetsFileReg = /^((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|w
 
 const multiAssetsFileReg = /['"]?((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
 
-const expList = [
+const pageExpList = [
     {
         type: "App",
         exp: "App($_$)",
@@ -47,7 +47,14 @@ const expList = [
     },
     {
         type: "VantComponent",
-        exp: "VantComponent($_$)",
+        exp: [
+            `($_$2, $_$3.VantComponent)($_$)`,
+            "VantComponent($_$)"
+        ],
+        keywordList: [
+            "VantComponent",
+            "($_$2, $_$3.VantComponent)"
+        ]
     },
     {
         type: "Behavior",
@@ -66,7 +73,7 @@ const expList = [
  * @returns
  */
 function getAstType ($ast, fileKey) {
-    let result = expList.find(function (obj) {
+    let result = pageExpList.find(function (obj) {
         let match = $ast.find(obj.exp)
         if (obj.type === "Webpack" || obj.type === "Behavior") {
             return match && match.length
@@ -227,6 +234,7 @@ function getThisExpressionName (item, selectorName = 'this') {
                 var scopeParentNode = scopeNode.parentPath
                 if (
                     scopeParentNode.node.type === 'VariableDeclarator' &&
+                    scopeParentNode.node.init &&
                     scopeParentNode.node.init.type === 'ThisExpression'
                 ) {
                     //是this的别名
@@ -278,7 +286,7 @@ function transformThisDotProperties ($ast, fileKey) {
             var thisName = getThisExpressionName(item, 'this')
             if (thisName) {
                 var code = $(item).generate()
-                console.log(`[Error]代码：${code}写法不适应uni-app，需转换后手动调整。  file:${ fileKey }`)
+                console.log(`[Error]代码：${ code }写法不适应uni-app，需转换后手动调整。  file:${ fileKey }`)
             }
         })
         .root()
@@ -787,8 +795,8 @@ function checkWeUI ($jsAst, $wxmlAst) {
  * @param {*} selector
  * @param {*} replacer
  */
- function forceReplace($, ast, selector, replacer) {
-    ast.replaceBy($(ast.generate()).replace(selector, replacer));
+function forceReplace ($, ast, selector, replacer) {
+    ast.replaceBy($(ast.generate()).replace(selector, replacer))
 }
 
 
@@ -821,6 +829,8 @@ module.exports = {
 
     checkWeUI,
 
-    forceReplace
+    forceReplace,
+
+     pageExpList,
 
 }

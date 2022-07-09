@@ -1,13 +1,12 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-05-16 13:51:02
+ * @LastEditTime: 2022-07-09 09:55:41
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\script\component\component-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\script\vantComponent\vantComponent-transformer.js
  *
  */
-
 
 const $ = require('gogocode')
 const path = require('path')
@@ -15,8 +14,6 @@ const fs = require('fs-extra')
 
 const t = require("@babel/types")
 
-
-const utils = require("../../../utils/utils")
 const babelUtils = require("../../../utils/babelUtils")
 const ggcUtils = require("../../../utils/ggcUtils")
 
@@ -42,59 +39,22 @@ const componentDefaultProperty = {
     "pageLifetimes": "pageLifetimes",  //组件所在页面的生命周期声明对象，参见 组件生命周期	2.2.3
     "definitionFilter": "definitionFilter",  //定义段过滤器，用于自定义组件扩展，参见 自定义组件扩展
 
-    "error": "error",  //定义段过滤器，用于自定义组件扩展，参见 自定义组件扩展
-
     //让小程序页面和自定义组件支持 computed 和 watch 数据监听器
     //https://developers.weixin.qq.com/community/develop/article/doc/0000a8d54acaf0c962e820a1a5e413
     "computed": "computed",
     "watch": "watch",
 }
 
-//小程序的pageLifetimes（组件所在页面的生命周期）
-//https://ask.dcloud.net.cn/article/37086
-const pageLifetimes = {
-    "show": "onPageShow", //页面被展示时执行
-    "hide": "onPageHide", //页面被隐藏时执行
-    "resize": "onPageResize", //页面尺寸变化时执行
-}
 
 /**
- * lifetimes 或 pageLifetimes 预处理
- * @param {*} $ast
- * @param {*} name lifetimes 或 pageLifetimes
- */
-function transformLifetimes ($ast, name) {
-    $ast.find(`${ name }:{$$$}`)
-        .each(function (item) {
-            var list = item.match['$$$$']
-            list.map(function (node) {
-                item.before(node)
-            })
-            item.remove()
-        })
-        .root()
-}
-
-/**
- * Component 转换
+ * VantComponent 转换
  * @param {*} $ast
  * @param {*} fileKey
  * @returns
  */
-function transformComponentAst ($ast, fileKey) {
-
-    // ggcUtils.transformAppDotGlobalData($ast)
-    ggcUtils.transformGetApp($ast)
-    // ggcUtils.transformThisDotKeywordExpression($ast, "data")
-    // ggcUtils.transformThisDotKeywordExpression($ast, "properties")
-
-    //lifetimes处理
-    // 组件生命周期声明对象，将组件的生命周期收归到该字段进行声明，原有声明方式仍旧有效，如同时存在两种声明方式，则lifetimes字段内声明方式优先级最高
-    // $ast.replace("lifetimes:{$$$1}", "$$$1")   //这种只能保留一个。。。。
-    transformLifetimes($ast, "lifetimes")
-
+function transformVantComponent ($ast, fileKey, name) {
     $ast
-        .find("Component($_$object)")
+        .find(`${ name }($_$object)`)
         .each(item => {
             var arguments = item.attr("arguments.0")
             if (t.isObjectExpression(arguments)) {
@@ -113,42 +73,40 @@ function transformComponentAst ($ast, fileKey) {
                 })
             } else {
                 var littleCode = $ast.generate().substr(0, 250)
-                console.log(`[Error]Component异常情况(建议把源代码修改为简单结构，如Component({})，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
+                console.log(`[Error]VantComponent异常情况(建议把源代码修改为简单结构，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
+
             }
         })
         .root()
-        .replace("Component({data:$_$1,$$$})", `Component({data() {
+        .replace(`${ name }({data:$_$1,$$$})`, `${ name }({data() {
             return $_$1;
           },$$$})`)
-        .replace("Component($$$)", "export default $$$")
-
-
-    //TODO: 这种暂时不支持，应该需要提示的，打log！！！！
-    $ast.find("pageLifetimes:{$$$1}").each(function (item) {
-        var list = item.match["$$$1"]
-        list.map(function (node) {
-            if (node.key) {
-                var name = node.key.name || node.key.value
-
-                var newName = pageLifetimes[name]
-                node.key.name = newName
-                node.key.value = newName
-            }
-        })
-    }).root()
-
-    transformLifetimes($ast, "pageLifetimes")
-
-    transformObservers($ast, fileKey)
-    try {
-        transformProperties($ast, fileKey)
-    } catch (error) {
-        console.log("transformProperties error", fileKey, error)
-    }
-
-    global.props[fileKey] = ggcUtils.getComponentPropsList($ast)
+        .replace(`${name}($$$)`, "export default $$$")
 
     return $ast
 }
 
-module.exports = { transformComponentAst }
+/**
+ * VantComponent 转换
+ * @param {*} $ast
+ * @param {*} fileKey
+ * @returns
+ */
+function transformVantComponentAst ($ast, fileKey, name) {
+    const obj = ggcUtils.pageExpList.find(item => item.type === name)
+    const keywordList = obj.keywordList
+
+    ggcUtils.transformGetApp($ast)
+
+    keywordList.map(keyword => {
+        var res = $ast.find(`${ keyword }($_$object)`)
+        if (res.length) {
+            transformVantComponent($ast, fileKey, keyword)
+        }
+    })
+
+    transformObservers($ast, fileKey)
+    transformProperties($ast, fileKey)
+}
+
+module.exports = { transformVantComponentAst }

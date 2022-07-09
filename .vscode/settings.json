@@ -1,4 +1,5 @@
 {
     "editor.suggest.snippetsPreventQuickSuggestions": false,
-    "aiXcoder.symbol": "★"
+    "aiXcoder.symbol": "★",
+    "aiXcoder.showTrayIcon": true
 }

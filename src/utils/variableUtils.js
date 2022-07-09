@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-30 17:07:30
- * @LastEditTime: 2022-05-05 18:05:01
+ * @LastEditTime: 2022-05-07 17:37:01
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\variableUtils.js
@@ -14,7 +14,6 @@ const $ = require('gogocode')
 const t = require("@babel/types")
 const clone = require("clone")
 
-const { util } = require('prettier')
 const appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')

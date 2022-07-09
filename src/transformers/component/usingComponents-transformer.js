@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 11:27:11
- * @LastEditTime: 2021-10-30 16:47:17
+ * @LastEditTime: 2022-07-01 10:09:47
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/usingComponents-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\component\usingComponents-transformer.js
  *
  */
 const $ = require('gogocode')
@@ -24,7 +24,7 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 const restoreJSUtils = require(appRoot + "/src/utils/restoreJSUtils")
 
 //资源文件
-const {  repairRequireAndImportPath} = require(appRoot + '/src/transformers/assets/assets-path-transformer')
+const { repairRequireAndImportPath } = require(appRoot + '/src/transformers/assets/assets-path-transformer')
 
 /**
  * 组件处理
@@ -65,6 +65,16 @@ function transformUsingComponents ($jsAst, usingComponents) {
         var componentPath = usingComponents[componentName]
         componentName = utils.toCamel(componentName)
 
+        //如果是当前目录，则加上./
+        if (!/^[\.\/]/.test(componentPath)) {
+            componentPath = './' + componentPath
+        }
+        //如果是根目录，则加上@
+        if (/^\//.test(componentPath)) {
+            //如果是以/开头的，表示根目录
+            componentPath = "@" + componentPath
+        }
+
         if (reg_plugin.test(componentPath)) {
             //"hello-component": "plugin://myPlugin/hello-component"
             console.log(`${ componentName }: ${ componentPath } 是小程序特有插件，uniapp不支持！`)
@@ -79,7 +89,7 @@ function transformUsingComponents ($jsAst, usingComponents) {
             // }
 
             var fileDir = path.dirname(componentPath)
-            componentPath =  repairRequireAndImportPath(componentPath, global.miniprogramRoot, fileDir)
+            componentPath = repairRequireAndImportPath(componentPath, global.miniprogramRoot, fileDir)
 
             var importStr = `import ${ componentName } from "${ componentPath }";\r\n`
             importStrList.push(importStr)

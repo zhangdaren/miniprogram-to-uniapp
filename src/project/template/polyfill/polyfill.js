@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:57:51
- * @LastEditTime: 2021-10-15 20:24:24
+ * @LastEditTime: 2022-05-13 19:02:23
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp2\src\project\template\polyfill\polyfill.js
+ * @FilePath: \miniprogram-to-uniapp\src\project\template\polyfill\polyfill.js
  *
  * Api polyfill
  * 2021-03-06
@@ -592,7 +592,7 @@ function pluginsPolyfill () {
         // 获取服务供应商
         uni.getProvider = function (options) {
             console.warn("api: uni.getProvider 获取服务供应商 在当前平台不支持，执行失败")
-            options.fail && options.fail()
+            options && options.fail && options.fail()
         }
     }
 
@@ -600,21 +600,21 @@ function pluginsPolyfill () {
         // 小程序的原生菜单中显示分享按钮
         uni.showShareMenu = function (options) {
             console.warn("api: uni.showShareMenu 小程序的原生菜单中显示分享按钮 在当前平台不支持，执行失败")
-            options.fail && options.fail()
+            options && options.fail && options.fail()
         }
     }
     if (isApiNotImplemented("hideShareMenu")) {
         // 小程序的原生菜单中显示分享按钮
         uni.hideShareMenu = function (options) {
             console.warn("api: uni.hideShareMenu 小程序的原生菜单中隐藏分享按钮 在当前平台不支持，执行失败")
-            options.fail && options.fail()
+            options && options.fail && options.fail()
         }
     }
     if (isApiNotImplemented("requestPayment")) {
         // 支付
         uni.requestPayment = function (options) {
             console.error("api: uni.requestPayment 支付 在当前平台不支持(需自行参考文档封装)，执行失败")
-            options.fail && options.fail()
+            options && options.fail && options.fail()
         }
     }
     if (isApiNotImplemented("createWorker")) {

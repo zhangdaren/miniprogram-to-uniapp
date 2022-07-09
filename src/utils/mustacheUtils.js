@@ -37,6 +37,7 @@ function parseMustache (expr, identifier = false) {
     if (!expr) {
         return ''
     }
+
     // console.log("expr", expr)
     const tokens = parse(expr)
     const isIdentifier = tokens.length === 1

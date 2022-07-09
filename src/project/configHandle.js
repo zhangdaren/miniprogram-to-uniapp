@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2021-11-19 14:45:45
+ * @LastEditTime: 2022-07-09 17:00:50
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\project\configHandle.js
@@ -31,6 +31,11 @@ function subPackagesHandle (subPackages, routerData) {
         const root = obj.root
         const pages = obj.pages
 
+        //获取分包其他属性
+        var cloneObj = JSON.parse(JSON.stringify(obj))
+        delete cloneObj.root
+        delete cloneObj.pages
+
         let newPages = []
         for (const subKey in pages) {
             const subObj = pages[subKey]
@@ -44,6 +49,7 @@ function subPackagesHandle (subPackages, routerData) {
 
             newPages.push({
                 "path": subObj,
+                ...cloneObj,
                 "style": {
                     ...style
                 }
@@ -118,13 +124,20 @@ function transformGlobalUsingComponents (appJSON) {
     // 调整为：
     // "wux-search-bar": "@/dist/wux-weapp/search-bar/index",
     // "search": "@/dist/public/search/index",
-    componentList.sort(function (a, b) {
-        var res = a.key.indexOf(b.key)
-        if (res > -1) {
-            return -1
-        }
-        return 0
-    })
+
+    // "usingComponents": {
+    // 	"c-scroll": "@/components/scroll/index",
+    // 	"c-school-list": "@/components/school-list/index",
+    // 	"c-point-list": "@/components/point-list/index",
+    // 	"c-search-list": "@/components/search-list/index",
+    // 	"c-news-list-home": "@/components/news-list-home/index",
+    // 	"c-scroll-y": "@/components/scroll-y/index",
+    // 	"c-result-list": "@/components/result-list/index",
+    // 	"c-school-list-my": "@/components/school-list-my/index",
+    // 	"c-executor-info": "@/components/executor-info/index"
+    // }
+    componentList = bubbleSort(componentList)
+
 
     var easycom = {}
     componentList.map(function (obj) {
@@ -138,6 +151,35 @@ function transformGlobalUsingComponents (appJSON) {
             "custom": { ...easycom }
         }
     }
+}
+
+/**
+ * 冒泡排序
+ * @param {*} arr
+ * @returns
+ */
+function bubbleSort (arr) {
+    const len = arr.length
+    for (let i = 0;i < len - 1;i++) {
+        for (let j = i + 1;j < len - 1;j++) {
+            var key1 = arr[i].key
+            var key2 = arr[j].key
+            if (key1.includes(key2)) {
+                swap(arr, i, j)
+            } else if (key2.includes(key1)) {
+                swap(arr, j, i)
+            }
+        }
+    }
+    return arr
+}
+
+
+// 交换方法
+function swap (arr, i, j) {
+    let temp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = temp
 }
 
 
@@ -473,14 +515,24 @@ async function configHandle (configData, routerData, miniprogramRoot, targetSour
         generateMainJS(configData, routerData, miniprogramRoot, targetSourceFolder, appJSON)
 
         //增加uni.scss
-        let source_uniScss = path.join(__dirname, "/template/uni.scss")
-        var target_uniScss = path.join(targetSourceFolder, "uni.scss")
-        fs.copySync(source_uniScss, target_uniScss)
+        let sourceUniScss = path.join(__dirname, "/template/uni.scss")
+        let targetUniScss = path.join(targetSourceFolder, "uni.scss")
+        fs.copySync(sourceUniScss, targetUniScss)
 
         //复制uni_modules
-        let source_uniModules = path.join(__dirname, "/template/uni_modules")
-        var target_uniModules = path.join(targetSourceFolder, "uni_modules")
-        fs.copySync(source_uniModules, target_uniModules)
+        let sourceUniModules = path.join(__dirname, "/template/uni_modules")
+        let targetUniModules = path.join(targetSourceFolder, "uni_modules")
+        fs.copySync(sourceUniModules, targetUniModules)
+
+        //复制index.html
+        let sourceIndexFile = path.join(__dirname, "/template/index.html")
+        let targetIndexFile = path.join(targetSourceFolder, "index.html")
+        fs.copySync(sourceIndexFile, targetIndexFile)
+
+        //复制README.md
+        let sourceReadMeFile = path.join(__dirname, "/template/README.md")
+        let targetReadMeFile = path.join(targetSourceFolder, "README.md")
+        fs.copySync(sourceReadMeFile, targetReadMeFile)
 
         resolve()
     })

@@ -49,7 +49,8 @@ process.UNI_LIBRARIES.forEach(libraryName => {
     }
   ])
 })
-module.exports = {
+
+const config = {
   presets: [
     [
       '@vue/app',
@@ -61,3 +62,15 @@ module.exports = {
   ],
   plugins
 }
+
+const UNI_H5_TEST = '**/@dcloudio/uni-h5/dist/index.umd.min.js'
+if (process.env.NODE_ENV === 'production') {
+  config.overrides = [{
+    test: UNI_H5_TEST,
+    compact: true,
+  }]
+} else {
+  config.ignore = [UNI_H5_TEST]
+}
+
+module.exports = config

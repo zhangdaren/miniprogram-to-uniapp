@@ -1,12 +1,48 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-11-20 11:58:02
+ * @LastEditTime: 2022-05-17 18:52:26
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\other\special-code-transformer.js
  *
  */
+
+
+/**
+ * 抹平小程序与uni-app在showModal这个api之前的差异
+ * const res = await uni.showModal({ content: '确定吗' });
+ * 转换为：
+ * const [err, res] = await uni.showModal({ content: '确定吗' });
+ * @param {*} $jsAst
+ * @param {*} fileKey
+ * @returns
+ */
+function transformAwaitShowModal ($jsAst, fileKey) {
+    if (!$jsAst) return
+
+    $jsAst.replace(
+        [
+            `const $_$1 = await uni.showModal($_$2)`,
+            `let $_$1 = await uni.showModal($_$2)`,
+            `var $_$1 = await uni.showModal($_$2)`,
+            //这里的选择器顺序不能乱！！！先选择有内容，内选择无内容的。
+            `const $_$1 = await uni.showModal()`,
+            `let $_$1 = await uni.showModal()`,
+            `var $_$1 = await uni.showModal()`,
+        ],
+        (match, nodePath) => {
+            var kind = nodePath.node.kind
+            var content = match['2']
+            if (content) {
+                return `${ kind } [err, $_$1] = await uni.showModal($_$2)`
+            } else {
+                return `${ kind } [err, $_$1] = await uni.showModal()`
+            }
+        }
+    )
+}
+
 
 
 /**
@@ -38,6 +74,8 @@ function transformSpecialCode ($jsAst, $wxmlAst) {
                 }
                 return null
             })
+
+        transformAwaitShowModal($jsAst)
     }
 
     if ($wxmlAst) {

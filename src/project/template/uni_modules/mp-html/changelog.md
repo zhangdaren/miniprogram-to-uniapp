@@ -1,3 +1,10 @@
+## v2.3.1（2022-05-20）
+1. `U` `app` 端支持使用本地图片
+2. `U` 优化了微信小程序 `selectable` 属性在 `ios` 端的处理 [详细](https://jin-yufeng.gitee.io/mp-html/#/basic/prop#selectable)
+3. `F` 修复了 `editable` 插件不在顶部时 `tooltip` 位置可能错误的问题 [详细](https://github.com/jin-yufeng/mp-html/issues/430)
+4. `F` 修复了 `vue3` 运行到微信小程序可能报错丢失内容的问题 [详细](https://github.com/jin-yufeng/mp-html/issues/414)
+5. `F` 修复了 `vue3` 部分标签可能被错误换行的问题
+6. `F` 修复了 `editable` 插件 `app` 端插入视频无法预览的问题
 ## v2.3.0（2022-04-01）
 1. `A` 增加了 `play` 事件，音视频播放时触发，可用于与页面其他音视频进行互斥播放 [详细](basic/event#play)
 2. `U` `show-img-menu` 属性支持控制预览时是否长按弹出菜单

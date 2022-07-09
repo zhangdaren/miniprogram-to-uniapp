@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 15:40:27
- * @LastEditTime: 2022-04-07 18:43:27
+ * @LastEditTime: 2022-05-07 16:56:23
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\restoreJSUtils.js
@@ -245,8 +245,14 @@ function oneLineToMultiLine (ast) {
                     }
                 } else {
                     //没有else
+                    //consequent &&
                     if (!t.isBlockStatement(consequent)) {
-                        path.node.consequent = t.blockStatement([consequent])
+                        try {
+                            path.node.consequent = t.blockStatement([consequent])
+                        } catch (error) {
+console.log("xx////////////////////////////////////////////xxxxx")
+                        }
+
                     }
                 }
 
@@ -304,9 +310,9 @@ function oneLineToMultiLine (ast) {
                         var ifStatement = t.ifStatement(consequentBlockStatement, alternateBlockStatement)
 
                         try {
- path.replaceWith(ifStatement)
+                            path.replaceWith(ifStatement)
                         } catch (error) {
-console.log('%c [ error ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', error)
+                            console.log('%c [ error ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', error)
                         }
 
                     } else if (operator === "||") {

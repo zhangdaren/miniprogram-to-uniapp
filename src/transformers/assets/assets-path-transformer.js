@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2022-05-04 20:57:15
+ * @LastEditTime: 2022-07-09 11:27:16
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/assets/assets-path-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\assets\assets-path-transformer.js
  *
  */
 const $ = require('gogocode')
@@ -18,8 +18,6 @@ var appRoot = "../../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
-const restoreJSUtils = require(appRoot + '/src/utils/restoreJSUtils.js')
-const formatUtils = require(appRoot + '/src/utils/formatUtils.js')
 
 /**
  * 修复js里面的src路径
@@ -38,7 +36,7 @@ function repairScriptSourcePath ($jsAst, jsFile) {
 
         let fileDir = path.dirname(jsFile)
         let extname = path.extname(jsFile)
-        let newSrc = pathUtils.relativePath(src, global.miniprogramRoot, fileDir)
+        let newSrc = pathUtils.relativePath(src, global.miniprogramRoot, fileDir, ".js")
 
         if (item.attr("type") === "CallExpression") {
             item.attr("arguments.0.value", newSrc)

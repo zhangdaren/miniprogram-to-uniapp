@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:44:02
- * @LastEditTime: 2021-10-30 16:47:35
+ * @LastEditTime: 2022-05-16 14:12:12
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/function/triggerEvent-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\function\triggerEvent-transformer.js
  *
  */
 

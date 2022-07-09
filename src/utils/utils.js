@@ -1,13 +1,14 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-04-07 17:28:20
+ * @LastEditTime: 2022-07-09 18:16:07
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\utils\utils.js
  *
  */
 const chalk = require('chalk')
+
 // const fastGlob = require('fast-glob')
 
 const { fdir } = require("fdir")
@@ -27,9 +28,6 @@ const fs = require('fs-extra')
 var ignoreList = [
     /[\/\\]cloudfunctions$/,
     /[\/\\]cloudfunctions[\/\\]/,
-
-    /[\/\\]custom-tab-bar$/,
-    /[\/\\]custom-tab-bar[\/\\]/,
 ]
 
 function getAllFile (sourceFolder, options) {
@@ -57,16 +55,22 @@ function getAllFile (sourceFolder, options) {
         .withDirs()        //返回目录
         .filter((path, isDirectory) => {
             var result = true
-            if (isDirectory) {
-                var folderName = nodePath.basename(path)
-                var relativePath = nodePath.relative(sourceFolder, path)
-                if (folderName.startsWith(".") || relativePath.startsWith(".")) {
-                    result = false
-                }
+
+            //过滤目录
+            var folderName = nodePath.basename(path)
+            var relativePath = nodePath.relative(sourceFolder, path)
+
+            //过滤以.开头、node_modules和miniprogram_npm等目录
+            // let reg = /^\.|^node_modules|^miniprogram_npm/
+
+            //TODO: 暂时只过滤.开头的目录
+            const reg = /^\./
+
+            if(reg.test(folderName) || reg.test(relativePath)){
+                result = false
             }
             return result
         })
-    // .filter((path, isDirectory) => ignoreList.some((reg) => reg.test(path)))
 
     const files = crawler.crawl(sourceFolder).sync()
 
@@ -763,9 +767,14 @@ let extnameArr = [
 const extnameReg = new RegExp('\\.(' + extnameArr.join('|') + ')')
 
 
-
-
-
+/**
+ * 数组去重
+ * @param {*} array
+ * @returns
+ */
+function duplicateRemoval (array) {
+    return Array.from(new Set(array))
+}
 
 /**
  * 对象数组去重
@@ -909,6 +918,20 @@ function isSDKFile (content) {
     return result
 }
 
+/**
+ * 普通字符转换成转义符
+ */
+function html2Escape (sHtml) {
+    return sHtml.replace(/[<>&"]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c] })
+}
+
+/**
+ * 转义符换成普通字符
+ */
+function escape2Html (str) {
+    var arrEntities = { 'lt': '<', 'gt': '>', 'nbsp': ' ', 'amp': '&', 'quot': '"' }
+    return str.replace(/&(lt|gt|nbsp|amp|quot);/ig, function (all, t) { return arrEntities[t] })
+}
 
 module.exports = {
     log,
@@ -960,6 +983,8 @@ module.exports = {
 
     uniqueArray,
 
+    duplicateRemoval,
+
     getAllParentForNodeList,
     saveAttribsBindObject,
     saveSetDataKey,
@@ -968,4 +993,8 @@ module.exports = {
 
     //////////////////////////////////////////
     getAllFile,
+
+
+    html2Escape,
+    escape2Html,
 }

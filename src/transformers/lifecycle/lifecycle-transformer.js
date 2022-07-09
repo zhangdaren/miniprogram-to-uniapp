@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2021-10-30 16:45:55
+ * @LastEditTime: 2022-05-12 15:59:24
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/transformers/lifecycle/lifecycle-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\transformers\lifecycle\lifecycle-transformer.js
  *
  */
 
@@ -56,6 +56,8 @@ function lifecycleFunctionHandle ($ast, lifecycleFnName, fileKey) {
         var hasThisDotOnLoad = hasThisDotOnLoadCode($ast, lifecycleFnName)
         if (!hasThisDotOnLoad) return
 
+        //TODO:箭头函数、async匹配不到
+        //    .find([`hello() {}`, `async hello() {}`])
         var selector = {
             type: "CallExpression", callee: {
                 type: "MemberExpression", property: {

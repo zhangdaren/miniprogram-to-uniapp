@@ -69,9 +69,9 @@ $ wtu -i ./miniprogram-project -c
 
 1 群：780359397 <a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a> (已满)
 
-2 群：361784059 <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=vpt4K1r6Witx29ZsKcb_tqvinhcZzVhK&jump_from=webapi"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uniapp研究二群" title="小程序转uniapp研究二群"></a>(已满)
+2 群：361784059 <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=vpt4K1r6Witx29ZsKcb_tqvinhcZzVhK&jump_from=webapi"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app研究二群" title="小程序转uni-app研究二群"></a>(已满)
 
-3 群：603659851 <a target="_blank" href="https://jq.qq.com/?_wv=1027&k=3GSqQMIB"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uniapp研究三群" title="小程序转uniapp研究三群"></a>(已满)
+3 群：603659851 <a target="_blank" href="https://jq.qq.com/?_wv=1027&k=3GSqQMIB"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app研究三群" title="小程序转uni-app研究三群"></a>(已满)
 
 4 群：555691239
 
@@ -131,7 +131,8 @@ $ wtu -i ./miniprogram-project -c
 
 | 功能                                                                       | 转换支持 | 转换文档 |
 | :------------------------------------------------------------------------- | :------: | -------- |
-| <font color="red" size="4" face="bold">使用 uniapp 发布的小程序项目</font> |    ✖️    |          |
+| <font color="red" size="4" face="bold">使用 uni-app 发布的小程序项目</font> |    ✖️    |          |
+| <font color="red" size="4" face="bold">使用 Taro 发布的小程序项目</font> |    ✖️    |          |
 | 使用 redux 开发的小程序(代表为：网易云信小程序 DEMO)                       |    ✖️    |          |
 | 使用 wxpage 开发的小程序(https://github.com/tvfe/wxpage)                   |    ✖️    |          |
 | 使用腾讯 omi 开发的小程序(https://github.com/Tencent/omi)                  |    ✖️    |          |

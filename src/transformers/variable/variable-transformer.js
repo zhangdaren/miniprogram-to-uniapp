@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-19 11:15:31
- * @LastEditTime: 2021-11-22 15:27:34
+ * @LastEditTime: 2022-06-28 09:30:17
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\variable\variable-transformer.js
@@ -431,7 +431,7 @@ function jsKeywordFunctionHandle ($jsAst, $wxmlAst) {
     var renameFun = function (name) {
         return name + "Fun"
     }
-    renameScriptWithTemplateByNameList($jsAst, $wxmlAst, list, ggcUtils.propTypes.METHODS, renameFun)
+    renameScriptWithTemplateByNameList($jsAst, $wxmlAst, list, ggcUtils.propTypes.METHODS, renameFun, true)
 }
 
 
@@ -709,6 +709,9 @@ function transformVariable ($jsAst, $wxmlAst, variableTypeInfo, fileKey) {
     dataWithMethodsDuplicateHandle($jsAst, $wxmlAst)
     propWithDataDuplicateHandle($jsAst, $wxmlAst)
     propsWithMethodsDuplicateHandle($jsAst, $wxmlAst)
+
+    //再扫一遍，看是否有还未定义的变量
+    undefinedVariableHandle($jsAst, $wxmlAst, variableTypeInfo)
 
     unsupportedVariableHandle($jsAst, $wxmlAst)
     jsKeywordFunctionHandle($jsAst, $wxmlAst)

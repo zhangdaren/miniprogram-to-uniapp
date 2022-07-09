@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-05-05 18:25:09
+ * @LastEditTime: 2022-07-09 10:34:45
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\page\index.js
@@ -35,6 +35,7 @@ const { transformPageAst } = require(appRoot + "/src/page/script/page/page-trans
 const { transformComponentAst } = require(appRoot + "/src/page/script/component/component-transformer")
 const { transformBehaviorAst } = require(appRoot + "/src/page/script/behavior/behavior-transformer")
 const { transformCustomPageAst } = require(appRoot + "/src/page/script/customPage/customPage-transformer")
+const { transformVantComponentAst } = require(appRoot + "/src/page/script/vantComponent/VantComponent-transformer")
 const { transformSingleJSAst } = require(appRoot + "/src/page/script/singleJS/singleJS-transformer")
 
 //template
@@ -55,12 +56,14 @@ const { transformSelectComponent } = require(appRoot + "/src/transformers/functi
 const { transformTriggerEvent } = require(appRoot + "/src/transformers/function/triggerEvent-transformer")
 const { transformSetData } = require(appRoot + "/src/transformers/function/setData-transformer")
 const { transformAnimate } = require(appRoot + "/src/transformers/function/animate-transformer")
+const { transformArrowFunction } = require(appRoot + '/src/transformers/function/arrowFunction-transformer')
 
 //lifecycle
 const { transformLifecycleFunction } = require(appRoot + "/src/transformers/lifecycle/lifecycle-transformer")
 
 //variable
 const { transformVariable } = require(appRoot + '/src/transformers/variable/variable-transformer')
+const { transformDataset } = require(appRoot + '/src/transformers/variable/dataset-transformer')
 
 //behavior/mixins
 const { transformBehavior } = require(appRoot + '/src/transformers/behavior/behavior-transformer')
@@ -71,6 +74,7 @@ const { transformSpecialCode } = require(appRoot + '/src/transformers/other/spec
 //处理特殊代码结构
 const { transformSpecialStructure } = require(appRoot + '/src/transformers/specialStructure/specialStructure-transformer')
 
+
 //资源文件
 const { repairScriptSourcePath,
     repairTemplateSourcePath,
@@ -80,6 +84,7 @@ const { repairScriptSourcePath,
 class Page {
     constructor (options) {
         this.jsFile = options.jsFile || ""
+        this.jsFileType = options.jsFileType || ""
         this.wxmlFile = options.wxmlFile || ""
         this.jsonFile = options.jsonFile || ""
         this.wxssFile = options.wxssFile || ""
@@ -242,6 +247,9 @@ class Page {
         //TODO:这里还是有点存疑问，是否$scope与$vm是同一个对象呢？
         transformAnimate(jsAst, fileKey)
 
+        //转换methods里的箭头函数
+        transformArrowFunction(jsAst, fileKey)
+
         //处理behavior/mixins    暂时这里先这样处理，还涉及到，引用的文件，需要对其进行处理
         transformBehavior(jsAst, fileKey)
 
@@ -273,8 +281,11 @@ class Page {
             //(必须最后处理! 因为可能某prop的observer里通过this.data.xxx调用了它，不能重名！)
             transformVariable(this.jsAst, this.wxmlAst, variableTypeInfo, this.fileKey)
         } catch (error) {
-            console.log("[Error]variableHandle: ", this.fileKey)
+            console.log("[Error]variableHandle: ", error, this.fileKey)
         }
+
+        //处理dataset
+        transformDataset(this.jsAst, this.wxmlAst, this.fileKey)
 
         //注意：这里有个时机问题！！！必须在变量名处理后再进行处理！！！
         if (this.astType && !this.isSDKFile) {
@@ -328,6 +339,9 @@ class Page {
         //获取小程序的全局关键字
         var mpKeyword = this.getMpKeywordByExtname(wxmlExtname)
 
+        //去掉getApp<IAppOption>()，防止babel解析报错，简单处理一下
+        fileData = fileData.replace(/getApp<IAppOption>\(\)/g, 'getApp()')
+
         var code = restoreJSUtils.addReplaceTag(fileData, mpKeyword)
 
         //TODO:解析特殊结构
@@ -335,12 +349,20 @@ class Page {
         // var astType = ggcUtils.getAstType($ast, this.fileKey)
         // code = restoreJSUtils.fixSpecialCode2($ast, astType)
 
-        var ast = javascriptParser.parse(code, fileKey, isVueFile)
-        if (fileKey.indexOf(".min") === -1 && isVueFile) {
-            restoreJSUtils.restoreJS(ast, mpKeyword)
+        var ast = null
+        try {
+            ast = javascriptParser.parse(code, fileKey, isVueFile)
+        } catch (error) {
+            console.log(error)
         }
-        restoreJSUtils.renameKeywordToUni(ast, mpKeyword)
-        var newFileData = javascriptParser.generate(ast)
+        var newFileData = fileData
+        if (ast) {
+            if (fileKey.indexOf(".min") === -1 && isVueFile) {
+                restoreJSUtils.restoreJS(ast, mpKeyword)
+            }
+            restoreJSUtils.renameKeywordToUni(ast, mpKeyword)
+            newFileData = javascriptParser.generate(ast)
+        }
         return newFileData
     }
 
@@ -393,6 +415,9 @@ class Page {
             case "CustomPage":
                 transformCustomPageAst($ast, jsFile, this.astType)
                 break
+            case "VantComponent":
+                transformVantComponentAst($ast, jsFile, this.astType)
+                break
             case "Webpack":
                 // console.log(`[Error]${this.fileKey}.js目测是uniapp发布的文件，建议停止转换！`)
                 global.isCompileProject = true
@@ -417,10 +442,19 @@ class Page {
          */
         code = code.replace(/\<!-{2,}\s*(.*?)\s*-{2,}\>/g, '<!-- $1 -->')
 
-        return code.replace(/url\(\s*\\?['"]\s*\{\{(.*?)\}\}\s*\\?['"]\s*\)/g, "url({{$1}})")
+        code = code.replace(/url\(\s*\\?['"]\s*\{\{(.*?)\}\}\s*\\?['"]\s*\)/g, "url({{$1}})")
             .replace(/url\(['"]([^'"].*?)['"]\)/g, "url($1)")
             .replace(/\s*\|\|\s*00\}\}/g, " || '00'}}")   //为了稍微精确一点
             .replace(/\s*==\s*00\s*(\}\}|&&)/g, " == '00' $1")  //为了稍微精确一点  TODO: 后面还是挑出来使用ast替换吧
+            .replace(/\\"/g, `&quot;`) //使用特定字符替换掉引号，以便gogocode可以顺利解析
+            .replace(/\b\s?<\s?\b/g, " < ") //在<前后添加空格，以便gogocode可以顺利解  TODO: 如果在注释里,会被误替换,不过问题不大
+
+
+        //将特殊字符替换为转义符，以便可以正常解析template
+
+
+        return code
+
     }
     /**
      * 转换wxml文件
@@ -484,24 +518,29 @@ class Page {
         //去除空属性
         this.wxmlAst.find(`<$_$1></$_$1>`)
             .each(item => {
-                item.node.content.attributes.forEach(attr => {
-                    if (attr.value && attr.value.content == "" && attr.key.content === "v-if") {
-                        delete attr.value
-                    }
-                })
+                //需判断，`<view></view>` 就没有attributes
+                if (item.node.content.attributes) {
+                    item.node.content.attributes.forEach(attr => {
+                        if (attr.value && attr.value.content == "" && attr.key.content === "v-if") {
+                            delete attr.value
+                        }
+                    })
+                }
+
             })
 
         var templateContent = ""
         var list = this.wxmlAst.root().attr("content.children")
-        if (!list) return ""
+        //如果wxml无内容, 则添加空template节点
+        if (!list) return "<template></template>"
 
         //使用replayBy后，会将内容使用document节点包住。。。见include-tag-transformer.js
         var tagList = list.filter(obj => obj.nodeType === "tag" || obj.nodeType === "document")
 
         try {
-            var templateContent = this.wxmlAst.root().generate()
+            templateContent = this.wxmlAst.root().generate()
         } catch (error) {
-            console.log('%c [ TODO: 报错啦 ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', error)
+            console.log('%c [ TODO: 报错啦 ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', error, this.fileKey)
         }
 
         if (tagList.length > 1) {
@@ -520,6 +559,7 @@ class Page {
         } else {
             templateContent = `<template>\r\n${ templateContent }\r\n</template>`
         }
+
         return templateContent
     }
 
@@ -537,7 +577,8 @@ class Page {
         var jsContent = this.jsAst.root().generate({ isPretty: false })
         switch (extname) {
             case "vue":
-                jsContent = `<script>\r\n${ jsContent }\r\n</script>`
+                var lang = this.jsFileType === 'TYPE_SCRIPT' ? `lang="ts"` : ""
+                jsContent = `<script ${ lang }>\r\n${ jsContent }\r\n</script>`
                 break
             case "js":
 
@@ -614,6 +655,9 @@ class Page {
 
         var wxsCode = this.wxsScriptList.join("") + "\r\n"
 
+        //还原wxs里面的转义符
+        wxsCode = utils.escape2Html(wxsCode)
+
         var fileContent = ""
         const reg = /\.min$/
         switch (extname) {
@@ -646,7 +690,7 @@ class Page {
         if (fileContent && !reg.test(this.fileKey) && !this.isSDKFile) {
             fileContent = formatUtils.formatCode(fileContent, extname, this.fileKey)
         }
-        if (global.isMergeWxssToVue && extname === "css") {
+        if (global.isMergeWxssToVue && this.isVueFile && extname === "css") {
             return
         }
         $.writeFile(fileContent, newFile, false)
@@ -689,11 +733,23 @@ class Page {
             .replace(`<filter module="$_$" $$$1>$$$2</filter>`, `<script module="$_$" lang="filter" $$$1>$$$2</script>`)
             .replace(`<import-sjs name="$_$1" from="$_$2" $$$1>$$$2</import-sjs>`, `<script module="$_$1" src="$_$2" lang="sjs" $$$1>$$$2</script>`)
             .find([
-                `<script module="$_$1" $$$1>$_$2</script>`,
-                `<script module="$_$1" $$$1></script>`
+                `<script module="$_$1" src="$_$2" $$$1>$_$3</script>`,
+                `<script module="$_$1" src="$_$2" $$$1></script>`
             ])
             .each((item) => {
-                //取不到。。
+                //wxs路径处理
+                var srcNode = item.match["2"][0].node
+                var src = srcNode.content
+                if (!/^[\.\/]/.test(src)) {
+                    //在当前目录 TODO: 应该没有在npm里的吧？
+                    src = './' + src
+                } else if (/^\//.test(filePath)) {
+                    //如果是以/开头的，表示根目录
+                    src = '@/' + src
+                }
+                srcNode.content = src
+
+                //
                 var wxsCode = item.generate()
                 //存入global，最终在合成时，添加进去
                 wxsScriptList.push(wxsCode)

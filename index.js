@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-07-22 16:20:33
- * @LastEditTime: 2021-11-26 18:42:11
+ * @LastEditTime: 2022-07-09 17:55:51
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\index.js
@@ -44,9 +44,17 @@ async function transform (sourceFolder, options = {}, callback) {
     } else {
         console.log("\n恭喜你，转换完成！")
         console.log("用时: " + (+new Date() - time) / 1000 + "s")
-        console.log(`在该小程序项目的同级目录可以看到_uni${ options.isVueAppCliMode ? 'vue-cli' : '' }结尾的项目，即是转换好的uniapp项目，相关日志在该目录里。`)
+        console.log(`在该小程序项目的同级目录可以看到_uni${ options.isVueAppCliMode ? '_vue-cli' : '' }结尾的项目，即是转换好的uniapp项目，相关日志在该目录里。`)
+        if(JSON.stringify(global.dependencies) !== '{}' && !options.isVueAppCliMode){
+            console.log("\n！！！ 当前项目引用了npm模块，请转换完后，在命令行里运行“npm install”命令安装npm模块 ！！！")
+        }
     }
-    console.log(`\n注：如有疑问，请添加QQ群(780359397、361784059、603659851)或https://github.com/zhangdaren/miniprogram-to-uniapp进行反馈！\n\n`)
+
+
+    console.log(`\n使用说明：
+    1.因各种原因，本工具并非100%完美转换！有问题实属正常！
+    2.如遇运行报错，请添加QQ群(780359397、361784059、603659851)带图反馈或https://github.com/zhangdaren/miniprogram-to-uniapp提交Issue！
+    3.更多信息请查阅转换后目录里的 README.md 和 transform.log\n\n`)
 
     callback && callback()
 }

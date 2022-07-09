@@ -101,7 +101,7 @@ function replaceTemplateTag (templateTagAst, dataAttr, newAst, attrs) {
     //TODO:解析失败时，后面流程怎么走
     var ast = $(object, { isProgram: false })
     if (ast.error) {
-        console.log("replaceTemplateTag dataAttr parse error", ast.error)
+        console.log("replaceTemplateTag dataAttr parse error  data="+ dataAttr)
     } else {
         var list = ast.attr("declarations.0.init.properties")
 
