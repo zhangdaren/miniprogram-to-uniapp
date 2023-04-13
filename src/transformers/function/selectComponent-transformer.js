@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:59:58
- * @LastEditTime: 2021-12-11 14:30:21
+ * @LastEditTime: 2022-08-01 20:29:47
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\src\transformers\function\selectComponent-transformer.js
@@ -11,54 +11,68 @@ const $ = require('gogocode')
 const t = require("@babel/types")
 const clone = require("clone")
 
-var appRoot = "../../../.."
-// const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
+var appRoot = "../../.."
+const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 
 /**
  * selectComponent函数处理
- * //方案一：
- * var diy = this.selectComponent('#diy')
- * diy.test()
- * 转换为：
- * var diy = this.$mp.page.selectComponent('#diy')
- * diy.$vm.test()
- *
- * //方案二：
- * var diy = this.selectComponent('#diy')
- * diy.test()
- * 转换为：
- * var diy = this.$refs.diy
- * diy.test()
+ * 使用库zp-select-component替换selectComponent函数
+ * 然后对data属性进行收尾
  *
  * @param {*} $ast
+ * @param {*} astType
  * @param {*} fileKey
  */
-function transformSelectComponent ($jsAst, fileKey) {
+function transformSelectComponent ($jsAst, astType, fileKey) {
     if (!$jsAst) return
 
     $jsAst
-        .replace([`$_$.selectComponent($$$)`, `$_$.selectComponent()`], (match, nodePath) => {
-            var hasParams = match["$$$$"]
-            if (hasParams) {
-                return `$_$.$mp.page.selectComponent($$$)`
-            } else {
-                return `$_$.$mp.page.selectComponent()`
-            }
-        })
+        .find(`$_$.data`)
+        .each(function (item) {
+            var nodePath = item["0"].nodePath
+            var object = nodePath.node.object
 
-    //   像这种很难搞了
-    //   var btns = ownerInstance.selectAllComponents('.btn')
-    //   var len = btns.length
-    //   var i = len - 1
-    //   var mask = ownerInstance.selectComponent('.mask')
-    //   var mask2 = ownerInstance.selectComponent('.mask2')
-    //   var view = ownerInstance.selectComponent('.weui-slideview')
-    // $jsAst
-    //     .replace('$_$1.selectComponent("$_$2")', (match, nodePath) => {
-    //         var idName = match[2][0].value
-    //         idName = idName.replace(/#/, '')
-    //         return `$_$1.$refs['${ idName }']`
-    //     })
+            //过滤var aa = a.b.data.c;这种情况
+            if (t.isIdentifier(object)) {
+                var objectName = object.name
+                var init = ggcUtils.getScopeVariableInitValue(nodePath.scope, objectName)
+                if (t.isCallExpression(init) && t.isMemberExpression(init.callee) && t.isIdentifier(init.callee.property, { name: "selectComponent" })) {
+                    item.replaceBy(object)
+                }
+            }
+        }).root()
 }
 
 module.exports = { transformSelectComponent }
+
+
+//测试样例
+// const options = {
+// 	linfoldTap() {
+
+// 		var aa = a.b.data.c
+
+// 		var test = this.selectComponent('#tttt')
+// 		console.log('#test', test);
+// 		console.log('#test', test.data.foo); ///注，这里有data!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+// 		//根据ID获取组件对象
+// 		var showTwo = this.selectComponent('#myShow');
+// 		//访问属性,使用data访问内部属性和组件属性
+// 		console.info(showTwo.data);
+// 		//执行操做
+// 		showTwo.innerAdd();
+
+// 		//根据样式获取，建议使用selectAllComponents
+// 		var showThree = this.selectComponent('.myShow');
+// 		console.info(showThree.data);
+// 		showThree.innerAdd();
+
+// 		const my_sel = this.selectComponent(".selectfromcomponent");
+// 		//2然后通过setData修改数据(不合理)应该是用下面调用方法的
+// 		my_sel.setData({
+// 			counter: my_sel.data.counter + 10
+// 		})
+// 	},
+// }

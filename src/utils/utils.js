@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-07-09 18:16:07
+ * @LastEditTime: 2023-04-10 20:38:11
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\utils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/utils.js
  *
  */
 const chalk = require('chalk')
@@ -66,7 +66,7 @@ function getAllFile (sourceFolder, options) {
             //TODO: 暂时只过滤.开头的目录
             const reg = /^\./
 
-            if(reg.test(folderName) || reg.test(relativePath)){
+            if (reg.test(folderName) || reg.test(relativePath)) {
                 result = false
             }
             return result
@@ -82,16 +82,16 @@ function log (msg, type = '') {
     switch (type) {
         case "error":
         case "red":
-            console.log(chalk.red(fullMsg))
+            global.log(chalk.red(fullMsg))
             break
         case "green":
-            console.log(chalk.green(fullMsg))
+            global.log(chalk.green(fullMsg))
             break
         case "yellow":
-            console.log(chalk.yellow(fullMsg))
+            global.log(chalk.yellow(fullMsg))
             break
         default:
-            console.log(msg)
+            global.log(msg)
             break
     }
     global.hbxOutputChannel && global.hbxOutputChannel.appendLine && global.hbxOutputChannel.appendLine(msg)
@@ -302,7 +302,7 @@ function isHex (str) {
 
 /**
  * 驼峰式转下横线
- * console.log(toLowerLine("TestToLowerLine"));  //test_to_lower_line
+ * global.log(toLowerLine("TestToLowerLine"));  //test_to_lower_line
  * @param {*} str
  */
 function toLowerLine (str) {
@@ -327,9 +327,9 @@ function getKebabCase (str) {
 
 /**
  * 中划线转驼峰式
- * console.log(toCamel('test-to-camel'));   //testToCamel
- * console.log(toCamel('diy-imageSingle')); //diyImageSingle
- * console.log(toCamel('diy_imageSingle')); //diy_imageSingle
+ * global.log(toCamel('test-to-camel'));   //testToCamel
+ * global.log(toCamel('diy-imageSingle')); //diyImageSingle
+ * global.log(toCamel('diy_imageSingle')); //diy_imageSingle
  * @param {*} str
  */
 function toCamel (str) {
@@ -761,6 +761,38 @@ let extnameArr = [
     //百度小程序
     'swan',
 ]
+
+
+/**
+ * 根据后缀名获取小程序全局关键字
+ * @returns
+ */
+function getMpKeywordByExtname (extname) {
+    var prefix = "wx"
+    switch (extname) {
+        case '.wxml':
+            prefix = "wx"
+            break
+        case '.qml':
+            prefix = "qq"
+            break
+        case '.ttml':
+            prefix = "tt"
+            break
+        case '.axml':
+            prefix = "my"
+            break
+        case '.swan':
+            prefix = "swan"
+            break
+        default:
+            prefix = "wx"
+            break
+    }
+    return prefix
+}
+
+
 /**
  * 扩展名正则
  */
@@ -829,7 +861,7 @@ function saveAttribsBindObject (fileKey, value, node = "", attrs = {}, key = "",
             matches.forEach(function (value) {
                 let pAttribs = getAllParentForNodeList(node)
                 value = value.replace(/{{|}}/g, "").trim()
-                // console.log("-*-", value)
+                // global.log("-*-", value)
                 if ((pAttribs && pAttribs.length) || JSON.stringify(attrs) !== "{}") {
                     //只留最前面的一个变量来判断
                     //如: a.b.c  --> a
@@ -933,6 +965,7 @@ function escape2Html (str) {
     return str.replace(/&(lt|gt|nbsp|amp|quot);/ig, function (all, t) { return arrEntities[t] })
 }
 
+
 module.exports = {
     log,
 
@@ -976,6 +1009,7 @@ module.exports = {
     getAttrPrefixExtname,
     getMPType,
     mpInfo,
+    getMpKeywordByExtname,
 
     extnameReg,
 

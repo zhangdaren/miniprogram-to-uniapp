@@ -52,7 +52,7 @@ function transformGetCurrentPages ($ast, fileKey) {
                     var obj = bindings[keyName]
 
                     if (!obj[0]) {
-                        console.log('transformGetCurrentPages: 找不到bindings[keyName] :>> ' + keyName + "   file:" + fileKey)
+                        global.log('transformGetCurrentPages: 找不到bindings[keyName] :>> ' + keyName + "   file:" + fileKey)
                         return
                     }
 
@@ -119,7 +119,7 @@ function transformGetCurrentPages ($ast, fileKey) {
                                     property.valuenewName
                                 }
                             } else {
-                                console.log("transformGetCurrentPages:  未知错误")
+                                global.log("transformGetCurrentPages:  未知错误")
                             }
                         }
                         let meExp = t.memberExpression(item.node, t.identifier("$vm"))

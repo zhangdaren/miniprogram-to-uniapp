@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2022-05-12 15:59:24
+ * @LastEditTime: 2023-03-26 13:22:25
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\lifecycle\lifecycle-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/lifecycle/lifecycle-transformer.js
  *
  */
 
@@ -135,6 +135,13 @@ function lifecycleFunctionHandle ($ast, lifecycleFnName, fileKey) {
         } else if (t.isObjectMethod(onLoadFunNode)) {
             //onLoad(a){}
             var args = onLoadFunNode.params
+
+            args.forEach(function (obj, i) {
+                if (t.isAssignmentPattern(obj)) {
+                    args[i] = obj.left
+                }
+            })
+
             var me = t.memberExpression(t.thisExpression(), t.identifier(newFunName))
             var callExp = t.callExpression(me, args)
             var expStatement = t.expressionStatement(callExp)

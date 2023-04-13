@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2021-10-29 19:39:35
+ * @LastEditTime: 2023-02-17 00:07:33
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\script\singleJS\singleJS-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/script/singleJS/singleJS-transformer.js
  *
  */
 
@@ -27,7 +27,7 @@ const ggcUtils = require("../../../utils/ggcUtils")
  */
 function transformSingleJSAst ($ast, fileKey, name) {
 
-    // ggcUtils.transformAppDotGlobalData($ast)
+    ggcUtils.transformAppDotGlobalData($ast)
     ggcUtils.transformGetApp($ast)
 
     return $ast

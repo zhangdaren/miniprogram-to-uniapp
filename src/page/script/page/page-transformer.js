@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-06-08 21:16:59
+ * @LastEditTime: 2022-07-11 20:37:23
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/script/page/page-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\script\page\page-transformer.js
  *
  */
 
@@ -68,10 +68,9 @@ function transformPageAst ($ast, fileKey) {
     $ast
         .find("Page($_$object)")
         .each(item => {
-            var node = item.attr("arguments.0")
-            if (t.isObjectExpression(node)) {
+            var arguments = item.attr("arguments.0")
+            if (t.isObjectExpression(arguments)) {
                 //item.attr("arguments.0.properties") 获取的是一个新数组，因此直接操作父级比较好一点
-                var arguments = item.attr("arguments.0")
                 arguments.properties = arguments.properties.filter(function (subItem) {
                     var isMatch = true
                     if (t.isObjectProperty(subItem) || t.isObjectMethod(subItem)) {
@@ -99,7 +98,7 @@ function transformPageAst ($ast, fileKey) {
                 })
             } else {
                 var littleCode = $ast.generate().substr(0, 300)
-                console.log(`[Error]Page异常情况(建议把源代码修改为简单结构，如Page({})，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
+                global.log(`[ERROR]Page异常情况(建议把源代码修改为简单结构，如Page({})，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
             }
         })
         .root()

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-30 17:07:30
- * @LastEditTime: 2022-05-07 17:37:01
+ * @LastEditTime: 2023-04-01 16:15:19
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\variableUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/variableUtils.js
  *
  * 批量给data对象添加子节点
  * 用于template未定义的变量进行声明
@@ -104,7 +104,7 @@ function addNodePath (dataPath, key, valueType, isLast, isOnlyOne, variableTypeI
     }
 
     //仅一个单词时候，重新调整类型
-    if (isOnlyOne && variableTypeInfo) {
+    if (isOnlyOne && Object.keys(variableTypeInfo).length) {
         valueType = variableTypeInfo[key] || valueType
     }
 
@@ -244,7 +244,7 @@ function guessValueTypeByName (name) {
         type = "String"
     }
 
-    // console.log("猜猜猜 value: " + name + "  猜得类型：" + type)
+    // global.log("猜猜猜 value: " + name + "  猜得类型：" + type)
     return type
 }
 /**
@@ -290,7 +290,7 @@ function getTypeByOperator (operator, right) {
             break
         default:
             //还有两个，，理论上也用不上吧？
-            // console.log("异常： operator = |" + operator + "|")
+            // global.log("异常： operator = |" + operator + "|")
             break
     }
     return type
@@ -339,8 +339,8 @@ function getVariableByBinaryExpression ($jsAst, originalType) {
                     typeRight = "Array"
                 }
 
-                // console.log("typeLeft", typeLeft)
-                // console.log("typeRight", typeRight)
+                // global.log("typeLeft", typeLeft)
+                // global.log("typeRight", typeRight)
 
                 var type = typeLeft || typeRight
                 var list = getVariableByExpression(left, typeLeft)
@@ -576,7 +576,7 @@ function getTypeByAttr (attr, value) {
  */
 function getExpressionVariableList (attr, value) {
 
-    // console.log("getExpressionVariableList value= " + value)
+    // global.log("getExpressionVariableList value= " + value)
     // if(value.indexOf("{{") === 0){
     //     value = parseMustache(value, true)
     // }
@@ -598,7 +598,11 @@ function getExpressionVariableList (attr, value) {
     }
 
     // TODO: 判断是否在data，prop，是否是函数？？？还有{{}}的处理
-    var expList = getExpressionVariableByAst($jsAst, attrType)
+    try {
+        var expList = getExpressionVariableByAst($jsAst, attrType)
+    } catch (error) {
+        global.log("[ERROR]getExpressionVariableByAst", error)
+    }
 
     //去重
     expList = utils.uniqueArray(expList, "code")
@@ -613,13 +617,160 @@ function getExpressionVariableList (attr, value) {
         }
     })
 
-    // console.log("value", value)
-    // console.log("expList", JSON.stringify(expList))
+    // global.log("value", value)
+    // global.log("expList", JSON.stringify(expList))
     return expList
 }
 
 
 
+
+/**
+ * TODO: 获取所有template里面的变量
+ */
+function getTemplateExpressionList ($wxmlAst) {
+    if (!$wxmlAst) return []
+
+    var expList = []
+    var reg = /\{\{(.*?)\}\}/
+    $wxmlAst
+        .find('<$_$tag></$_$tag>')
+        .each(function (item) {
+            //attr content 并去重！
+
+            //abc["b"],  abc.b
+            //有冒号的，，和content
+
+            // path: "abc.eb.c",  type:"string"
+
+            // item 这类，是否还要判断是否为父for
+
+            //取member 和id ，先取member
+
+            //解析类型 三元表达式，+-*/
+
+            var tagName = item.attr("content.name")
+
+            var attributes = item.attr("content.attributes")
+            var children = item.attr("content.children")
+
+            //处理标签属性
+            if (attributes) {
+                attributes.forEach(function (attr) {
+                    var attrNode = attr.key
+                    var valueNode = attr.value
+
+                    if (attr.value) {
+                        //判断：有些属性没有值，如v-else
+                        var attr = attrNode.content
+                        var value = valueNode.content
+
+                        if (attr[0] === ":" || attr.indexOf("v-") > -1) {
+                            // global.log("value---------------" + value)
+
+                            //{type: 'Boolean', code: 'false'}
+                            var list = getExpressionVariableList(attr, value)
+                            expList.push(...list)
+                        }
+                    }
+                })
+            }
+
+            //处理标签内容
+            if (children && children.length === 1) {
+                var contentNode = children[0].content.value
+
+                if (!contentNode) return
+
+                var content = contentNode.content
+
+                //去掉换行
+                content = content.replace(/\n/g, "")
+
+                var reg = /\{\{(.*?)\}\}/
+                if (content && reg.test(content)) {
+                    var codeList = content.match(/\{\{(.*?)\}\}/g)
+                    // codeList = codeList.map(function (str) {
+                    //     return str.replace(reg, "$1")
+                    // })
+                    if (!codeList && !codeList.length) {
+                        global.log("codeList 括号没成对？", codeList)
+                        return
+                    }
+
+                    codeList.map(function (code) {
+                        code = parseMustache(code, true)
+                        code = code.replace(reg, "").replace(/\s/, "")
+
+                        var list = getExpressionVariableList("", code)
+                        expList.push(...list)
+                    })
+                }
+            }
+        })
+    // global.log("expList", JSON.stringify(expList))
+
+    //去重
+    expList = utils.uniqueArray(expList, "code")
+
+    return expList
+}
+
+
+/**
+ * 对需要添加到data里面的变量字符串进行初步处理
+ * @param {.} name
+ */
+function getVariableListByKey (name) {
+    //TODO: dateTimeArray1[dateTime1[1]] 这种不太好解析
+    name = name.replace(/\[.*?\]+/g, "[0]")
+    return name.split(".")
+}
+
+/**
+ * 获取代码里面所有绑定的回调函数
+ * @param {*} $wxmlAst
+ * @returns
+ */
+function getTemplateEventFnList($wxmlAst){
+    if (!$wxmlAst) return []
+
+    var expList = []
+    $wxmlAst
+        .find('<$_$tag></$_$tag>')
+        .each(function (item) {
+            var attributes = item.attr("content.attributes")
+
+            //处理标签属性
+            if (attributes) {
+                attributes.forEach(function (attr) {
+                    var attrNode = attr.key
+                    var valueNode = attr.value
+
+                    if (attr.value) {
+                        //判断：有些属性没有值，如v-else
+                        var attr = attrNode.content
+                        var value = valueNode.content
+
+                        if (attr[0] === "@") {
+                            // global.log("value---------------" + value)
+                            var list = getExpressionVariableList(attr, value)
+                            expList.push(...list)
+                        }
+                    }
+                })
+            }
+        })
+    // global.log("expList", JSON.stringify(expList))
+
+    //去重
+    expList = utils.uniqueArray(expList, "code")
+
+    //统一弄成Function类型
+    expList.map(item=>item.type = "Function")
+
+    return expList
+}
 
 module.exports = {
     getTypeByAstNode,
@@ -627,4 +778,10 @@ module.exports = {
     setDataByPathList,
     getExpressionVariableList,
     guessValueTypeByName,
+    getVariableListByKey,
+    getTemplateExpressionList,
+    getTemplateEventFnList
 }
+
+
+

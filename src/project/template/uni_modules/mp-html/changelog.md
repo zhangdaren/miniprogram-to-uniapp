@@ -1,3 +1,29 @@
+## v2.4.1（2022-12-25）
+1. `F` 修复了没有图片时 `ready` 事件可能不触发的问题
+2. `F` 修复了加载过程中可能出现 `Root label not found` 错误的问题 [详细](https://github.com/jin-yufeng/mp-html/issues/470)
+3. `F` 修复了 `audio` 插件退出页面可能会报错的问题 [详细](https://github.com/jin-yufeng/mp-html/issues/457)
+4. `F` 修复了 `vue3` 运行到 `app` 在 `HBuilder X 3.6.10` 以上报错的问题 [详细](https://github.com/jin-yufeng/mp-html/issues/480)
+5. `F` 修复了 `nvue` 端链接中包含 `%22` 时可能无法显示的问题
+6. `F` 修复了 `vue3` 使用 `highlight` 插件可能报错的问题
+## v2.4.0（2022-08-27）
+1. `A` 增加了 [setPlaybackRate](https://jin-yufeng.gitee.io/mp-html/#/advanced/api#setPlaybackRate) 的 `api`，可以设置音视频的播放速率 [详细](https://github.com/jin-yufeng/mp-html/issues/452)
+2. `A` 示例小程序代码开源 [详细](https://github.com/jin-yufeng/mp-html-demo)
+3. `U` 优化 `ready` 事件触发时机，未设置懒加载的情况下基本可以准确触发 [详细](https://github.com/jin-yufeng/mp-html/issues/195)
+4. `U` `highlight` 插件在编辑状态下不进行高亮处理，便于编辑
+5. `F` 修复了 `flex` 布局下图片大小可能不正确的问题
+6. `F` 修复了 `selectable` 属性没有设置 `force` 也可能出现渲染异常的问题
+7. `F` 修复了表格中的图片大小可能不正确的问题 [详细](https://github.com/jin-yufeng/mp-html/issues/448)
+8. `F` 修复了含有合并单元格的表格可能无法设置竖直对齐的问题
+9. `F` 修复了 `editable` 插件在 `scroll-view` 中使用时工具条位置可能不正确的问题
+10. `F` 修复了 `vue3` 使用 [search](advanced/plugin#search) 插件可能导致错误换行的问题 [详细](https://github.com/jin-yufeng/mp-html/issues/449)
+## v2.3.2（2022-08-13）
+1. `A` 增加 [latex](https://jin-yufeng.gitee.io/mp-html/#/advanced/plugin#latex) 插件，可以渲染数学公式 [详细](https://github.com/jin-yufeng/mp-html/pull/447) by [@Zeng-J](https://github.com/Zeng-J)
+2. `U` 优化根节点下有很多标签的长内容渲染速度
+3. `U` `highlight` 插件适配 `lang-xxx` 格式
+4. `F` 修复了 `table` 标签设置 `border` 属性后可能无法修改边框样式的问题 [详细](https://github.com/jin-yufeng/mp-html/pull/439) by [@zouxingjie](https://github.com/zouxingjie)
+5. `F` 修复了 `editable` 插件输入连续空格无效的问题
+6. `F` 修复了 `vue3` 图片设置 `inline` 会报错的问题 [详细](https://github.com/jin-yufeng/mp-html/issues/438)
+7. `F` 修复了 `vue3` 使用 `table` 可能报错的问题
 ## v2.3.1（2022-05-20）
 1. `U` `app` 端支持使用本地图片
 2. `U` 优化了微信小程序 `selectable` 属性在 `ios` 端的处理 [详细](https://jin-yufeng.gitee.io/mp-html/#/basic/prop#selectable)

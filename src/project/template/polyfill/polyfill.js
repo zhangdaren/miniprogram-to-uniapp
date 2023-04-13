@@ -8,6 +8,7 @@
  *
  * Api polyfill
  * 2021-03-06
+ * 2022-11-06更新
  * 因小程序转换到uniapp，再运行到各平台时，总有这样那样的api，没法支持，
  * 现根据uniapp文档对各平台的支持度，或实现，或调用success来抹平各平台的差异，
  * 让代码能正常运行，下一步再解决这些api的兼容问题。
@@ -98,7 +99,7 @@ function mapPolyfill () {
     }
 
     if (isApiNotImplemented("openLocation")) {
-        uni.openLocation = function (object) {
+        uni.openLocation = function (options) {
             console.warn("api: uni.openLocation 使用应用内置地图查看位置 在当前平台不支持，回调失败")
             options.fail && options.fail()
         }
@@ -162,7 +163,7 @@ function mediaPolyfill () {
     }
 
     if (isApiNotImplemented("compressImage")) {
-        uni.compressImage = function (object) {
+        uni.compressImage = function (options) {
             console.warn("api: uni.compressImage 压缩图片接口 在当前平台不支持，回调失败")
             options.fail && options.fail()
         }
@@ -170,7 +171,7 @@ function mediaPolyfill () {
 
     if (isApiNotImplemented("chooseMessageFile")) {
         //从微信聊天会话中选择文件。
-        uni.chooseMessageFile = function (object) {
+        uni.chooseMessageFile = function (options) {
             console.warn("api: uni.chooseMessageFile 从微信聊天会话中选择文件。 在当前平台不支持，回调失败")
             options.fail && options.fail()
         }
@@ -178,28 +179,28 @@ function mediaPolyfill () {
 
     if (isApiNotImplemented("getRecorderManager")) {
         //获取全局唯一的录音管理器 recorderManager
-        uni.getRecorderManager = function (object) {
+        uni.getRecorderManager = function (options) {
             console.warn("api: uni.getRecorderManager 获取全局唯一的录音管理器 在当前平台不支持")
         }
     }
 
     if (isApiNotImplemented("getBackgroundAudioManager")) {
         //获取全局唯一的背景音频管理器 backgroundAudioManager
-        uni.getBackgroundAudioManager = function (object) {
+        uni.getBackgroundAudioManager = function (options) {
             console.warn("api: uni.getBackgroundAudioManager 获取全局唯一的背景音频管理器 在当前平台不支持")
         }
     }
 
     if (isApiNotImplemented("chooseMedia")) {
         // 拍摄或从手机相册中选择图片或视频
-        uni.chooseMedia = function (object) {
+        uni.chooseMedia = function (options) {
             console.warn("api: uni.chooseMedia 拍摄或从手机相册中选择图片或视频 在当前平台不支持，回调失败")
-            options.fail && options.fail()
+            options && options.fail && options.fail()
         }
     }
     if (isApiNotImplemented("saveVideoToPhotosAlbum")) {
         // 保存视频到系统相册
-        uni.saveVideoToPhotosAlbum = function (object) {
+        uni.saveVideoToPhotosAlbum = function (options) {
             console.warn("api: uni.saveVideoToPhotosAlbum 保存视频到系统相册 在当前平台不支持，回调失败")
             options.fail && options.fail()
         }
@@ -207,7 +208,7 @@ function mediaPolyfill () {
 
     if (isApiNotImplemented("getVideoInfo")) {
         // 获取视频详细信息
-        uni.getVideoInfo = function (object) {
+        uni.getVideoInfo = function (options) {
             console.warn("api: uni.getVideoInfo 获取视频详细信息 在当前平台不支持，回调失败")
             options.fail && options.fail()
         }
@@ -215,7 +216,7 @@ function mediaPolyfill () {
 
     if (isApiNotImplemented("compressVideo")) {
         // 压缩视频接口
-        uni.compressVideo = function (object) {
+        uni.compressVideo = function (options) {
             console.warn("api: uni.compressVideo 压缩视频接口 在当前平台不支持，回调失败")
             options.fail && options.fail()
         }
@@ -224,7 +225,7 @@ function mediaPolyfill () {
 
     if (isApiNotImplemented("openVideoEditor")) {
         // 打开视频编辑器
-        uni.openVideoEditor = function (object) {
+        uni.openVideoEditor = function (options) {
             console.warn("api: uni.openVideoEditor 打开视频编辑器 在当前平台不支持，回调失败")
             options.fail && options.fail()
         }
@@ -238,7 +239,7 @@ function devicePolyfill () {
     if (isApiNotImplemented("canIUse")) {
         // 判断应用的 API，回调，参数，组件等是否在当前版本可用。
         // h5时，恒返回true
-        uni.canIUse = function (object) {
+        uni.canIUse = function (options) {
             console.warn("api: uni.canIUse 判断API在当前平台是否可用 返回true")
             return true
         }
@@ -476,10 +477,12 @@ function uiPolyfill () {
             options.fail && options.fail()
         }
     }
+
+	//TODO:
     if (isApiNotImplemented("getMenuButtonBoundingClientRect")) {
         // 微信胶囊按钮布局信息
-        uni.getMenuButtonBoundingClientRect = function () {
-            console.warn("api: uni.getMenuButtonBoundingClientRect 微信胶囊按钮布局信息 在当前平台不支持，执行失败")
+        uni.getMenuButtonBoundingClientRect = function (options) {
+            return false
         }
     }
 }
@@ -819,7 +822,7 @@ function bluetoothPolyfill () {
     //蓝牙
     if (isApiNotImplemented("openBluetoothAdapter")) {
         // 初始化蓝牙模块
-        uni.openBluetoothAdapter = function (object) {
+        uni.openBluetoothAdapter = function (options) {
             console.warn("api: uni.openBluetoothAdapter 初始化蓝牙模块 在当前平台不支持")
         }
     }
@@ -1016,6 +1019,7 @@ var isInit = false
  * polyfill 入口
  */
 function init () {
+
     if (isInit) return
     isInit = true
 
@@ -1064,6 +1068,7 @@ function init () {
 
     //router
     routerPolyfill()
+
 }
 
 

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 09:56:46
- * @LastEditTime: 2021-10-29 19:03:19
+ * @LastEditTime: 2022-11-02 21:24:44
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\behavior\behavior-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/behavior/behavior-transformer.js
  *
  */
 
@@ -28,11 +28,11 @@ const ggcUtils = require("../../utils/ggcUtils")
  * @param {*} $jsAst
  * @returns
  */
-function transformBehaviorProp ($jsAst) {
+function transformBehaviorProp ($jsAst,fileKey) {
     if (!$jsAst) return
 
     let reg = /^wx:\/\//
-    var behaviorList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.BEHAVIORS)
+    var behaviorList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.BEHAVIORS, fileKey)
     behaviorList.map(function (item) {
         if (t.isStringLiteral(item)) {
             if (reg.test(item.value)) {
@@ -61,7 +61,7 @@ https://developers.weixin.qq.com/miniprogram/dev/reference/api/Behavior.html
 function transformBehavior ($jsAst, fileKey) {
     // console.log("fileKey", fileKey)
 
-    transformBehaviorProp($jsAst)
+    transformBehaviorProp($jsAst,fileKey)
 
     return $jsAst
 }

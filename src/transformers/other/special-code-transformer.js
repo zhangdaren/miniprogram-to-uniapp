@@ -1,13 +1,19 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2022-05-17 18:52:26
+ * @LastEditTime: 2023-04-01 22:04:52
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\other\special-code-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/other/special-code-transformer.js
  *
  */
+1
+const _ = require('lodash')
+const $ = require('gogocode')
+const t = require("@babel/types")
 
+var appRoot = "../../.."
+const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 
 /**
  * 抹平小程序与uni-app在showModal这个api之前的差异
@@ -46,6 +52,36 @@ function transformAwaitShowModal ($jsAst, fileKey) {
 
 
 /**
+ * 处理手动调用下拉刷新函数this.onPullDownRefresh() --> uni.startPullDownRefresh()
+ * uni-app是不允许调用生命周期函数，因此替换为uni.startPullDownRefresh();
+ * @param {*} $jsAst
+ * @param {*} fileKey
+ * @returns
+ */
+function transformThisDotOnPullDownRefresh ($jsAst, fileKey) {
+    if (!$jsAst) return
+
+    $jsAst
+        .replace(`$_$.onPullDownRefresh()`, (match, nodePath) => {
+            var object = _.get(nodePath, "node.callee.object", "")
+
+            var isThis = false
+            if (t.isThisExpression(object)) {
+                isThis = true
+            } else if (t.isIdentifier(object)) {
+                var objectName = object.name
+                var init = ggcUtils.getScopeVariableInitValue(nodePath.scope, objectName)
+                if (t.isThisExpression(init)) {
+                    isThis = true
+                }
+            }
+            return isThis ? `uni.startPullDownRefresh()` : "null"
+        })
+}
+
+
+
+/**
  * 转换特殊变量 & 清理代码
  * 把只有一行的这种代码集中一下
  *
@@ -76,6 +112,17 @@ function transformSpecialCode ($jsAst, $wxmlAst) {
             })
 
         transformAwaitShowModal($jsAst)
+        transformThisDotOnPullDownRefresh($jsAst)
+
+        //wx.nextTick -> this.$nextTick  可能的风险点：this引用不对
+        //为何是uni.nextTick？可能之前已经奖名字改了，，so~
+        //TODO: 使用setTimeout模拟
+        $jsAst.replace('uni.nextTick', 'this.$nextTick')
+
+
+        //处理selectComponent和selectAllComponents
+        $jsAst.replace('$_$1.selectComponent', '$_$1.zpSelectComponent')
+            .replace('$_$1.selectAllComponents', '$_$1.zpSelectAllComponents')
     }
 
     if ($wxmlAst) {

@@ -22,6 +22,7 @@ updater({ 'pkg': pkg }).then(() => {
         .option('-i, --input', 'the input path for miniprogram project')
         .option('-c, --cli', 'the type of output project is vue-cli, which default value is false', false)
         .option('-m, --merge', 'merge wxss file into vue file, which default value is false', false)
+        .option('-t, --template', 'transform template and include to component, which default value is false', false)
         .parse(process.argv);
 
     program.on('--help', function () {
@@ -30,7 +31,7 @@ updater({ 'pkg': pkg }).then(() => {
         console.log();
         console.log(chalk.gray('    # transform a miniprogram project to uni-app project'));
         console.log();
-        console.log('    $ wtu -i ./miniprogram-project [-m]');
+        console.log('    $ wtu -i ./miniprogram-project [-m -c -t]');
         console.log();
     });
 
@@ -47,11 +48,13 @@ updater({ 'pkg': pkg }).then(() => {
     const opts = program.opts();
     const isVueAppCliMode = opts.cli;
     const isMergeWxssToVue = opts.merge;
+    const isTemplateToComponent = opts.template;
 
     const options = {
         dist,
         isVueAppCliMode,
         isMergeWxssToVue,
+        isTemplateToComponent
     }
 
     src = path.resolve(process.cwd(), src);

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-06-28 14:39:01
+ * @LastEditTime: 2023-03-28 00:06:10
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\style\style-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/style/style-transformer.js
  *
  */
 const fs = require('fs-extra')
@@ -14,8 +14,10 @@ var appRoot = "../../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
 const postcss = require('postcss')
-const lessSyntax = require('postcss-less')
+// const lessSyntax = require('postcss-less')
 const scssSyntax = require('postcss-scss')
+
+const less = require('less')
 
 
 /**
@@ -26,24 +28,47 @@ const scssSyntax = require('postcss-scss')
  * @param {*} fileContent       css文件内容
  * @param {*} file_wxss         当前处理的文件路径
  */
-async function transformStyleFile (file_wxss) {
+async function transformStyleFile (file_wxss, fileKey) {
     if (!file_wxss) return ""
 
     let content = ""
     try {
-        content = await new Promise((resolve, reject) => {
+        content = await new Promise(async (resolve, reject) => {
             //rpx不再转换
 
             var fileContent = fs.readFileSync(file_wxss, 'utf-8')
 
             //删除掉import app.wxss的代码
             //删除掉import wxParse.wxss的代码
+
+            //替换双注释/* pages/index/inc.wxss *//* pages/index/inc.wxss */为单个,防止Prettie格式化时出毛病
+            //使用Prettier+vue会直接格出bug...
+            // <template></template>
+            // <script></script>
+            // <style>
+            //  /* pages/index/inc.wxss *//* pages/index/inc.wxss */
+            //  .page {}
+            // </style>
             fileContent = fileContent.replace(/@import\s?["'].*?\/?(app|wxParse)[\/\.](.*?)["'];?/g, "")
+                .replace(/(\/\*[^\*]*\*\/)\s*(?:\/\*[^\*]*\*\/)/g, "$1")
+
+
+            //异外的样式
+            // ./static/css/order.wxssrpxbody {
+            //     background: #f7f7f7;
+            // }
+            // ./static/css/diypage.wxssrpx./pages/common/city-picker.wxssrpxwx-canvas {
+            //     display: block !important;
+            // }
+            const unexpectedStyleReg = /\.\/[\w\/-]*\.wxssrpx/i
+            if (unexpectedStyleReg.test(fileContent)) {
+                fileContent = fileContent.replace(/\.\/[\w\/-]*\.wxssrpx/gi, "")
+                global.log("\n[Tip]这个文件含有意料之外的样式，工具已尝试自动修复。  fileKey: " + fileKey)
+            }
 
             //wxss文件所在目录
             let fileDir = path.dirname(file_wxss)
             let extname = path.extname(file_wxss)
-            var fileKey = pathUtils.getFileKey(file_wxss)
 
             let reg_import = /@import\s*['"](.*?)\.wxss['"];*/g  //应该没有写单引号的呗？(服输，还真可能有单引号)
             fileContent = fileContent.replace(reg_import, function (match, $1) {
@@ -73,24 +98,20 @@ async function transformStyleFile (file_wxss) {
                 //忽略网络素材地址，不然会转换出错
                 //https://github.com/validatorjs/validator.js
                 if (src && !utils.isURL(src) && reg_media.test(src)) {
-                    if (global.isVueAppCliMode) {
-                        //
-                    } else {
-                        //static路径
-                        let staticPath = path.join(global.miniprogramRoot, "static")
+                    //static路径
+                    let staticPath = path.join(global.miniprogramRoot, "static")
 
-                        //当前处理文件所在目录
-                        let wxssFolder = path.dirname(file_wxss)
-                        var pFolderName = pathUtils.getParentFolderName(src)
-                        // console.log("pFolderName ", pFolderName)
-                        var fileName = path.basename(src)
-                        // console.log("fileName ", fileName)
-                        //
-                        let filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName)
-                        src = path.relative(wxssFolder, filePath)
-                        // 修复路径
-                        src = utils.normalizePath(src)
-                    }
+                    //当前处理文件所在目录
+                    let wxssFolder = path.dirname(file_wxss)
+                    var pFolderName = pathUtils.getParentFolderName(src)
+                    // global.log("pFolderName ", pFolderName)
+                    var fileName = path.basename(src)
+                    // global.log("fileName ", fileName)
+                    //
+                    let filePath = path.resolve(staticPath, "./" + pFolderName + "/" + fileName)
+                    src = path.relative(wxssFolder, filePath)
+                    // 修复路径
+                    src = utils.normalizePath(src)
                     if (!/^[\.\/]/.test(src)) {
                         src = "./" + src
                     }
@@ -99,39 +120,79 @@ async function transformStyleFile (file_wxss) {
             })
 
             //处理iconfont和top
-            fileContent = transformIconfont(fileContent, extname, fileKey)
+            fileContent = await transformIconfont(fileContent, extname, fileKey)
 
             resolve(fileContent)
         })
     } catch (err) {
-        console.log(err)
+        global.log("transformStyleFile err", err)
     }
     return content
 }
 
+/**
+ * 解析less
+ * @param {*} code
+ * @returns
+ */
+function parseLess (code) {
+    return new Promise((res, rej) => {
+        less.parse(code, (err, ast) => {
+            if (err) {
+                console.error(err)
+                rej()
+            } else {
+                global.log("parseLess", ast)
+                res(ast)
+            }
+        })
+    })
+}
 
 /**
  * 处理iconfont和top
  * @param {*} fileContent
  * @returns
  */
-function transformIconfont (fileContent, extname, fileKey) {
+async function transformIconfont (fileContent, extname, fileKey) {
     var ast = null
     switch (extname) {
         case ".less":
-            ast = lessSyntax.parse(fileContent)
+            // ast = lessSyntax.parse(fileContent)
+            //TODO: 这个解析还是有问题的。。
+            // .container {
+            //     .px1-bottom();
+            //     &-content {
+            //         flex-grow: 1;
+            //         .ellipsis();
+            //         .hyphens;
+            //         line-height: 1.2;
+            //         margin-right: 10rpx;
+            //     }
+            // }
+
+            // ast = await parseLess(fileContent)
+            //TODO: 未完成的。这个是一个树，需要遍历
+
+            //暂直接返回
+            return fileContent
+
             break
         case ".scss":
             ast = scssSyntax.parse(fileContent)
             break
         default:
-            ast = postcss.parse(fileContent)
+            try {
+                ast = postcss.parse(fileContent)
+            } catch (error) {
+                global.log(`postcss解析${ extname }失败,源码：${ fileContent }`)
+            }
             break
     }
 
     // parse CSS to AST
     if (!ast) {
-        console.log(`解析${ extname }失败,源码：${ fileContent }`)
+        global.log(`解析${ extname }失败,源码：${ fileContent }`)
         return fileContent
     }
 
@@ -155,7 +216,7 @@ function transformIconfont (fileContent, extname, fileKey) {
 
             if (!hasBase64) {
 
-                console.log("\n[Tip]这里引用的全是网络字体，可能在app上面有兼容问题（如字体图标显示不出来，运行后没问题就不用管）  fileKey: " + fileKey)
+                global.log("\n[Tip]这里引用的全是网络字体，可能在app上面有兼容问题（如字体图标显示不出来，运行后没问题就不用管）  fileKey: " + fileKey)
                 return
             }
 

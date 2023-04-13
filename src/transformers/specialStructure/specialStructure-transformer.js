@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2021-11-09 16:52:55
+ * @LastEditTime: 2023-04-10 20:37:15
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\specialStructure\specialStructure-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/specialStructure/specialStructure-transformer.js
  *
  */
 
@@ -150,15 +150,15 @@ function transformSpecialStructure ($jsAst, fileKey) {
                         //确定是变量名本体
                         //尝试修复一下
                         item.attr("arguments", [init])
-                        console.log("\n[Tip]这个页面的结构非标准结构，尝试修复一下，如有问题，请先调整后，再转换。 file:" + fileKey)
+                        global.log("\n[Tip]这个页面的结构非标准结构，工具已尝试自动修复，如仍有问题，请先调整为标准结构后(如：Page({}))，再转换。 file:" + fileKey)
                     } else {
-                        console.log("\n[Tip]这个页面的结构非标准结构，无法自动修复! 请先调整后，再转换。 file:" + fileKey)
+                        global.log("\n[Tip]这个页面的结构非标准结构，工具无法自动修复! 请先调整为标准结构后(如：Page({}))，再转换。 file:" + fileKey)
                     }
                 } else if (t.isObjectExpression(node)) {
                     //这是正常的。
                 } else {
                     //这是不正常了, 要不要抛出错误？
-                    console.log("\n[Error]这个页面的js的结构写法无法解析   fileKey: " + fileKey)
+                    global.log("\n[ERROR]这个页面的js的结构写法无法解析(可能有语法问题)，请修复后再试。   fileKey: " + fileKey)
                 }
             })
         if (varName) {

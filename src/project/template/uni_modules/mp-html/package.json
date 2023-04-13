@@ -1,7 +1,7 @@
 {
     "id": "mp-html",
-    "displayName": "mp-html 富文本组件【全端支持，可编辑】",
-    "version": "v2.3.1",
+    "displayName": "mp-html 富文本组件【全端支持，支持编辑、latex等扩展】",
+    "version": "v2.4.1",
     "description": "一个强大的富文本组件，高效轻量，功能丰富",
     "keywords": [
         "富文本",
@@ -12,10 +12,6 @@
     ],
     "repository": "https://github.com/jin-yufeng/mp-html",
     "dcloudext": {
-        "category": [
-            "前端组件",
-            "通用组件"
-        ],
         "sale": {
             "regular": {
                 "price": "0.00"
@@ -32,7 +28,8 @@
             "data": "无",
             "permissions": "无"
         },
-        "npmurl": "https://www.npmjs.com/package/mp-html"
+        "npmurl": "https://www.npmjs.com/package/mp-html",
+        "type": "component-vue"
     },
     "uni_modules": {
         "platforms": {

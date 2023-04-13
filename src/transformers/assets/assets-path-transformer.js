@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-06 15:00:52
- * @LastEditTime: 2022-07-09 11:27:16
+ * @LastEditTime: 2023-04-10 20:38:51
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\assets\assets-path-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/assets/assets-path-transformer.js
  *
  */
 const $ = require('gogocode')
@@ -84,51 +84,68 @@ function repairTemplateSourcePath ($jsAst, wxmlFile) {
         '<$_$1 :thumb="$_$src" $$$>$$$2</$_$1>',
     ])
         .each(function (item) {
-            var srcNode = item.match['src'][0].node
-            var src = srcNode.content
+            let srcNode = item.match['src'][0].node
+            let src = srcNode.content
 
-            // console.log("src----", src)
+            // global.log("src----", src)
 
-            //不合格的路径不进行处理
+            //这种略过不处理
             //<image class="wc-ftimg" mode="aspectFit" :src="imgsrc + '/wechatimg/form/edit.png'"></image>
-            if (reg_ignore.test(src)) return
-
-            //TODO: 含三元表达式的呢？含变量的呢？  其实这个判断也不好判断
 
             let fileDir = path.dirname(wxmlFile)
 
-            // var newSrc = src.replace(ggcUtils.multiAssetsFileReg, function (match, $1) {
-            //     let newVal = pathUtils. repairAssetPath(
-            //         $1,
-            //         global.miniprogramRoot,
-            //         fileDir,
-            //         false   //不使用@/，  <image :src="'@/static/image' + file+  'png'"></image>这种引用不到!
-            //     )
-            //     //如果有引号，则需要添加上
-            //     if (/^['"]/.test(match)) {
-            //         newVal = `'${ newVal }'`
-            //     }
-            //     return newVal
-            // })
+            //处理template里面的相对路径
+            let newSrc = src.replace(ggcUtils.multiAssetsFileReg, function (match, $1) {
+                let newVal = $1
 
-            var newSrc = src
-            if (ggcUtils.assetsFileReg.test(src)) {
-                newSrc = pathUtils.repairAssetPath(
-                    src,
+                //展开为绝对路径
+                let fullPath = pathUtils.getResolvePath($1, fileDir)
+
+                //重要：判断是否有源文件！防止误替换(???不太记得了)，这里仍然还是转换为相对于static目录
+                if (!fs.existsSync(fullPath)) {
+                    var fileKey = pathUtils.getFileKey(wxmlFile)
+                    global.log(`[WARN] 文件 ${ pathUtils.getAbsolutePath(fullPath, false) } 不存在，但仍然对路径进行转换为相对于static目录，运行时需注意！   fileKey: ${ fileKey }`)
+                }
+                //转换路径为相对于static目录
+                newVal = pathUtils.repairAssetPath(
+                    $1,
                     global.miniprogramRoot,
                     fileDir,
                     false   //不使用@/，  <image :src="'@/static/image' + file+  'png'"></image>这种引用不到!
                 )
-            }
 
-            // function  repairAssetPath (filePath, root, fileDir) {
-            // let fileDir = path.dirname(wxmlFile)
-            // let newSrc = pathUtils. repairAssetPath(src, global.miniprogramRoot, fileDir)
-            // // console.log("newSrc--", newSrc)
+                //加上引号
+                let character = match[0]
+                if (!/['"]/.test(character)) {
+                    character = ""
+                }
+                newVal = `${ character }${ newVal }${ character }`
+
+                return newVal
+            })
+
+            //单个路径处理
+            // var newSrc = src
+            // if (ggcUtils.assetsFileReg.test(src)) {
+            //     newSrc = pathUtils.repairAssetPath(
+            //         src,
+            //         global.miniprogramRoot,
+            //         fileDir,
+            //         false   //不使用@/，  <image :src="'@/static/image' + file+  'png'"></image>这种引用不到!
+            //     )
+            // }
+
+            // if (!isReplace) {
+            //     var fileKey = pathUtils.getFileKey(wxmlFile)
+            //     global.log("[WARN]这个img标签可能有找不到文件的问题，转换后需注意。", item.generate(), '   file: ' + fileKey)
+            // }
+
             srcNode.content = newSrc
         })
         .root()
 }
+
+
 
 
 /**
@@ -136,11 +153,6 @@ function repairTemplateSourcePath ($jsAst, wxmlFile) {
  * 对js代码里面的路径进行资源路径处理
  * 注：这里理论上应该使用/代表绝对路径，而不应该使用@/，
  * 因为有时候，比如地图或第三方需要使用图片时，不识别@符号！！！！
- *
- * !!!有bug
- * 原因是很多不必要的也被转换了，比如：
- * msg.sendContent.indexOf('.png') > -1
- *
  *
  * @param {*} $jsAst
  * @param {*} $wxmlAst
@@ -152,62 +164,20 @@ function repairAstStringLiteralAssetPath ($jsAst, $wxmlAst, fileDir) {
             .each(function (item) {
                 var value = item.attr('value')
                 if (ggcUtils.assetsFileReg.test(value)) {
-                    //TODO: 这里有疑问，为啥要replace？而不是直接就转换呢？
-                    //答，会有很多路径
-                    // var newValue = value.replace(assetsFileReg, function (match, $1) {
-                    //     let newVal = pathUtils. repairAssetPath(
-                    //         value,
-                    //         global.miniprogramRoot,
-                    //         fileDir,
-                    //         false
-                    //     )
-                    //     return newVal
-                    // })
+                    //展开为绝对路径
+                    let fullPath = pathUtils.getResolvePath(value, fileDir)
 
-                    //直接转换就行了
-                    let newSrc = pathUtils.repairAssetPath(value, global.miniprogramRoot, fileDir, false)
-                    item.attr('value', newSrc)
+                    //重要：判断是否有源文件！防止误替换
+                    if (fs.existsSync(fullPath)) {
+                        let newSrc = pathUtils.repairAssetPath(value, global.miniprogramRoot, fileDir, false)
+                        item.attr('value', newSrc)
+                    }
                 }
             }).root()
     }
 
     if ($wxmlAst) {
-        // $wxmlAst
-        //     .find('<$_$tag></$_$tag>')
-        //     .each(function (item) {
-        //         var tagName = item.attr("content.name")
-
-        //         var attributes = item.attr("content.attributes")
-        //         var children = item.attr("content.children")
-
-        //         //处理标签属性
-        //         if (attributes) {
-        //             attributes.forEach(function (attr) {
-        //                 var attrNode = attr.key
-        //                 var valueNode = attr.value
-
-        //                 if (attr.value) {
-        //                     //判断：有些属性没有值，如v-else
-        //                     var attr = attrNode.content
-        //                     var value = valueNode.content
-
-        //                     if (attr[0] === ":" || attr.indexOf("v-") > -1) {
-
-        //                     }
-        //                 }
-        //             })
-        //         }
-
-        //         //处理标签内容
-        //         if (children && children.length === 1) {
-        //             var contentNode = children[0].content.value
-        //             if (!contentNode) return
-        //             var content = contentNode.content
-        //             if (content && content.indexOf('{{') !== -1) {
-
-        //             }
-        //         }
-        //     })
+        // 函数repairTemplateSourcePath已尽可能的多处理路径了，后续如有需要再添加。
     }
 }
 

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:59:08
- * @LastEditTime: 2022-07-09 17:08:00
+ * @LastEditTime: 2023-04-10 20:37:23
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\project\vue-cli-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/project/vue-cli-transformer.js
  *
  */
 const $ = require('gogocode')
@@ -29,7 +29,7 @@ async function transformVueCLI (configData, outputFolder) {
                     target: "public/index.html"
                 },
                 {
-                    source: "./vue-cli/.gitignore",
+                    source: "./vue-cli/git.gitignore",
                     target: ".gitignore"
                 },
                 {
@@ -73,7 +73,7 @@ async function transformVueCLI (configData, outputFolder) {
                     let fileContent = fs.readFileSync(file_source, 'utf-8')
                     for (const key2 in replaceArray) {
                         const flag = replaceArray[key2]
-                        // console.log(flag);
+                        // global.log(flag);
                         switch (flag) {
                             case "<%= PROJECT_NAME %>":
                                 //package.json里的name字段，有时会有中文，将导致npm i时报错，这里转换为拼音
@@ -85,10 +85,14 @@ async function transformVueCLI (configData, outputFolder) {
                                 const list = []
                                 for (let key in global.dependencies) {
                                     const value = global.dependencies[key]
-                                    list.push(`"    ${ key }": "${ value }"`)
+                                    list.push(`    "${ key }": "${ value }"`)
                                 }
-                                const str = list.join(",\n")
-                                fileContent = fileContent.replace(flag, `,\n${ str }`)
+                                let str = ""
+                                if (list.length) {
+                                    str = list.join(",\n")
+                                    str = `,\n${ str }`
+                                }
+                                fileContent = fileContent.replace(flag, str)
                                 break
                             default:
                                 break
@@ -96,10 +100,10 @@ async function transformVueCLI (configData, outputFolder) {
                     }
 
                     fs.writeFileSync(file_target, fileContent)
-                    console.log(`write ${ target } success!`)
+                    global.log(`write ${ target } success!`)
                 } else {
                     fs.copySync(file_source, file_target)
-                    console.log(`copy ${ target } success!`)
+                    global.log(`copy ${ target } success!`)
                 }
             }
 
@@ -107,7 +111,7 @@ async function transformVueCLI (configData, outputFolder) {
             resolve()
         })
     } catch (err) {
-        console.log(err)
+        global.log('transformVueCLI err', err)
     }
 }
 

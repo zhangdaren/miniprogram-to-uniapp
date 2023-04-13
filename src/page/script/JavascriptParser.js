@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-09-07 17:25:27
- * @LastEditTime: 2021-09-26 17:39:27
+ * @LastEditTime: 2023-04-10 20:35:29
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp2\src\page\script\JavascriptParser.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/script/JavascriptParser.js
  *
  */
 const parse = require('@babel/parser').parse
@@ -34,25 +34,19 @@ class JavascriptParser {
                 // Note that even when this option is enabled, @babel/parser could throw for unrecoverable errors.
                 // errorRecovery: true,  //没啥用，碰到let和var对同一变量进行声明时，当场报错！还会中断转换进程
                 plugins: [
-                    "asyncGenerators",
-                    "classProperties",
-                    "decorators-legacy", //"decorators",
-                    "doExpressions",
-                    "dynamicImport",
-                    "exportExtensions",
-                    "flow",
-                    "functionBind",
-                    "functionSent",
+                    // "flow",
+                    "flowComments",
                     "jsx",
-                    "objectRestSpread",
+                    "typescript",
+                    "v8intrinsic"
                 ]
             })
         } catch (error) {
             //页面的js报错就暂停转换，其余js不管
             if (isVueFile) {
-                throw new Error(`小程序js代码解析失败(babel)，请根据错误信息修复后，再重新进行转换。file: ${ fileKey }.js :>> ` + error)
+                global.log(`小程序js代码解析失败(babel)，请根据错误信息修复后，再重新进行转换。file: ${ fileKey }.js :>> ` + error)
             } else {
-                console.log(`[Error]小程序js代码解析失败(babel)，请根据错误信息修复后，再重新进行转换。file: ${ fileKey }.js :>> ` + error)
+                global.log(`[ERROR]小程序js代码解析失败(babel)，请根据错误信息修复后，再重新进行转换。file: ${ fileKey }.js :>> ` + error)
             }
         }
 

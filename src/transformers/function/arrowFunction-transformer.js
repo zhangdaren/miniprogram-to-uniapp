@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 11:44:02
- * @LastEditTime: 2022-05-16 14:38:53
+ * @LastEditTime: 2022-11-02 21:25:38
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\function\arrowFunction-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/function/arrowFunction-transformer.js
  *
  */
 
@@ -26,11 +26,17 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
 function transformArrowFunction ($jsAst, fileKey) {
     if (!$jsAst) return
 
-    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS)
+    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS, fileKey)
     methodList.map((item, i) => {
         if (item.value && item.value.type === "ArrowFunctionExpression") {
             var value = item.value
-            var objectMethod = t.objectMethod("method", item.key, value.params, value.body, item.computed, value.generator, value.async)
+            var body = value.body
+            if (!t.isBlockStatement(body)) {
+                //针对:  {methods: zeroPadding: t => (t = t.toString())[1] ? t : "0" + t}
+                var exp = t.ReturnStatement(body)
+                body = t.blockStatement([exp])
+            }
+            var objectMethod = t.objectMethod("method", item.key, value.params, body, item.computed, value.generator, value.async)
             methodList[i] = objectMethod
         }
     })

@@ -80,7 +80,7 @@ function transformCustomPageAst ($ast, fileKey, name) {
                 })
             } else {
                 var littleCode = $ast.generate().substr(0, 250);
-                console.log(`[Error]CustomPage异常情况(建议把源代码修改为简单结构，再尝试转换)\nfile:${fileKey}\n`, littleCode)
+                global.log(`[ERROR]CustomPage异常情况(建议把源代码修改为简单结构，再尝试转换)\nfile:${fileKey}\n`, littleCode)
 
             }
         })

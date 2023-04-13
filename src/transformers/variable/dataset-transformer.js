@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2022-07-01 09:28:24
+ * @LastEditTime: 2022-11-07 22:09:09
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\variable\dataset-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/variable/dataset-transformer.js
  *
  */
 
@@ -139,7 +139,7 @@ function methodDatasetHandle ($jsAst, eventNameList, fileKey) {
     }
 
     //处理methods
-    let methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS)
+    let methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS,fileKey)
     methodList.map(function (item) {
         var methodName = item.key && (item.key.name || item.key.value) || ""
         if (eventNameList.includes(methodName)) {
@@ -167,7 +167,7 @@ function methodDatasetHandle ($jsAst, eventNameList, fileKey) {
                     if (itemValue && itemValue.body && itemValue.body.body) {
                         body = itemValue.body.body
                     } else {
-                        console.log("body为空。。。", item.key.name, fileKey)
+                        global.log("body为空。。。", item.key.name, fileKey)
                     }
                 }
             }
@@ -179,7 +179,7 @@ function methodDatasetHandle ($jsAst, eventNameList, fileKey) {
             if (t.isRestElement(firstParam)) {
                 //如果是fun(...arg){}
                 let name = firstParam.argument.name
-                code = `this.datasetHandle(${ name }[0], ${ name }[1])`
+                code = `this.handleDataset(${ name }[0], ${ name }[1])`
             } else {
                 if (firstParam) {
                     eventParamName = firstParam.name
@@ -187,7 +187,7 @@ function methodDatasetHandle ($jsAst, eventNameList, fileKey) {
                     params.push(t.identifier(eventParamName))
                 }
                 params.push(t.identifier("_dataset"))
-                code = `this.datasetHandle(${ eventParamName }, _dataset)`
+                code = `this.handleDataset(${ eventParamName }, _dataset)`
             }
 
             code = `/* ---处理dataset begin--- */
@@ -212,6 +212,15 @@ function transformDataset ($jsAst, $wxmlAst, fileKey) {
     if (!$jsAst || !$wxmlAst) {
         return
     }
+
+    /**
+     * 注意！
+     * 2022-10-28
+     * 经测，HBuilderX v3.6.7 alpha，在微信小程序、H5、APP等平台都支持dataset，因此不再转换
+     *
+     * 2022-10-07
+     * 自定义组件可能会有bug，坐等修复
+     */
 
     //步骤：
     // 1.遍历template，找到自定义组件上面，含data-属性，并且有事件的，将事件组装为：@change="onChange($event, dataset参数)"
@@ -285,7 +294,7 @@ module.exports = {
 
 // //转换方案：
 // ontap(...args) {
-//     console.log(args)
+//     global.log(args)
 
 //     // 0: {type: "click", timeStamp: 49810.899999996764, detail: {…}, target: {…}, currentTarget: {…}, …}
 //     // 1: {a: 1}
@@ -296,5 +305,5 @@ module.exports = {
 //         event.a = 5
 //     // }
 
-//     console.log(args)
+//     global.log(args)
 // }

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 15:40:27
- * @LastEditTime: 2022-05-07 16:56:23
+ * @LastEditTime: 2023-02-19 23:08:08
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\restoreJSUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/restoreJSUtils.js
  *
  */
 
@@ -17,7 +17,6 @@ const t = require("@babel/types")
 const { parseExpression } = require("@babel/parser")
 
 
-
 var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 
@@ -27,6 +26,11 @@ const babelGenerate = require('@babel/generator').default
 
 const generate = require('@babel/generator').default
 
+const JavascriptParser = require(appRoot + "/src/page/script/JavascriptParser")
+//初始化一个解析器
+const javascriptParser = new JavascriptParser()
+
+const { Deobfuscator } = require("./ast/deobfuscator")
 
 
 /**
@@ -250,7 +254,7 @@ function oneLineToMultiLine (ast) {
                         try {
                             path.node.consequent = t.blockStatement([consequent])
                         } catch (error) {
-console.log("xx////////////////////////////////////////////xxxxx")
+                            global.log("xx////////////////////////////////////////////xxxxx")
                         }
 
                     }
@@ -312,13 +316,13 @@ console.log("xx////////////////////////////////////////////xxxxx")
                         try {
                             path.replaceWith(ifStatement)
                         } catch (error) {
-                            console.log('%c [ error ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', error)
+                            global.log('%c [ error ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', error)
                         }
 
                     } else if (operator === "||") {
                         //TODO:好像不需要转换！！！！！
-                        // 转换前： "" == str || /\d/.test(num) || console.log();
-                        // 转换后： if(!("" == str || /\d/.test(num))) console.log();
+                        // 转换前： "" == str || /\d/.test(num) || global.log();
+                        // 转换后： if(!("" == str || /\d/.test(num))) global.log();
                         // 判断条件需取反
                         // var unaryExpression = t.unaryExpression("!", exp.left)
                         // var alternateBlockStatement = t.blockStatement([t.expressionStatement(exp.right)], [])
@@ -326,7 +330,7 @@ console.log("xx////////////////////////////////////////////xxxxx")
                         // try {
                         //     path.replaceWith(ifStatement)
                         // } catch (error) {
-                        //     console.log(error)
+                        //     global.log(error)
                         // }
 
                     }
@@ -349,7 +353,7 @@ console.log("xx////////////////////////////////////////////xxxxx")
 
                     //太复杂
                     // function e(t, e, i) {
-                    //     if (isNaN(t)) throw new Error("[wxCharts] unvalid series data!");
+                    //     if (isNaN(t)) global.log("[wxCharts] unvalid series data!");
                     //     i = i || 10, e = e || "upper";
                     //     for (var n = 1; i < 1; ) i *= 10, n *= 10;
                     //     for (t = "upper" === e ? Math.ceil(t * n) : Math.floor(t * n); t % i != 0; ) "upper" === e ? t++ : t--;
@@ -754,7 +758,7 @@ function conditionalExpToIfStatement (ast) {
                 let alternateBlockStatement = t.blockStatement([t.expressionStatement(alternateAssignmentExp)], [])
                 let ifStatement = t.ifStatement(test, consequentBlockStatement, alternateBlockStatement)
 
-                // console.log(`代码为ifStatement：${ generate(ifStatement).code }`)
+                // global.log(`代码为ifStatement：${ generate(ifStatement).code }`)
                 //TODO: 例外：for (t = "upper" === e ? Math.ceil(t * n) : Math.floor(t * n); t % i != 0; ) "upper" === e ? t++ : t--;
                 if (!t.isForStatement(path.parentPath)) {
                     path.replaceWith(ifStatement)
@@ -774,6 +778,10 @@ function conditionalExpToIfStatement (ast) {
 function renameKeyword (path, name) {
     // 获取当前变量名的绑定关系
     const currentBinding = path.scope.getBinding(name)
+    if (!currentBinding) {
+        // global.log("找不到" + name + "变量的scope")
+        return
+    }
     currentBinding.referencePaths.forEach(function (p) {
         if (t.isMemberExpression(p.parentPath.node)) {
             var meExp = p.parentPath.node
@@ -880,7 +888,7 @@ function getAppHandle (path, id, isNewExpression) {
      * var app = getApp();
      * app.test();
      */
-    // console.log("scope.uid", scope.uid)
+    // global.log("scope.uid", scope.uid)
     if (useScopeList[scope.uid] === true) {
         //已经遍历过
         path.remove()
@@ -942,12 +950,6 @@ function getAppHandle (path, id, isNewExpression) {
         path.replaceWith(newPath)
     }
 }
-
-
-const JavascriptParser = require(appRoot + "/src/page/script/JavascriptParser")
-
-//初始化一个解析器
-const javascriptParser = new JavascriptParser()
 
 
 /**
@@ -1027,7 +1029,9 @@ function transformSequenceExpression (path, targetPath, keyNode) {
 function fixSpecialCode (ast) {
     traverse(ast, {
         SequenceExpression (path) {
-            transformSequenceExpression(path)
+            if (path.parentPath.node.type === "CallExpression") {
+                transformSequenceExpression(path)
+            }
         }
     })
 }
@@ -1087,23 +1091,11 @@ function fixSpecialCode2 ($ast, astType) {
     return $ast.generate()
 }
 
-
 /**
- * js反混淆，仅支持babel ast
+ * 代码反混淆1 自己写的
  * @param {*} ast
  */
-function restoreJS (ast, mpKeyword) {
-
-    //修复特殊代码结构
-    try {
-        fixSpecialCode(ast)
-    } catch (error) {
-        console.log("修复特殊代码结构出错。 代码：", generateCode(ast))
-    }
-
-    // 预修复
-    repairThisExpression(ast)
-
+function deobfuscator1 (ast) {
     // 一行代码转多行代码
     oneLineToMultiLine(ast)
 
@@ -1128,6 +1120,45 @@ function restoreJS (ast, mpKeyword) {
     // 3e8 ==> 1000
     // '\x68\x65\x6c\x6c\x6f' --> 'hello'
     literalHandle(ast)
+}
+
+
+
+
+/**
+ * 代码反混淆2
+ * @param {*} ast
+ */
+function deobfuscator2 (ast) {
+    const deob = new Deobfuscator(ast, 'ast')
+    //来两次
+    deob.run()
+    deob.run()
+}
+
+
+/**
+ * js反混淆，仅支持babel ast
+ * @param {*} ast
+ */
+function restoreJS (ast, mpKeyword) {
+
+    //修复特殊代码结构
+    try {
+        fixSpecialCode(ast)
+    } catch (error) {
+        global.log("修复特殊代码结构出错。 代码：", generateCode(ast))
+    }
+
+    // 预修复
+    repairThisExpression(ast)
+
+
+    // 代码反混淆
+    // deobfuscator1(ast)
+
+    deobfuscator2(ast)
+
 
     // 判断表达式精简
     // if ("" != r && void 0 != r) { } --> if (r) {}

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-16 09:56:46
- * @LastEditTime: 2021-11-15 11:27:08
+ * @LastEditTime: 2023-04-10 20:36:45
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\component\regionPicker-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/regionPicker-transformer.js
  *
  */
 
@@ -47,7 +47,7 @@ function transformRegionPicker ($wxmlAst, fileKey) {
         var comments = `\n[Tip] 检测到组件picker的mode为 region ，在App和H5里未实现，已使用组件region-picker进行替换。
                     虽然已替换，但仍需注意picker在<form/>组件里面的取值问题(可能在formSubmit拿不address，需手动调整)。
                     详情请参阅相关文档, file: ${ fileKey }`
-        console.log(comments)
+        global.log(comments)
 
         //复制目录
         var componentsFolder = path.join(global.targetSourceFolder, 'components')
@@ -81,7 +81,7 @@ function transformRegionPicker ($wxmlAst, fileKey) {
     // if (node.name == "picker" && node.attribs.mode === "region") {
     //     //TODO：使用第三方替代,如uview（因template代码复杂，目测有点难度）
     //     // let logStr = "[Tip] 检测到组件picker的mode为 region ，在App和H5里未实现，请转换后自行作兼容处理。        file-> " + path.relative(global.miniprogramRoot, file_wxml)
-    //     // console.log(logStr)
+    //     // global.log(logStr)
     //     // global.log.push(logStr)
 
     //     //使用 https://ext.dcloud.net.cn/plugin?id=1536 替换
@@ -89,7 +89,7 @@ function transformRegionPicker ($wxmlAst, fileKey) {
     //     delete node.attribs.mode
 
     //     let logStr = "[Tip] 检测到组件picker的mode为 region ，在App和H5里未实现，已使用组件region-picker进行替换。        file-> " + path.relative(global.miniprogramRoot, file_wxml)
-    //     console.log(logStr)
+    //     global.log(logStr)
     //     global.log.push(logStr)
     // }
 }

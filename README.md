@@ -4,11 +4,7 @@
 
 输入小程序项目路径，即可输出 uni-app 项目。
 
-PS: 目前工具转换支持度最好的为：微信小程序和 QQ 小程序。
-
-工具暂不支持 vant 项目，如果有含 vant 组件的小程序项目，请转换后，将 vant 的组件全部替换为 uview 或其他同功能组件。（个人不太建议转换 vant 项目！）
-
-同时支持 Npm 安装 和 HbuilderX 插件(不依赖环境) 两种形式安装，安装方式如下：
+工具同时支持 Npm 安装 和 HbuilderX 插件(不依赖环境) 两种形式安装，安装方式如下：
 
 ## Npm 安装
 
@@ -28,6 +24,7 @@ Options:
   -h, --help             output usage information [帮助信息]
   -c, --cli              the type of output project is vue-cli, which default value is false [是否转换为vue-cli项目，默认false]
   -m, --merge            merge wxss file into vue file, which default value is false [是否合并wxss到vue文件，默认false]
+  -t, --template         transform template and include to component, which default value is false [转换template和include为单独组件，默认false]
 
 ```
 
@@ -36,20 +33,30 @@ Options:
 ##### 默认转换:
 
 ```sh
-$ wtu -i ./miniprogram-project
+$ wtu -i "./miniprogram-project"
 ```
+
+注："./miniprogram-project" 是要转换的小程序项目目录，如路径中有空格应该用引号引起来。
 
 ##### 将 wxss 合并入 vue 文件:
 
 ```sh
-$ wtu -i ./miniprogram-project -m
+$ wtu -i "./miniprogram-project" -m
 ```
 
 ##### 转换项目为 vue-cli 项目:
 
 ```sh
-$ wtu -i ./miniprogram-project -c
+$ wtu -i "./miniprogram-project" -c
 ```
+
+##### 将 template 里面的 import/template 和 include 标签转换为单独组件(实验性):
+
+```sh
+$ wtu -i "./miniprogram-project" -t
+```
+
+待命令行运行结束，会在小程序项目的同级目录有以 小程序项目名 + "\_uni" 或 小程序目录名 + "\_uni-cli" 目录，即是转换好的 uni-app 项目，转换好后，请使用 HBuilderX 导入并运行。
 
 ## HbuilderX 插件安装
 
@@ -57,11 +64,11 @@ $ wtu -i ./miniprogram-project -c
 
 <!-- 目前这种方式，不支持转换 vant 项目，如需转换 vant 项目，请使用 Npm 安装 方式。 -->
 
-## 使用指南
+## 说明文档
 
-本插件详细使用教程，请参照：[miniprogram-to-uniapp 使用指南](http://ask.dcloud.net.cn/article/36037)。
+关于本工具转换原理及常见问题，请见：[miniprogram-to-uniapp文档](https://l4rz4zwpx7.k.topthink.com/@kmrvzg72lx/)
 
-使用时遇到问题，请仔细阅读： [miniprogram to uniapp 工具答疑文档.md](https://www.yuque.com/docs/share/0166a691-6877-4138-818b-2a5ef77216b7)
+## 问题答疑
 
 对于使用有疑问或建议，欢迎加入 QQ 群进行指导和交流。
 
@@ -69,79 +76,12 @@ $ wtu -i ./miniprogram-project -c
 
 1 群：780359397 <a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=6cccd111e447ed70ee0c17672a452bf71e7e62cfa6b427bbd746df2d32297b64"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app讨论群" title="小程序转uni-app讨论群"></a> (已满)
 
-2 群：361784059 <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=vpt4K1r6Witx29ZsKcb_tqvinhcZzVhK&jump_from=webapi"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app研究二群" title="小程序转uni-app研究二群"></a>(已满)
+2 群：361784059 <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=vpt4K1r6Witx29ZsKcb_tqvinhcZzVhK&jump_from=webapi"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app研究二群" title="小程序转uni-app研究二群"></a> (已满)
 
-3 群：603659851 <a target="_blank" href="https://jq.qq.com/?_wv=1027&k=3GSqQMIB"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app研究三群" title="小程序转uni-app研究三群"></a>(已满)
+3 群：603659851 <a target="_blank" href="https://jq.qq.com/?_wv=1027&k=3GSqQMIB"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app研究三群" title="小程序转uni-app研究三群"></a> (已满)
 
-4 群：555691239
+4 群：555691239 <a target="_blank" href="https://jq.qq.com/?_wv=1027&k=aQrtEG9W"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="小程序转uni-app研究四群" title="小程序转uni-app研究四群"></a>
 
-
-## 功能进度
-
-### 1.小程序转换支持度
-
-| 小程序       | 转换支持 | 转换文档 |
-| :----------- | :------: | :------: |
-| 微信小程序   |    ✔     |          |
-| QQ 小程序    |    ✔     |          |
-| 头条小程序   |    ✔     |          |
-| 支付宝小程序 |    ✔     |          |
-| 百度小程序   |    ✔     |          |
-
-### 2.第三方组件支持度
-
-| 组件                     | 转换支持 | 转换文档 |
-| :----------------------- | :------: | :------: |
-| mode 为 region 的 picker |    ✔     |          |
-| wxParse                  |    ✔     |          |
-| We-UI                    |  开发中  |          |
-| Vant                     |    ✖️    |   解决方案，请参照群公告       |
-
-### 3.小程序功能转换完成度
-
-| 功能                                                         | 转换支持 | 转换文档 |
-| :----------------------------------------------------------- | :------: | -------- |
-| 微信小程序云开发                                             |    ✔     |          |
-| TS 小程序                                                    |    ✔     |          |
-| include 标签解析                                             |    ✔     |          |
-| template 标签解析                                            |    ✔     |          |
-| Behavior 解析                                                |    ✔     |          |
-| setData 函数(polyfill)                                       |    ✔     |          |
-| 代码反混淆                                                   |    ✔     |          |
-| 关键字语义化(如 var t = this; => var that = this;)           |    ✔     |          |
-| 输出代码自动格式化(与 HBuilderX 格式化一致)                  |    ✔     |          |
-| 对 template 和 js 里面**未声明的变量**进行声明               |    ✔     |          |
-| 函数与变量名重名处理                                         |    ✔     |          |
-| 函数与 prop 属性重名处理                                     |    ✔     |          |
-| 变量名与 prop 属性重名处理                                   |    ✔     |          |
-| 第三方组件的参数类型修复                                     |    ✔     |          |
-| this.data.xxx 转换为 this.xxx                                |    ✔     |          |
-| app.xxx 转换为 app.globalData.xxx                            |    ✔     |          |
-| getApp().xxx 转换为 getApp().globalData.xxx                  |    ✔     |          |
-| polyfill                                                     |    ✔     |          |
-| 资源文件处理及路径修复                                       |    ✔     |          |
-| js 系统关键字作为函数或变量名(如 default、switch、delete 等) |    ✔     |          |
-| 以$开头的变量                                                |    ✔     |          |
-| 动态绑定的函数`<input @input="test{{index+1}}">`             |    ✔     |          |
-| 合并 wxs 文件                                                |    ✖️    |          |
-| globalData 变量与函数重名处理                                |    ✖️    |          |
-| globalData 未变量处理                                        |    ✖️    |          |
-
-### 3.暂不支持的项目、组件和语法
-
-| 功能                                                                       | 转换支持 | 转换文档 |
-| :------------------------------------------------------------------------- | :------: | -------- |
-| <font color="red" size="4" face="bold">使用 uni-app 发布的小程序项目</font> |    ✖️    |          |
-| <font color="red" size="4" face="bold">使用 Taro 发布的小程序项目</font> |    ✖️    |          |
-| 使用 redux 开发的小程序(代表为：网易云信小程序 DEMO)                       |    ✖️    |          |
-| 使用 wxpage 开发的小程序(https://github.com/tvfe/wxpage)                   |    ✖️    |          |
-| 使用腾讯 omi 开发的小程序(https://github.com/Tencent/omi)                  |    ✖️    |          |
-| 小程序抽象节点 componentGenerics                                           |    ✖️    |          |
-| 组件间关系 relations                                                       |    ✖️    |          |
-| component 里的 pageLifetimes 生命周期                                      |    ✖️    |          |
-| echarts 组件                                                               |    ✖️    |          |
-
-文档正在完善中，敬请期待~
 
 ## 参考资料
 

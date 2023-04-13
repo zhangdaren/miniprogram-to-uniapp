@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-07-09 09:57:06
+ * @LastEditTime: 2023-03-30 23:13:01
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\ggcUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/ggcUtils.js
  *
  */
 const $ = require('gogocode')
@@ -93,28 +93,31 @@ function getAstType ($ast, fileKey) {
         }
     })
 
-    // console.log("fileKey: ----- ", fileKey, result && result.type || "")
+    // global.log("fileKey: ----- ", fileKey, result && result.type || "")
     return result && result.type || ""
 }
 
 /**
- * 获取ast里面定义的变量名，如果找不到则返回默认变量名
+ * 获取ast里面定义的变量名数组，如果找不到则返回空数组
+ * 可能中间有很多个，这里返回数组
  * @param {*} $ast           ast
  * @param {*} type           ast节点类型
  * @param {*} defaultName    默认的变量名，或一般的变量名
  * @param {*} value          变量的初始值
  * @returns
  */
-function getVarName ($ast, selector, value) {
+function getVarNameList ($ast, selector, value) {
+    var res = []
 
     //这里多了一个参数 ，后面处理一下
-    var name = value
     $ast
         .find(selector)
         .each(function (item) {
-            name = item[0].nodePath.node.id.name
+            //TODO： 可选链优化
+            var name = item[0].nodePath.node.id.name || value
+            res.push(name)
         })
-    return name
+    return res
 }
 
 
@@ -123,57 +126,61 @@ function getVarName ($ast, selector, value) {
  * @param {*} $ast
  * @returns
  */
-function getThisName ($ast) {
+function getThisNameList ($ast) {
     var selector = { type: "VariableDeclarator", init: t.thisExpression() }
-    return getVarName($ast, selector, "this")
+    return getVarNameList($ast, selector, "this")
 }
 
 /**
  * 替换app.xxx --> app.globalData.xxx
+ * 仅用于singleJS-transformer.js
  * @param {*} $ast
  */
-// function transformAppDotGlobalData ($ast) {
-//     //1.找到 var app = getApp(); 的变量名
-//     //2.开始替换
+function transformAppDotGlobalData ($ast) {
+    //1.找到 var app = getApp(); 的变量名
+    //2.开始替换
 
-//     var appName = "app"
-//     var selector = { type: "VariableDeclarator", init: { callee: { name: "getApp" } } }
-//     appName = getVarName($ast, selector, "app")
+    var appName = "app"
+    var selector = { type: "VariableDeclarator", init: { callee: { name: "getApp" } } }
+    var nameList = getVarNameList($ast, selector, "app")
+    //TODO：这里仅用第一个，严格来说还是会漏掉一些场景，后续再议
+    if(nameList.length){
+        appName = nameList[0] || "app"
+    }
 
-//     console.log("$ast", $ast.generate())
-//     $ast
-//         .find({ type: "MemberExpression", object: { name: appName } })
-//         .each(function (item) {
-//             // console.log(item)
-//             var nodePath = item[0].nodePath
-//             var node = nodePath.node
-//             var property = node.property
-//             var isGlobal = nodePath.scope.lookup(appName).isGlobal
+    $ast
+        .find({ type: "MemberExpression", object: { name: appName } })
+        .each(function (item) {
+            // global.log(item)
+            var nodePath = item[0].nodePath
+            var node = nodePath.node
+            var property = node.property
+            var isGlobal = nodePath.scope.lookup(appName).isGlobal
 
-//             /**
-//              * 注意！！！
-//              * 如果在外面 var t = getApp()
-//              * 而在函数里面也有t
-//              * var t = [ this.data.selectNum, this.data.spec, 0 ], e = t[0], a = t[1], i = t[2];
-//              * 这里必须要判断这个t是否为global的，不然会误替换！
-//              *
-//              * //总感觉这里判断不完全
-//              */
-//             if (!isGlobal) {
-//                 // return
-//             }
+            /**
+             * 注意！！！
+             * 如果在外面 var t = getApp()
+             * 而在函数里面也有t
+             * var t = [ this.data.selectNum, this.data.spec, 0 ], e = t[0], a = t[1], i = t[2];
+             * 这里必须要判断这个t是否为global的，不然会误替换！
+             *
+             * //总感觉这里判断不完全
+             */
+            if (!isGlobal) {
+                // return
+            }
 
-//             if (t.isIdentifier(property, { name: "globalData" })) {
-//                 //
-//             } else {
-//                 var firstMeExp = t.memberExpression(t.identifier(appName), t.identifier("globalData"))
-//                 var meExp = t.memberExpression(firstMeExp, property)
-//                 item.replaceBy(meExp)
-//             }
-//         }).root()
+            if (t.isIdentifier(property, { name: "globalData" })) {
+                //
+            } else {
+                var firstMeExp = t.memberExpression(t.identifier(appName), t.identifier("globalData"))
+                var meExp = t.memberExpression(firstMeExp, property)
+                item.replaceBy(meExp)
+            }
+        }).root()
 
-//     return $ast
-// }
+    return $ast
+}
 
 
 
@@ -193,7 +200,7 @@ function transformGetApp ($ast) {
     $ast
         .find(selector)
         .each(function (item) {
-            // console.log(item)
+            // global.log(item)
 
             var node = item[0].nodePath.node
             var object = node.object
@@ -225,6 +232,8 @@ function getThisExpressionName (item, selectorName = 'this') {
         var nodePath = item['0'].nodePath
         if (thisNode.type === 'ThisExpression') {
             //是this本身
+            result = 'this'
+        } else if (t.isMemberExpression(thisNode) && t.isThisExpression(thisNode.object)) {
             result = 'this'
         } else {
             var objectName = thisNode.name
@@ -286,7 +295,7 @@ function transformThisDotProperties ($ast, fileKey) {
             var thisName = getThisExpressionName(item, 'this')
             if (thisName) {
                 var code = $(item).generate()
-                console.log(`[Error]代码：${ code }写法不适应uni-app，需转换后手动调整。  file:${ fileKey }`)
+                global.log(`[ERROR]代码：${ code }写法不适应uni-app，需转换后手动调整。  file:${ fileKey }`)
             }
         })
         .root()
@@ -319,9 +328,20 @@ function transformThisDotKeywordExpression ($ast, keyword = "data", globalDataPr
 
     //未在globalData里面定义的变量数组
     var undefinedNameList = new Set()
+    // { type: "MemberExpression", property: { name: keyword } }
+
 
     $ast
-        .find({ type: "MemberExpression", property: { name: keyword } })
+        //这个selector有问题，有时拿不到scope
+        // .find({ type: "MemberExpression", property: { name: keyword } })
+        // .find([
+        //     `$_$.globalData`,
+        //     `$_$['globalData']`
+        // ])
+        .find([
+            `$_$.${ keyword }`,
+            `$_$['${ keyword }']`
+        ])
         .each(function (item) {
             var nodePath = item["0"].nodePath
             var object = nodePath.node.object
@@ -369,9 +389,10 @@ function transformThisDotKeywordExpression ($ast, keyword = "data", globalDataPr
  * @param {*} name        函数或变量名称
  * @param {*} isGenerate  如果没找到，是否需要创建并加入ast(默认为methods使用)
  * @param {*} type        如果需要创建，需指定默认类型，默认Object, TODO:未实现(默认为methods使用)
+ * @param {*} value       添加进去的值
  * @returns
  */
-function getLifecycleNode ($ast, pageType, name, isGenerate, type = "Object") {
+function getLifecycleNode ($ast, pageType, name, isGenerate, type = "Object", value) {
     if (!$ast) return
 
     if (!name) throw "Error: getLifecycleNode函数的name不能为空"
@@ -382,7 +403,22 @@ function getLifecycleNode ($ast, pageType, name, isGenerate, type = "Object") {
             return obj.key && (obj.key.name === name || obj.key.value === name)
         })
         if (!nodePath && isGenerate) {
-            nodePath = t.objectProperty(t.identifier(name), t.objectExpression([]))
+            var valueNode = t.objectExpression([])
+            switch (type) {
+                case "Object":
+                    //默认object
+                    break
+                case "Array":
+                    valueNode = value ? t.arrayExpression([value]) : t.arrayExpression([])
+                    break
+                case "Function":
+                    valueNode = t.functionExpression(null, [], t.blockStatement([]))
+                    break
+                default:
+                    break
+            }
+            nodePath = t.objectProperty(t.identifier(name), valueNode)
+
             var args = item.attr("arguments.0")
             args.properties.push(nodePath)
         }
@@ -448,6 +484,19 @@ function getApiCount ($ast, name = "requestPayment") {
 
 
 /**
+ * 获取当前页面标签个数
+ * @param {*} $ast
+ * @param {*} name 默认支付
+ * @returns
+ */
+function getTagCount ($ast, tagName) {
+    if (!$ast) return 0
+    var count = $ast.find(`<${ tagName }></${ tagName }>`).length
+    $ast.root()
+    return count || 0
+}
+
+/**
  * 为防单词拼错，建议使用这里的常量
  */
 const propTypes = {
@@ -477,15 +526,24 @@ function getWxmlAstModuleList ($wxmlAst) {
     return list
 }
 
+// 页面结构对象
+const pageStructureMap = {}
+
 /**
  * 获取data、props或methods列表
  * @param {*} $jsAst
  * @param {*} type      类型：DATA、PROPS、METHODS、WATCH、COMPONENTS、COMPUTED
+ * @param {*} fileKey   用于缓存
  * @param {*} isCreate  是否创建
  * @returns
  */
-function getDataOrPropsOrMethodsList ($jsAst, type, isCreate = false) {
+function getDataOrPropsOrMethodsList ($jsAst, type, fileKey, isCreate = false) {
     if (!$jsAst) return []
+
+    if (!fileKey) global.log("getDataOrPropsOrMethodsList fileKey不能为空！")
+
+    //如果有缓存，直接拿缓存（据说拿缓存有问题，不再拿缓存）
+    // if (pageStructureMap[fileKey] && pageStructureMap[fileKey][type]) return pageStructureMap[fileKey][type]
 
     var exportSelector = `export default {}`
 
@@ -520,36 +578,17 @@ function getDataOrPropsOrMethodsList ($jsAst, type, isCreate = false) {
 
     if (res && res.length) {
         var node = res.match['list'][0].node
-        if (t.isArrowFunctionExpression(node)) {
-            // 可能它本身就是：
-            //E:\zpWork\Project_self\miniprogram-to-uniapp\demo\wechatProject_meifumx_health\miniprogram\components\appbar
-            // observers: (newVal, oldVal)=> {
-            //     if(newVal.title!=oldVal.title||newVal.location!=oldVal.location)
-            //     {
-            //       this.setData({
-            //         defaultData:newVal
-            //       })
-            //     }
-            // },
-            // 暂时只发现这一例是这么写的。
+        if (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) {
             if (type === propTypes.WATCH) {
-                // res.match['list'][0].node = {
-                //     "**": res.match['list'][0].value
-                // }
-                // var op = t.objectProperty(t.identifier("**"), node)
-                // var oe = t.objectExpression([op])
-                // res.match['list'][0].node = oe
-                // list = oe.properties || oe.elements
-
-                //TODO: 看这里要不要直接干掉算了，目前的一例来说，加这个毫无必要
-                // $jsAst.replace(`export default {$$$, watch: $_$list }`, `export default {$$$, watch: { } }`)
-
-                $jsAst.replace(`export default {$$$, watch: $_$list }`, `export default {$$$, watch: { "**": $_$list } }`)
-
-                list = getDataOrPropsOrMethodsList($jsAst, type, isCreate)
+                //TODO: 这里的判断可能有问题？？？？？
+                list = getDataOrPropsOrMethodsList($jsAst, type, fileKey, isCreate)
             } else {
                 //TODO: 直接抛异常会有问题的
-                throw new Error("结构有问题！！！！", $jsAst.generate())
+                global.log("结构有问题！！！！", $jsAst.generate())
+
+                //这里需设置为true，list也需赋值，不然会死循环
+                isCreate = true
+                list = node.body.body
             }
         } else {
             list = node.properties || node.elements
@@ -598,11 +637,17 @@ function getDataOrPropsOrMethodsList ($jsAst, type, isCreate = false) {
                     computed: {}
                 }`
         }
-        // console.log("type", type)
+        // global.log("type", type)
         $jsAst.replace(replaceSelector, replaceMap[type])
 
-        list = getDataOrPropsOrMethodsList($jsAst, type, isCreate)
+        list = getDataOrPropsOrMethodsList($jsAst, type, fileKey, isCreate)
     }
+
+    //缓存
+    if (!pageStructureMap[fileKey]) {
+        pageStructureMap[fileKey] = {}
+    }
+    pageStructureMap[fileKey][type] = list || []
 
     return list || []
 }
@@ -615,7 +660,7 @@ function getDataOrPropsOrMethodsList ($jsAst, type, isCreate = false) {
  * @returns
  */
 function objectMethod2FunctionExpression (path) {
-    if (!path) throw new Error("objectMethod2FunctionExpression 参数错误")
+    if (!path) global.log("objectMethod2FunctionExpression 参数错误")
     return t.functionExpression(path.id, path.params, path.body)
 }
 
@@ -623,23 +668,45 @@ function objectMethod2FunctionExpression (path) {
  * 获取components ast里面的props列表
  * @param {*} $jsAst
  */
-function getComponentPropsList ($jsAst) {
-    var propList = getDataOrPropsOrMethodsList($jsAst, propTypes.PROPS)
+function getComponentPropsList ($jsAst, fileKey) {
+    var propList = getDataOrPropsOrMethodsList($jsAst, propTypes.PROPS, fileKey)
 
     var propList = propList.reduce(function (list, item) {
         var keyName = item.key && (item.key.name || item.key.value)
-        if (item.value && item.value.properties) {
-            var typeNode = item.value.properties.find(obj => obj.key && (obj.key.name === "type" || obj.key.value === "type"))
-            if (!typeNode) return list
+        if (item.value) {
+            var typeList = []
+            var properties = item.value.properties
+            if (properties) {
+                //属性的类型可以为 String Number Boolean Object Array 其一，也可以为 null 表示不限制类型。
+                //TODO: 这里的null暂未处理
 
-            var type = typeNode.value.name
-            if (!type) return list
+                //type: 单个属性
+                var typeNode = properties.find(obj => obj.key && (obj.key.name || obj.key.value) === "type")
+                if (typeNode) typeList.push(typeNode.value.name)
 
-            var obj = {
-                name: keyName,
-                type: type
+                //optionalTypes: 属性的类型（可以指定多个）
+                var optionalTypes = properties.find(obj => obj.key && (obj.key.name || obj.key.value) === "optionalTypes")
+                if (optionalTypes && t.isArrayExpression(optionalTypes.value)) {
+                    var optionalTypeList = optionalTypes.value.elements.map(obj => (obj.name || obj.value))
+                    typeList.push(...optionalTypeList)
+                }
+            } else {
+                // properties: {
+                //     myProperty: { // 属性名
+                //         type: String,
+                //         value: ''
+                //     },
+                //     myProperty2: String // 简化的定义方式
+                // },
+                var type = item.value.name || item.value.value || ""
+                if (type) typeList.push(type)
             }
-            list.push(obj)
+            if (!typeList.length) return list
+
+            list.push({
+                name: keyName,
+                type: typeList
+            })
         }
         return list
     }, [])
@@ -648,6 +715,27 @@ function getComponentPropsList ($jsAst) {
     return propList
 }
 
+/**
+ * 检查某个组件里面的prop的类型，是否为引用类型
+ * @param {*} fileKey
+ * @param {*} propName
+ */
+function checkPropReferenceType (fileKey, propName) {
+    var propTypeList = global.props[fileKey]
+    if (propTypeList) {
+        let curPropNode = propTypeList.find(item => item.name === propName)
+        //TODO：可能这个name是在data里！！！！！！
+        let isReferenceType = false
+        if (curPropNode) {
+            let typeList = curPropNode.type
+            let reg = /number|boolean|string/i
+            let isBasicType = typeList.every(type => reg.test(type))
+            isReferenceType = !isBasicType
+        } return isReferenceType
+    } else {
+        return false
+    }
+}
 
 /**
  * 创建指定name的objectproperty
@@ -700,7 +788,7 @@ function addWatchHandlerItem ($jsAst, watchList, propItemName, propType, observe
         if (methodNode) {
             op_value = objectMethod2FunctionExpression(methodNode)
         } else {
-            console.log("properties " + observerNode.value.value + "函数不存在")
+            global.log("properties " + observerNode.value.value + "函数不存在")
             return
         }
     } else {
@@ -802,18 +890,19 @@ function forceReplace ($, ast, selector, replacer) {
 
 
 module.exports = {
-    getThisName,
+    getThisNameList,
     getThisExpressionName,
     staticAssetsReg,
     assetsFileReg,
     multiAssetsFileReg,
-    // transformAppDotGlobalData,
+    transformAppDotGlobalData,
     transformGetApp,
     transformThisDotKeywordExpression,
     getAstType,
     getLifecycleNode,
 
     getApiCount,
+    getTagCount,
 
     getDataOrPropsOrMethodsList,
     getWxmlAstModuleList,
@@ -831,6 +920,8 @@ module.exports = {
 
     forceReplace,
 
-     pageExpList,
+    pageExpList,
+
+    checkPropReferenceType,
 
 }

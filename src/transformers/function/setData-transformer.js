@@ -135,6 +135,15 @@ function getParamsExpressionString (keyNode, thisName, scope, fileKey) {
 function transformSetData ($ast, fileKey) {
     if (!$ast) return
 
+
+    /**
+     *
+     * 注意!!!!
+     * 直接弃用，因为不需要了，重写了setData()函数
+     *
+     */
+    return
+
     $ast
         .find(['$_$this.setData({$$$List}, $_$callback)', '$_$this.setData({$$$List})'])
         .each(function (item) {
@@ -315,3 +324,122 @@ module.exports = { transformSetData }
     // }
     // var m = {};
     //     m[e] = g, l.setData(m)
+
+
+
+
+//     -----------------------setData测试用例-----------------------------
+//     <template>
+// 	<view class="content">
+// 		<!-- <image class="logo" src="/static/logo.png"></image> -->
+// 		<view class="text-area">
+// 			<text class="title">{{title}}</text>
+// 		</view>
+
+// 		<view class="ok">navbar.navs: {{navbar.navs}}</view>
+// 		<view>-----------------------</view>
+// 		<view>'aa.bb[0].cc.dd': {{aa.bb[0].cc.dd}}</view>
+// 		<view>-----------------------</view>
+// 		<view>`specs[${father}].items[${self}].click`: {{specs[0].items[0].click}}</view>
+// 		<view>-----------------------</view>
+// 		<view>['setting.day' + day + '.' + type]: {{setting.day1.sign}}</view>
+// 		<view>-----------------------</view>
+// 		<view class="ok">name: {{name}}</view>
+// 		<view>-----------------------</view>
+// 		<view class="ok">age: {{age}}</view>
+// 		<view>-----------------------</view>
+// 		<view class="ok">tabList[0]: {{tabList[0]}}</view>
+// 		<view>-----------------------</view>
+// 	</view>
+// </template>
+
+// <script>
+// 	export default {
+// 		data() {
+// 			return {
+// 				title: 'Hello',
+
+// 				navbar: {
+// 					navs: "no ok"
+// 				},
+// 				aa: {
+// 					bb: [{
+// 						cc: {
+// 							dd: "no ok"
+// 						}
+// 					}]
+// 				},
+// 				specs: [{
+// 					items: [{
+// 						click: "no ok"
+// 					}]
+// 				}],
+// 				setting: {
+// 					day1: {
+// 						sign: "no ok"
+// 					}
+// 				},
+// 				name: "no ok",
+// 				age: "no ok",
+// 				tabList: ["ok"]
+// 			}
+// 		},
+// 		onLoad() {
+// 			this.t1()
+// 		},
+// 		methods: {
+
+// 			t1() {
+// 				this.setData({
+// 					'aa.bb[0].cc.dd': "ok"
+// 				})
+
+// 				// console.log(this["aa.bb[0].cc"])
+// 				// this.set(this, 'name', "ok")
+// 				// console.log(this.set(this, 'aa.bb[0].cc.dd', "ok"))
+// 				// this.$set(this["aa.bb[0].cc"], 'dd', "ok")
+
+// 				// ---------------------------
+// 				var father = 0;
+// 				var self = 0
+// 				var target_click = `specs[${father}].items[${self}].click`
+
+// 				this.setData({
+// 					[target_click]: "ok"
+// 				})
+
+// 				// ---------------------------
+// 				var day = 1
+// 				var type = 'sign'
+// 				this.setData({
+// 					['setting.day' + day + '.' + type]: 'ok'
+// 				})
+// 				// -----------------------------------------------------------
+// 				this.setData({
+// 					'navbar.navs': "ok"
+// 				});
+
+// 				// ---------------------------
+// 				var name = "name"
+// 				var age = "age"
+// 				var list = {
+// 					[name]: "name ok",
+// 					[age]: "age ok",
+// 					imagesubjectClipper: false,
+// 				}
+// 				this.setData(list);
+// 				// ---------------------------
+// 				// var a = 0
+// 				// this.setData({
+// 				// 	[`tabList[${a}]`]: "ok"
+// 				// })
+// 				// ---------------------------
+// 				var a = 0
+// 				var key = `tabList[${a}]`
+// 				this.setData({
+// 					[key]: "ok"
+// 				})
+// 			}
+// 		}
+// 	}
+// </script>

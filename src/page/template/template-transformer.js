@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-06-08 20:58:12
+ * @LastEditTime: 2023-04-02 16:32:00
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/page/template/template-transformer.js
@@ -29,10 +29,12 @@ const utils = require(appRoot + "/src/utils/utils")
 const { parseMustache } = require(appRoot + "/src/utils/mustacheUtils")
 
 //资源文件
-const { repairScriptSourcePath,
-    repairTemplateSourcePath,
-    repairAstStringLiteralAssetPath
+const {
+    repairScriptSourcePath,
+    repairTemplateSourcePath
 } = require(appRoot + '/src/transformers/assets/assets-path-transformer')
+
+
 
 
 // const ATTRS = {
@@ -226,7 +228,7 @@ const bindRE = /bind:?/
 const catchRE = /catch:?/
 const captureBindRE = /capture-bind:?/
 const captureCatchRE = /capture-catch:?/
-
+const mutBindRE = /mut-bind:?/
 
 function transformEventName (name, state) {
     if (state.isComponent) {
@@ -247,14 +249,17 @@ function transformEvent (keyNode, valueNode, state) {
     var name = keyNode.content
 
     let event = name
-    if (name.indexOf('bind') === 0) {
+    if (name.startsWith('bind')) {
         event = transformEventName(name.replace(bindRE, ''), state)
-    } else if (name.indexOf('catch') === 0) {
+    } else if (name.startsWith('catch')) {
         event = transformEventName(name.replace(catchRE, ''), state) + '.stop.prevent'
-    } else if (name.indexOf('capture-bind') === 0) {
+    } else if (name.startsWith('capture-bind')) {
         event = transformEventName(name.replace(captureBindRE, ''), state) + '.capture'
-    } else if (name.indexOf('capture-catch') === 0) {
+    } else if (name.startsWith('capture-catch')) {
         event = transformEventName(name.replace(captureCatchRE, ''), state) + '.stop.prevent.capture'
+    } else if (name.startsWith("mut-bind")) {
+        // TODO: 互斥事件绑定
+        // event = transformEventName(name.replace(mutBindRE, ''), state) + '.stop'
     }
 
     //TODO: 如果valueNode没有，那应该需要删除！
@@ -309,7 +314,7 @@ function getParentForIndex (node) {
  */
 function transformFor (node, state) {
     var attributes = node.attr('content.attributes')
-    // console.log("attributes", attributes)
+    // global.log("attributes", attributes)
     if (!attributes) {
         return
     }
@@ -354,7 +359,7 @@ function transformFor (node, state) {
 
         if (vIndex === "index") {
             // 考虑嵌套for的情况
-            // console.log('vFor :>> ', vFor)
+            // global.log('vFor :>> ', vFor)
             var reg = /^index/
             var parentForIndex = getParentForIndex(node)
             if (parentForIndex && reg.test(parentForIndex)) {
@@ -369,7 +374,16 @@ function transformFor (node, state) {
 
         var vForAttr = `(${ vItem },${ vIndex }) in (${ parseMustache(vFor) })`
 
-        vForAttr = vForAttr.replace(/'/g, `"`)
+        //适用于单层for
+        //<cover-view wx:for="{{['0.5', '0.8', '1.0', '1.25', '1.5']}}" wx:key="{{item}}">{{item}}</cover-view>
+        // vForAttr = vForAttr.replace(/'/g, `"`)
+        //
+        //将里面的引号改为转义，防止双层for时转换报错
+        //ps: 单层for是毫无问题的。
+        // <view class="team-item-list" data-id="{{item.id}}" data-zid="{{item.zid}}" wx:for="{{list}}">
+        //       <view wx:for="{{item.plugin['info']}}" wx:for-item="items" wx:key="items"></view>
+        // </view>
+        vForAttr = vForAttr.replace(/['"]/g, `&quot;`)
 
         //添加v-for
         var forObj = {
@@ -398,8 +412,7 @@ function transformFor (node, state) {
                 // vKey = vItem
                 vKey = vIndex
             } else if (vKey !== vItem && vKey.indexOf('.') === -1) { // wx:for-key="{{item.value}}"
-                //TODO: 这里可能还是有问题。。。。
-                vKey = vItem + '.' + vKey
+                vKey = vIndex
             }
             var keyObj = {
                 key: { content: ':key' },
@@ -486,8 +499,8 @@ function transformHidden (keyNode, valueNode, state) {
             try {
                 valueNode.content = logicalNegation(newValueContent)
             } catch (error) {
-                console.log("error", error)
-                console.log("----transformHidden----", newValueContent)
+                global.log("error", error)
+                global.log("----transformHidden----", newValueContent)
             }
         }
 
@@ -541,25 +554,25 @@ function logicalNegation (code) {
     if (t.isBinaryExpression(expression)) {
         var operator = expression.operator
         if (logicalNegationObj.hasOwnProperty(operator)) {
-            // console.log("--isBinaryExpression--", code)
+            // global.log("--isBinaryExpression--", code)
             expression.operator = logicalNegationObj[operator]
             res = ast.generate()
         }
     } else if (t.isUnaryExpression(expression)) {
         var operator = expression.operator
         if (logicalNegationObj.hasOwnProperty(operator)) {
-            // console.log("--isUnaryExpression--", code)
+            // global.log("--isUnaryExpression--", code)
             expression.operator = logicalNegationObj[operator]
             res = ast.generate()
         }
     } else if (t.isIdentifier(expression)) {
-        // console.log("--t.isIdentifier(expression)--", code)
+        // global.log("--t.isIdentifier(expression)--", code)
         res = `!${ code }`
     } else {
         res = `!(${ code })`
     }
 
-    // console.log("res", res)
+    // global.log("res", res)
     return res
 }
 
@@ -598,8 +611,8 @@ function transformAttr (keyNode, valueNode, state) {
     }
 
     if (valueNode) {
-        // console.log("keyname", name)
-        // console.log("valueNode", valueNode.content)
+        // global.log("keyname", name)
+        // global.log("valueNode", valueNode.content)
         var value = valueNode.content
 
         if (value && value.indexOf('{{') !== -1) {
@@ -661,7 +674,8 @@ function transformAttr (keyNode, valueNode, state) {
 function transformAttrs (node, state) {
     var attributes = node.attr('content.attributes')
     var tagName = node.attr('content.name')
-    // console.log("attributes", attributes)
+    // global.log("attributes", attributes)
+
     if (!attributes) {
         return
     }
@@ -669,7 +683,7 @@ function transformAttrs (node, state) {
     var wxsTagList = ['wxs', "filter", "import-sjs"]
     if (wxsTagList.includes(tagName)) {
         //wxs 不在这里处理
-        // console.log('wxs :>> ', "wxs")
+        // global.log('wxs :>> ', "wxs")
         return
     }
 
@@ -682,21 +696,38 @@ function transformAttrs (node, state) {
     var scrollAttrList = ['scroll-top', 'scroll-left']
 
     //干掉<image binderror src="xxx"></image>里面的binderror
-    attributes = attributes.filter(function (item, i) {
+    var attrList = []
+    attributes.map(function (item, i) {
         let { key: keyNode, value: valueNode } = item
         var isNotAttrContent = !valueNode && keyNode.content.includes("bind")
 
         //修改单引号为双引号
-        if (item.startWrapper) {
-            item.startWrapper.content = '"'
-        }
         if (item.endWrapper) {
             item.endWrapper.content = '"'
+        }
+        if (item.startWrapper) {
+            item.startWrapper.content = '"'
         }
 
         //去除里面的转义引号
         if (valueNode && valueNode.content) {
             valueNode.content = valueNode.content.replace(/\(\\"/g, "(").replace(/\\"\)/g, "(")
+        }
+
+        //template标签转换
+        //<template is="foo" data="{{item, pic}}" /> => < compName="foo" :data="{ item, pic }" />
+        if (global.isTemplateToComponent && tagName === 'template' && keyNode.content === "data") {
+            keyNode.content = ":" + keyNode.content
+            if (valueNode && valueNode.content) {
+                valueNode.content = valueNode.content.replace(/^\{\{([^\{]*)\}\}$/, "{$1}")
+            } else {
+                //<template is="WxParseBr" data wx:elif="{{item.tag=='br'}}"></template> 这类都没data的值的
+                item.value = {
+                    content: 'this',
+                    type: 'token:attribute-value',
+                }
+                isNotAttrContent = false
+            }
         }
 
         if (!isNotAttrContent) {
@@ -713,10 +744,12 @@ function transformAttrs (node, state) {
             }
         }
 
-        return !isNotAttrContent
+        if (!isNotAttrContent) {
+            attrList.push(item)
+        }
     })
 
-    node.attr('content.attributes', attributes)
+    node.attr('content.attributes', attrList)
 }
 
 
@@ -736,6 +769,10 @@ function transformEventDynamicCode ($wxmlAst) {
                 if (obj.value) {
                     var attr = obj.key.content
                     var value = obj.value.content
+                    if (value.includes(`"`)) {
+                        //解决这种情况：<image bindtap='{{maxImg>1?"":"selctHouseImg"}}'></image>
+                        value = value.replace(/"/g, "'")
+                    }
                     var reg = /\?|\+/
                     if (attr[0] === "@" && reg.test(value)) {
                         obj.value.content = `parseEventDynamicCode($event, ${ value })`
@@ -863,6 +900,9 @@ function transformExceptionAttr ($wxmlAst) {
     if (!$wxmlAst) return
     $wxmlAst.find('<$_$1 $$$></$_$1>')
         .each(function (item) {
+            var tagName = item.attr('content.name')
+            if (tagName === 'template') return
+
             var list = item.match['$$$$']
             list.map(function (obj) {
                 //判断一下 v-else 这种没value的属性
@@ -878,33 +918,71 @@ function transformExceptionAttr ($wxmlAst) {
 }
 
 /**
+ * 处理异常标签，比如 `<icon class="icox icox-tequan" style="color: #cfa943"></icon>`
+ * @param {*} $wxmlAst
+ */
+function transformIcon ($wxmlAst) {
+    if (!$wxmlAst) return
+
+    $wxmlAst.find(`<icon $$$></icon>`).each(item => {
+        var attributes = item.attr('content.attributes')
+        var hasType = attributes.find(
+            (node) => node.key.content === 'type'
+        )
+        if (!hasType) {
+            item.attr('content.name', 'i')
+        }
+    }).root()
+}
+
+/**
+ * 处理异常标签，比如 ``
+ * <navigator bindtap="navigate" class="weui-search-bar__form" data-url="/pages/goods/index/index?fromsearch=1"/>
+ * @param {*} $wxmlAst
+ */
+function transformNavigator ($wxmlAst) {
+    if (!$wxmlAst) return
+
+    $wxmlAst.find(`<navigator $$$></navigator>`).each(item => {
+        var attributes = item.attr('content.attributes')
+        var hasType = attributes.find(
+            (node) => (node.key.content === 'url' || node.key.content === ':url')
+        )
+        if (!hasType) {
+            item.attr('content.name', 'view')
+        }
+    }).root()
+}
+
+
+/**
  * 替换无绑定的属性里面的双引号为&quot;
  */
-function replaceQuoteDouble($ast){
+function replaceQuoteDouble ($ast) {
     $ast
-    .find(`<$_$1 $$$1>$$$2</$_$1>`)
-    .each(node => {
-        var attributes = node.attr('content.attributes')
+        .find(`<$_$1 $$$1>$$$2</$_$1>`)
+        .each(node => {
+            var attributes = node.attr('content.attributes')
 
-        if (!attributes) {
-            return
-        }
+            if (!attributes) {
+                return
+            }
 
-        //处理标签属性
-        if (attributes) {
-            attributes.forEach(function (attr) {
-                var valueNode = attr.value
+            //处理标签属性
+            if (attributes) {
+                attributes.forEach(function (attr) {
+                    var valueNode = attr.value
 
-                if (attr.value) {
-                    var value = valueNode.content
+                    if (attr.value) {
+                        var value = valueNode.content
 
-                    if (value && !value.includes('{{')) {
-                        valueNode.content = value.replace(/"/g, `&quot;`)
+                        if (value && !value.includes('{{')) {
+                            valueNode.content = value.replace(/"/g, `&quot;`)
+                        }
                     }
-                }
-            })
-        }
-    })
+                })
+            }
+        })
 }
 
 /**
@@ -955,20 +1033,26 @@ function transformTemplateAst ($ast, wxmlFile, wxmlExtname) {
     //转换for后，要删除原有的
     removeForAttr($ast, state)
 
-    //转换资源路径
+    // //转换资源路径
     repairTemplateSourcePath($ast, wxmlFile)
 
-    //转换事件名含动态参数
+    // //转换事件名含动态参数
     transformEventDynamicCode($ast)
 
-    //微信小程序关注组件处理
+    // //微信小程序关注组件处理
     transformOfficialAccount($ast)
 
-    //对标签属性进行合并去重
+    // //对标签属性进行合并去重
     transformDuplicateAttr($ast)
 
-    //对异常属性进行处理
+    // //对异常属性进行处理
     transformExceptionAttr($ast)
+
+    //对没有type属性的icon标签进行处理
+    transformIcon($ast)
+
+    //对没有url属性的navigator标签进行处理
+    transformNavigator($ast)
 
     return $ast
 }

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:00:05
- * @LastEditTime: 2022-07-09 17:00:50
+ * @LastEditTime: 2023-04-10 20:35:57
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\project\configHandle.js
+ * @FilePath: /miniprogram-to-uniapp2/src/project/configHandle.js
  *
  */
 const fs = require('fs-extra')
@@ -25,7 +25,7 @@ const clone = require('clone')
  * @returns
  */
 function subPackagesHandle (subPackages, routerData) {
-    let reuslt = []
+    let result = []
     for (const key in subPackages) {
         const obj = subPackages[key]
         const root = obj.root
@@ -56,12 +56,12 @@ function subPackagesHandle (subPackages, routerData) {
             })
         }
 
-        reuslt.push({
+        result.push({
             "root": root,
             "pages": newPages
         })
     }
-    return reuslt
+    return result
 }
 
 /**
@@ -102,7 +102,11 @@ function transformGlobalUsingComponents (appJSON) {
     // }
 
     var componentList = []
+    const mpHtmlReg = /mp-html|mpHtml/i
     for (const key in globalUsingComponents) {
+        //如果小程程序添加过mp-html，那么就跳过
+        if (mpHtmlReg.test(key)) continue
+
         let filePath = globalUsingComponents[key]
 
         //在前面加个@
@@ -110,8 +114,15 @@ function transformGlobalUsingComponents (appJSON) {
             filePath = '@' + filePath
         }
 
+        //添加正则，整个匹配，防止全局组件与局部组件冲突
+        // 如：easycom:{"tms-address-selector": "tmsfe/tms-ui/address-selector/index"}
+        // 局部定义：import tmsAddressSelectorEditCommute from './edit-commute/index';
+        // 引用组件：<tms-address-selector-edit-commute  />
+        // 提示 "tmsfe/tms-ui/address-selector/index-edit-commute" 找不到
+        var newKey = `^${ key }$`
+
         let obj = {
-            key,
+            key: newKey,
             value: filePath
         }
         componentList.push(obj)
@@ -304,8 +315,12 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetSource
                     let targetIconAbsPath = path.join(global.targetSourceFolder, "static", iconPath)
                     let targetSelectedIconAbsPath = path.join(global.targetSourceFolder, "static", selectedIconPath)
                     //
-                    if (!fs.existsSync(targetIconAbsPath)) fs.copySync(iconAbsPath, targetIconAbsPath)
-                    if (!fs.existsSync(targetSelectedIconAbsPath)) fs.copySync(selectedIconAbsPath, targetSelectedIconAbsPath)
+                    if (fs.existsSync(iconAbsPath) && !fs.existsSync(targetIconAbsPath)) {
+                        fs.copySync(iconAbsPath, targetIconAbsPath)
+                    }
+                    if (fs.existsSync(selectedIconAbsPath) && !fs.existsSync(targetSelectedIconAbsPath)) {
+                        fs.copySync(selectedIconAbsPath, targetSelectedIconAbsPath)
+                    }
                     //
                     iconPath = path.relative(global.targetSourceFolder, targetIconAbsPath)
                     selectedIconPath = path.relative(global.targetSourceFolder, targetSelectedIconAbsPath)
@@ -321,7 +336,7 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetSource
     //写入pages.json
     let file_pages = path.join(targetSourceFolder, "pages.json")
     fs.writeFileSync(file_pages, JSON.stringify(appJSON, null, '\t'))
-    console.log(`write ${ path.relative(global.targetSourceFolder, file_pages) } success!`)
+    global.log(`write ${ path.relative(global.targetSourceFolder, file_pages) } success!`)
 
 }
 
@@ -340,7 +355,7 @@ function generateManifest (configData, routerData, miniprogramRoot, targetSource
     try {
         manifestJson = fs.readJsonSync(file_manifest)
     } catch (error) {
-        console.log("[Error]工具已经被损坏，请重新安装", error)
+        global.log("[ERROR]工具已经被损坏，请重新安装", error)
         return
     }
     //
@@ -400,7 +415,7 @@ function generateManifest (configData, routerData, miniprogramRoot, targetSource
     //manifest.json
     file_manifest = path.join(targetSourceFolder, "manifest.json")
     fs.writeFileSync(file_manifest, JSON.stringify(manifestJson, null, '\t'))
-    console.log(`write ${ path.relative(global.targetSourceFolder, file_manifest) } success!`)
+    global.log(`write ${ path.relative(global.targetSourceFolder, file_manifest) } success!`)
 
 }
 
@@ -413,27 +428,51 @@ function generateManifest (configData, routerData, miniprogramRoot, targetSource
  * @param {*} appJSON
  */
 function generateMainJS (configData, routerData, miniprogramRoot, targetSourceFolder, appJSON) {
-    let mainContent = "import App from './App'\r\n\r\n"
+    let mainContent = `import App from './App'\r\n\r\n
+    // 全局mixins，用于实现setData等功能，请勿删除！';
+    import zpMixins from '@/uni_modules/zp-mixins/index.js';\r\n\r\n`
 
-    //polyfill folder
-    const sourcePolyfill = path.join(__dirname, '/template/polyfill')
-    const targetPolyfill = path.join(targetSourceFolder, 'polyfill')
-    fs.copySync(sourcePolyfill, targetPolyfill)
+    //暂时放弃polyfill，该碰到的问题始终是要面对的。
+    if (global.hasPolyfill) {
+        //polyfill folder
+        const sourcePolyfill = path.join(__dirname, '/template/polyfill')
+        const targetPolyfill = path.join(targetSourceFolder, 'polyfill')
+        fs.copySync(sourcePolyfill, targetPolyfill)
+    }
 
     //引入polyfill，用户自行决定是否需要polyfill
-    var polyfill = `// Api函数polyfill（目前为实验版本，如不需要，可删除！）';
+    var polyfill = ``
+    if (global.hasPolyfill) {
+        polyfill = `// Api函数polyfill（目前为实验版本，如不需要，可删除！）';
         import Polyfill from './polyfill/polyfill';
         Polyfill.init();`
+    }
 
-    //全局mixins
-    var mixins = `// 全局mixins，用于实现setData等功能，请勿删除！';
-        import Mixin from './polyfill/mixins';`
+    // vue3变化：prototype以及$on废弃的解决办法 https://blog.csdn.net/qq_39179734/article/details/120740618
 
+    //组件间关系粗糙解决方案
+    var relation = ``
+    if (global.hasComponentRelation) {
+        relation = `
+        // 导入p-f-unicom
+        import unicom from '@/uni_modules/p-f-unicom/index.js'
+        // 用于解决组件间关系(目前受制于平台及写法，仍可能存在小部分场景不生效，需手动调试修复或『替换对应组件』)
+        Vue.use(unicom, {
+          name: 'unicom',
+          idName: 'unicomId',
+          groupName: 'unicomGroup'
+        })`
+    }
 
     var vue2 = `// #ifndef VUE3
         import Vue from 'vue'
 
-        Vue.mixin(Mixin);
+        ${ polyfill }
+
+        Vue.use(zpMixins)
+
+        ${ relation }
+
         Vue.config.productionTip = false
         App.mpType = 'app'
         const app = new Vue({
@@ -442,20 +481,17 @@ function generateMainJS (configData, routerData, miniprogramRoot, targetSourceFo
         app.$mount()
         // #endif\r\n\r\n\r\n\r\n`
 
-
     var vue3 = `// #ifdef VUE3
         import { createSSRApp } from 'vue'
         export function createApp() {
             const app = createSSRApp(App)
-            app.mixin(Mixin)
+            app.mixin(zpMixins)
             return {
                 app
             }
         }
         // #endif`
 
-    mainContent += `${ polyfill }\r\n\r\n`
-    mainContent += `${ mixins }\r\n\r\n`
     mainContent += vue2
     mainContent += vue3
 
@@ -464,7 +500,7 @@ function generateMainJS (configData, routerData, miniprogramRoot, targetSourceFo
     //
     let file_main = path.join(targetSourceFolder, "main.js")
     fs.writeFileSync(file_main, mainContent)
-    console.log(`write ${ path.relative(global.targetSourceFolder, file_main) } success!`)
+    global.log(`write ${ path.relative(global.targetSourceFolder, file_main) } success!`)
 }
 
 /**
@@ -485,16 +521,120 @@ function parseAppJSON (miniprogramRoot) {
         try {
             appJSON = fs.readJsonSync(json_app)
         } catch (error) {
-            console.log("解析app.json报错", error)
+            global.log("解析app.json报错", error)
         }
     } else {
-        let str = "[Error] 找不到app.json文件(不影响转换)"
-        // console.log(str)
+        let str = "[ERROR] 找不到app.json文件(不影响转换)"
+        // global.log(str)
         // global.log.push("\r\n" + str + "\r\n")
-        // console.log(str)
+        // global.log(str)
     }
     return appJSON
 }
+
+/**
+ * 生成package.json
+ * @param {*} configData
+ */
+function generatePackage (configData) {
+    var file_package = path.join(global.sourceFolder, "package.json")
+    var packageJson = {
+        "name": `${ configData.name }`,
+        "version": `${ configData.version || "1.0.0" }`,
+        "description": `${ configData.description }`,
+        "main": "main.js",
+        "scripts": {
+            "test": "echo \"Error: no test specified\" && exit 1"
+        },
+        "author": `${ configData.author }`,
+        "dependencies": {},
+        "license": `${ configData.license || 'ISC' }`
+    }
+
+    //读取package.json
+    if (fs.existsSync(file_package)) {
+        try {
+            var json = fs.readJsonSync(file_package)
+            packageJson = { ...packageJson, ...json }
+        } catch (error) {
+            global.log("解析package.json报错", error)
+        }
+    }
+
+    packageJson.dependencies = { ...packageJson.dependencies, ...global.dependencies }
+
+    //package.json
+    var targetFilePath = path.join(global.targetSourceFolder, "package.json")
+    fs.writeFileSync(targetFilePath, JSON.stringify(packageJson, null, '\t'))
+    global.log(`write ${ path.relative(global.targetSourceFolder, targetFilePath) } success!`)
+}
+
+
+
+/**
+ * 有选择的生成tsconfig.json
+ */
+function generateTSConfig () {
+    var tsconfigFile = path.join(global.miniprogramRoot, "tsconfig.json")
+    var tsconfigJson = {
+        "compilerOptions": {
+            "target": "esnext",
+            "module": "esnext",
+            "strict": true,
+            "jsx": "preserve",
+            "moduleResolution": "node",
+            "esModuleInterop": true,
+            "sourceMap": true,
+            "skipLibCheck": true,
+            "importHelpers": true,
+            "allowSyntheticDefaultImports": true,
+            "useDefineForClassFields": true,
+            "resolveJsonModule": true,
+            "noImplicitAny": false,
+            "allowJs": true,
+            "lib": [
+                "esnext",
+                "dom"
+            ],
+            "types": [
+                "@dcloudio/types",
+            ]
+        }
+    }
+
+    //读取tsconfig.json
+    if (fs.existsSync(tsconfigFile)) {
+        try {
+            var json = fs.readJsonSync(tsconfigFile)
+            if (json.include) {
+                tsconfigJson.include = json.include
+            }
+            if (json.exclude) {
+                tsconfigJson.exclude = json.exclude
+            }
+            if (json.compilerOptions && json.compilerOptions.typeRoots) {
+                tsconfigJson.types = tsconfigJson.types || []
+                tsconfigJson.types.push(...json.compilerOptions.typeRoots)
+            }
+            //注意：这条必须为true，否则zp-mixins加载报错！！！
+            tsconfigJson.allowJs = true
+        } catch (error) {
+            global.log("解析tsconfig.json报错", error)
+        }
+
+        global.isTypescript = true
+    }
+
+    if (global.isTypescript) {
+        //是ts项目时，生成tsconfig.json
+        var targetFilePath = path.join(global.targetSourceFolder, "jsconfig.json")
+        fs.writeFileSync(targetFilePath, JSON.stringify(tsconfigJson, null, '\t'))
+        global.log(`write ${ path.relative(global.targetSourceFolder, targetFilePath) } success!`)
+    }
+
+}
+
+
 
 /**
  * 处理配置文件
@@ -509,10 +649,12 @@ async function configHandle (configData, routerData, miniprogramRoot, targetSour
 
         var appJSON = parseAppJSON(miniprogramRoot)
 
-        //下面几个按page、manifest、main这个顺序！
+        //下面几个按page、manifest、main、package这个顺序！
         generatePageJSON(configData, routerData, miniprogramRoot, targetSourceFolder, appJSON)
         generateManifest(configData, routerData, miniprogramRoot, targetSourceFolder, appJSON)
         generateMainJS(configData, routerData, miniprogramRoot, targetSourceFolder, appJSON)
+        generatePackage(configData)
+        generateTSConfig()
 
         //增加uni.scss
         let sourceUniScss = path.join(__dirname, "/template/uni.scss")

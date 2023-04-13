@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 11:46:21
- * @LastEditTime: 2021-09-15 14:41:58
+ * @LastEditTime: 2022-10-20 22:57:44
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp2\src\utils\mustacheUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/mustacheUtils.js
  *
  */
 
@@ -38,8 +38,16 @@ function parseMustache (expr, identifier = false) {
         return ''
     }
 
-    // console.log("expr", expr)
-    const tokens = parse(expr)
+    // global.log("expr", expr)
+
+    var tokens = ""
+    try {
+        tokens = parse(expr)
+    } catch (error) {
+        global.log(`[ERROR]解析template属性或内容失败, 内容为：${ expr }`)
+    }
+    if (!tokens) return ""
+
     const isIdentifier = tokens.length === 1
 
     return tokens.map(token => {

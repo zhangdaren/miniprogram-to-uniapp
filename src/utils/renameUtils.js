@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2022-06-28 09:35:16
+ * @LastEditTime: 2023-04-10 20:38:04
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\renameUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/renameUtils.js
  *
  */
 
@@ -104,7 +104,7 @@ function renameProperty (item, oldName, newName, propNameList, ast) {
     //     }
     // })
 
-    // console.log('object :>> ', ast.generate())
+    // global.log('object :>> ', ast.generate())
 
     // if (!isInWatch) {
     //     item.attr('property.name', newName)
@@ -121,10 +121,10 @@ function renameProperty (item, oldName, newName, propNameList, ast) {
  * @param {*} type      要改的是变量还是方法(取值：DATA, METHODS)
  * @returns
  */
-function renameThisDotXXX ($jsAst, oldName, newName, type) {
+function renameThisDotXXX ($jsAst, oldName, newName, type, fileKey) {
     if (!$jsAst) return
 
-    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "PROPS")
+    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "PROPS", fileKey)
     var propNameList = propList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
     })
@@ -193,10 +193,10 @@ function renameThisDotXXX ($jsAst, oldName, newName, type) {
  * @param {*} type      要改的是变量还是方法(取值：DATA, METHODS)
  * @returns
  */
-function renameThisDotDataDotXXX ($jsAst, oldName, newName, type) {
+function renameThisDotDataDotXXX ($jsAst, oldName, newName, type, fileKey) {
     if (!$jsAst) return
 
-    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "PROPS")
+    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "PROPS", fileKey)
     var propNameList = propList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
     })
@@ -280,7 +280,7 @@ function renameThisDotDataDotXXX ($jsAst, oldName, newName, type) {
  * @param {*} newName
  * @returns
  */
-function renameSetDataVariable ($jsAst, oldName, newName) {
+function renameSetDataVariable ($jsAst, oldName, newName, fileKey) {
     if (!$jsAst) return
 
     var isInSetData = false
@@ -314,9 +314,16 @@ function renameSetDataVariable ($jsAst, oldName, newName) {
             })
         }).root()
 
-    if (isInSetData) {
-        //如果watch没有prop，则加入，有则添加一行代码
-        addPropToWatchHandle($jsAst, oldName, newName)
+
+    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "PROPS", fileKey)
+    var propNameList = propList.map(function (item) {
+        return item.key && (item.key.name || item.key.value)
+    })
+
+    // 如果watch没有prop，则加入，有则添加一行代码，
+    // 且oldName在prop里有才添加(不然会误加)
+    if (isInSetData && propNameList.includes(oldName)) {
+        addPropToWatchHandle($jsAst, oldName, newName, fileKey)
     }
 }
 
@@ -326,27 +333,27 @@ function renameSetDataVariable ($jsAst, oldName, newName) {
  * @param {*} oldName
  * @param {*} newName
  */
-function addPropToWatchHandle ($jsAst, oldName, newName) {
-    var watchList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "WATCH", true)
+function addPropToWatchHandle ($jsAst, oldName, newName, fileKey) {
+    var watchList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "WATCH", fileKey, true)
 
     var watchItemNode = watchList.find(function (item) {
         return item.key && (item.key.name === oldName || item.key.value === oldName)
     })
 
-    if (watchItemNode) {
+    if (watchItemNode && watchItemNode.value && watchItemNode.value.properties) {
         //已存在则不加入
         var funExp = watchItemNode.value.properties.find(function (item) {
             return item.key && (item.key.name === "handler" || item.key.value === "handler")
         })
 
-        if (t.isFunctionExpression(funExp.value)) {
+        if (funExp && t.isFunctionExpression(funExp.value)) {
             var ast = $(funExp)
             var res = ast.find([
                 `var $_$ = this.${ oldName }`,
                 `let $_$ = this.${ oldName }`,
             ])
             if (res.length === 0) {
-                var code = `this.${ newName } = this.deepClone(this.${ oldName })`
+                var code = `this.${ newName } = this.clone(this.${ oldName })`
                 var node = $(code, { isProgram: false }).node
                 funExp.value.body.body.unshift(node)
             }
@@ -362,7 +369,7 @@ function addPropToWatchHandle ($jsAst, oldName, newName) {
         //     this.${ newName } = newVal;
         // }}`).node
 
-        var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS)
+        var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS, fileKey)
         var propType = ggcUtils.getPropTypeByPropList(propList, oldName)
 
         ggcUtils.addWatchHandlerItem($jsAst, watchList, oldName, propType, objExp)
@@ -378,7 +385,27 @@ function addPropToWatchHandle ($jsAst, oldName, newName) {
  * @param {*} newName
  */
 function spreadSyntaxHandle ($jsAst, oldName, newName) {
+    $jsAst.find([
+        `var { $$$ } = $_$this`,
+        `let { $$$ } = $_$this`,
+        `const { $$$ } = $_$this`,
+    ]).each(function (item) {
+        var thisNode = item.match["this"][0].node
+        var listNode = item.match["$$$$"]
 
+        var nodePath = item[0].nodePath
+
+        var thisName = ggcUtils.getThisExpressionName(item, 'this')
+        if (thisName) {
+            listNode.map(item => {
+                if (item.key.name === oldName) {
+                    item.key.name = newName
+                    item.shorthand = false
+                }
+            })
+        }
+    })
+        .root()
 
 }
 
@@ -386,7 +413,7 @@ function spreadSyntaxHandle ($jsAst, oldName, newName) {
  * 变量与函数同名时，对【this.函数】也进行替换
  * 注意：必须在未对this.data.xxx转换为this.xxx之前调用，否则可能无效！
  *
- * this.oldName --> this.newName
+ * this.oldName() --> this.newName()
  * @param {*} $jsAst
  * @param {*} oldName
  * @param {*} newName
@@ -396,38 +423,48 @@ function spreadSyntaxHandle ($jsAst, oldName, newName) {
 function renameThisDotFun ($jsAst, oldName, newName, type) {
     if (!$jsAst) return
 
-    $jsAst.find(`$_$this.${ oldName }`).each(function (item) {
-        var thisNode = item.match["this"][0].node
+    try {
+        $jsAst.find([
+            `$_$this.${ oldName }()`,
+            `$_$this["${ oldName }"]()`
+        ]).each(function (item) {
+            var thisNode = item.match["this"][0].node
 
-        var nodePath = item[0].nodePath
-        var property = nodePath.node.property
+            if (t.isIdentifier(thisNode) || t.isThisExpression(thisNode)) {
+                var nodePath = item[0].nodePath
+                var property = nodePath.node.callee.property
 
-        var thisName = ggcUtils.getThisExpressionName(item, 'this')
-        if (thisName) {
-            property.name = newName
-            property.value = newName
-        }
+                var thisName = ggcUtils.getThisExpressionName(item, 'this')
+                if (thisName) {
+                    property.name = newName
+                    property.value = newName
+                }
+            }
 
-        // if (thisNode.type === 'ThisExpression') {
-        //     property.name = newName
-        //     property.value = newName
-        // } else {
-        //     var objectName = thisNode.name
-        //     var res = nodePath.scope.lookup(objectName)
-        //     if (res && res.bindings[objectName]) {
-        //         var scopeNode = res.bindings[objectName][0]
-        //         var scopeParentNode = scopeNode.parentPath
-        //         if (
-        //             scopeParentNode.node.type === 'VariableDeclarator' &&
-        //             scopeParentNode.node.init.type === 'ThisExpression'
-        //         ) {
-        //             property.name = newName
-        //             property.value = newName
-        //         }
-        //     }
-        // }
-    })
-        .root()
+            // if (thisNode.type === 'ThisExpression') {
+            //     property.name = newName
+            //     property.value = newName
+            // } else {
+            //     var objectName = thisNode.name
+            //     var res = nodePath.scope.lookup(objectName)
+            //     if (res && res.bindings[objectName]) {
+            //         var scopeNode = res.bindings[objectName][0]
+            //         var scopeParentNode = scopeNode.parentPath
+            //         if (
+            //             scopeParentNode.node.type === 'VariableDeclarator' &&
+            //             scopeParentNode.node.init.type === 'ThisExpression'
+            //         ) {
+            //             property.name = newName
+            //             property.value = newName
+            //         }
+            //     }
+            // }
+        })
+            .root()
+    } catch (error) {
+        global.log(error)
+    }
+
 }
 
 /**
@@ -440,27 +477,27 @@ function renameThisDotFun ($jsAst, oldName, newName, type) {
  * @param {*} type           要替换data里面的变量还是methods里面的函数(取值：DATA, METHOD)
  * @returns
  */
-function renameScriptVariable ($jsAst, oldName, newName, type) {
+function renameScriptVariable ($jsAst, oldName, newName, type, fileKey) {
     if (!$jsAst) return
-    if (!newName) throw new Error("renameScriptVariable 没有newName")
-    if (!oldName) throw new Error("renameScriptVariable 没有oldName")
+    if (!newName) global.log("renameScriptVariable 没有newName")
+    if (!oldName) global.log("renameScriptVariable 没有oldName")
 
     //1.找到data里面的变量并重名
-    renameDataOrMethods($jsAst, oldName, newName, type)
+    renameDataOrMethods($jsAst, oldName, newName, type, fileKey)
 
     //2.找到所有this.data.xxx进行重名
-    renameThisDotDataDotXXX($jsAst, oldName, newName, type)
+    renameThisDotDataDotXXX($jsAst, oldName, newName, type, fileKey)
 
     //3.对this.xxx进行替换，如果是函数与变量重名了
-    renameThisDotFun($jsAst, oldName, newName, type)
+    renameThisDotFun($jsAst, oldName, newName, type, fileKey)
 
     //3.扩展运算符的处理(buttons 在prop里)
     //const { buttons, icon } = this;  --> ?
-    spreadSyntaxHandle($jsAst, oldName, newName)
+    spreadSyntaxHandle($jsAst, oldName, newName, fileKey)
 
     if (type === "DATA") {
         //4.还有setData里面的变量
-        renameSetDataVariable($jsAst, oldName, newName)
+        renameSetDataVariable($jsAst, oldName, newName, fileKey)
     }
 }
 
@@ -493,8 +530,8 @@ function renameTemplateVariable ($wxmlAst) {
         var oldName = arg2
         var newName = arguments[2]
 
-        if (!oldName) throw new Error("renameTemplateVariable 没有oldName")
-        if (!newName) throw new Error("renameTemplateVariable 没有newName")
+        if (!oldName) global.log("renameTemplateVariable 没有oldName")
+        if (!newName) global.log("renameTemplateVariable 没有newName")
 
         replaceList = [{ oldName, newName }]
 
@@ -641,8 +678,8 @@ function renameTemplateAttrVariable (code, oldName, newName, isOnlyReplaceFuncti
                 // </template>
                 res = res.replace(/"/g, "'")
             } catch (error) {
-                console.log("[Error]renameTemplateAttrVariable: newName有问题，无法替换。 error: ", error)
-                console.log("[Error]renameTemplateAttrVariable: newName有问题，无法替换。 newName: ", newName)
+                global.log("[ERROR]renameTemplateAttrVariable: newName有问题，无法替换。 error: ", error)
+                global.log("[ERROR]renameTemplateAttrVariable: newName有问题，无法替换。 newName: ", newName)
             }
         }
     }

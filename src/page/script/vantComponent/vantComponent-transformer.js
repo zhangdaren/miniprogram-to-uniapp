@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-07-09 09:55:41
+ * @LastEditTime: 2023-04-10 20:35:47
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\script\vantComponent\vantComponent-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/script/vantComponent/vantComponent-transformer.js
  *
  */
 
@@ -73,7 +73,7 @@ function transformVantComponent ($ast, fileKey, name) {
                 })
             } else {
                 var littleCode = $ast.generate().substr(0, 250)
-                console.log(`[Error]VantComponent异常情况(建议把源代码修改为简单结构，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
+                global.log(`[ERROR]VantComponent异常情况(建议把源代码修改为简单结构，再尝试转换)\nfile:${ fileKey }\n`, littleCode)
 
             }
         })

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-19 11:15:31
- * @LastEditTime: 2022-06-28 09:30:17
+ * @LastEditTime: 2023-03-25 20:59:10
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\variable\variable-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/variable/variable-transformer.js
  *
  */
 
@@ -26,7 +26,8 @@ const {
     getTypeByAstNode,
     getTypeDefaultAst,
     setDataByPathList,
-    getExpressionVariableList,
+    getVariableListByKey,
+    getTemplateExpressionList
 } = require(appRoot + '/src/utils/variableUtils')
 
 const { parseMustache } = require(appRoot + "/src/utils/mustacheUtils")
@@ -36,11 +37,11 @@ const { parseMustache } = require(appRoot + "/src/utils/mustacheUtils")
  * @param {*} funName  函数名
  */
 function createEmptyFunction (funName) {
-    if (!funName) throw new Error("createEmptyFunction: funName is null")
+    if (!funName) global.log("createEmptyFunction: funName is null")
 
     //构建空函数
     // xxxx() {
-    //     console.log("xxx函数不存在，创建空函数代替");
+    //     global.log("xxx函数不存在，创建空函数代替");
     // },
     var meExp = t.memberExpression(t.identifier("console"), t.identifier("log"))
     var tip = "占位：函数 " + funName + " 未声明"
@@ -51,13 +52,13 @@ function createEmptyFunction (funName) {
 
     //这种也行
     // var newFun = $(`${ funName }() {
-    //         console.log("${ funName }函数不存在，创建空函数代替");
+    //         global.log("${ funName }函数不存在，创建空函数代替");
     //     }`).node
     // methods.push(newFun)
 
     //TODO: 输出日志
     // let logStr = `[Tip] 检测到${ obj.key }绑定的函数 ${ funName } 不存在，已添加空函数占位   file-> ` + fileKey
-    // console.log(logStr)
+    // global.log(logStr)
     // global.log.push(logStr)
 
     return opExp
@@ -92,7 +93,7 @@ function getSetDataVariableList ($jsAst) {
 
                 list.push(...nameList)
             } else {
-                // console.log("setData骚写法: ", item.generate())
+                // global.log("setData骚写法: ", item.generate())
             }
         }).root()
 
@@ -113,10 +114,10 @@ function getSetDataVariableList ($jsAst) {
  * @param {*} $wxmlAst
  * @returns
  */
-function undefinedFunctionHandle ($jsAst, $wxmlAst) {
+function undefinedFunctionHandle ($jsAst, $wxmlAst, fileKey) {
     if (!$jsAst || !$wxmlAst) return
 
-    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS)
+    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS, fileKey)
     var methodNameList = methodList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
     })
@@ -128,7 +129,7 @@ function undefinedFunctionHandle ($jsAst, $wxmlAst) {
         .each(function (item) {
             var attributes = item.attr("content.attributes")
 
-            // console.log("attributes", attributes)
+            // global.log("attributes", attributes)
             //处理标签属性
             if (attributes) {
                 attributes.forEach(function (attr) {
@@ -154,9 +155,9 @@ function undefinedFunctionHandle ($jsAst, $wxmlAst) {
                         // (3). 事件触发时获取数据
                         //  handleInput: function(e) {
                         //     // {item:100}
-                        //    console.log(e.currentTarget.dataset)
+                        //    global.log(e.currentTarget.dataset)
                         //     // 输入框的值
-                        //    console.log(e.detail.value);
+                        //    global.log(e.detail.value);
                         //  }
 
                         if (!methodNameList.includes(value)) {
@@ -171,114 +172,114 @@ function undefinedFunctionHandle ($jsAst, $wxmlAst) {
     undefinedFunctionList = [...new Set(undefinedFunctionList)]
 
     //在methods里创建空函数占位
-    var methods = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS)
+    var methods = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS, fileKey)
     undefinedFunctionList.map(function (funName) {
         let opExp = createEmptyFunction(funName)
         methods.push(opExp)
     })
 }
 
-/**
- * TODO: 获取所有template里面的变量
- */
-function getTemplateExpressionList ($wxmlAst) {
-    if (!$wxmlAst) return []
+// /**
+//  * TODO: 获取所有template里面的变量
+//  */
+// function getTemplateExpressionList ($wxmlAst) {
+//     if (!$wxmlAst) return []
 
-    var expList = []
-    var reg = /\{\{(.*?)\}\}/
-    $wxmlAst
-        .find('<$_$tag></$_$tag>')
-        .each(function (item) {
-            //attr content 并去重！
+//     var expList = []
+//     var reg = /\{\{(.*?)\}\}/
+//     $wxmlAst
+//         .find('<$_$tag></$_$tag>')
+//         .each(function (item) {
+//             //attr content 并去重！
 
-            //abc["b"],  abc.b
-            //有冒号的，，和content
+//             //abc["b"],  abc.b
+//             //有冒号的，，和content
 
-            // path: "abc.eb.c",  type:"string"
+//             // path: "abc.eb.c",  type:"string"
 
-            // item 这类，是否还要判断是否为父for
+//             // item 这类，是否还要判断是否为父for
 
-            //取member 和id ，先取member
+//             //取member 和id ，先取member
 
-            //解析类型 三元表达式，+-*/
+//             //解析类型 三元表达式，+-*/
 
-            var tagName = item.attr("content.name")
+//             var tagName = item.attr("content.name")
 
-            var attributes = item.attr("content.attributes")
-            var children = item.attr("content.children")
+//             var attributes = item.attr("content.attributes")
+//             var children = item.attr("content.children")
 
-            //处理标签属性
-            if (attributes) {
-                attributes.forEach(function (attr) {
-                    var attrNode = attr.key
-                    var valueNode = attr.value
+//             //处理标签属性
+//             if (attributes) {
+//                 attributes.forEach(function (attr) {
+//                     var attrNode = attr.key
+//                     var valueNode = attr.value
 
-                    if (attr.value) {
-                        //判断：有些属性没有值，如v-else
-                        var attr = attrNode.content
-                        var value = valueNode.content
+//                     if (attr.value) {
+//                         //判断：有些属性没有值，如v-else
+//                         var attr = attrNode.content
+//                         var value = valueNode.content
 
-                        if (attr[0] === ":" || attr.indexOf("v-") > -1) {
-                            // console.log("value---------------" + value)
+//                         if (attr[0] === ":" || attr.indexOf("v-") > -1) {
+//                             // global.log("value---------------" + value)
 
-                            //{type: 'Boolean', code: 'false'}
-                            var list = getExpressionVariableList(attr, value)
-                            expList.push(...list)
-                        }
-                    }
-                })
-            }
+//                             //{type: 'Boolean', code: 'false'}
+//                             var list = getExpressionVariableList(attr, value)
+//                             expList.push(...list)
+//                         }
+//                     }
+//                 })
+//             }
 
-            //处理标签内容
-            if (children && children.length === 1) {
-                var contentNode = children[0].content.value
+//             //处理标签内容
+//             if (children && children.length === 1) {
+//                 var contentNode = children[0].content.value
 
-                if (!contentNode) return
+//                 if (!contentNode) return
 
-                var content = contentNode.content
+//                 var content = contentNode.content
 
-                //去掉换行
-                content = content.replace(/\n/g, "")
+//                 //去掉换行
+//                 content = content.replace(/\n/g, "")
 
-                var reg = /\{\{(.*?)\}\}/
-                if (content && reg.test(content)) {
-                    var codeList = content.match(/\{\{(.*?)\}\}/g)
-                    // codeList = codeList.map(function (str) {
-                    //     return str.replace(reg, "$1")
-                    // })
-                    if (!codeList && !codeList.length) {
-                        console.log("codeList 括号没成对？", codeList)
-                        return
-                    }
+//                 var reg = /\{\{(.*?)\}\}/
+//                 if (content && reg.test(content)) {
+//                     var codeList = content.match(/\{\{(.*?)\}\}/g)
+//                     // codeList = codeList.map(function (str) {
+//                     //     return str.replace(reg, "$1")
+//                     // })
+//                     if (!codeList && !codeList.length) {
+//                         global.log("codeList 括号没成对？", codeList)
+//                         return
+//                     }
 
-                    codeList.map(function (code) {
-                        code = parseMustache(code, true)
-                        code = code.replace(reg, "").replace(/\s/, "")
+//                     codeList.map(function (code) {
+//                         code = parseMustache(code, true)
+//                         code = code.replace(reg, "").replace(/\s/, "")
 
-                        var list = getExpressionVariableList("", code)
-                        expList.push(...list)
-                    })
-                }
-            }
-        })
-    // console.log("expList", JSON.stringify(expList))
+//                         var list = getExpressionVariableList("", code)
+//                         expList.push(...list)
+//                     })
+//                 }
+//             }
+//         })
+//     // global.log("expList", JSON.stringify(expList))
 
-    //去重
-    expList = utils.uniqueArray(expList, "code")
+//     //去重
+//     expList = utils.uniqueArray(expList, "code")
 
-    return expList
-}
+//     return expList
+// }
 
 
-/**
- * 对需要添加到data里面的变量字符串进行初步处理
- * @param {.} name
- */
-function getVariableListByKey (name) {
-    //TODO: dateTimeArray1[dateTime1[1]] 这种不太好解析
-    name = name.replace(/\[.*?\]+/g, "[0]")
-    return name.split(".")
-}
+// /**
+//  * 对需要添加到data里面的变量字符串进行初步处理
+//  * @param {.} name
+//  */
+// function getVariableListByKey (name) {
+//     //TODO: dateTimeArray1[dateTime1[1]] 这种不太好解析
+//     name = name.replace(/\[.*?\]+/g, "[0]")
+//     return name.split(".")
+// }
 
 
 /**
@@ -286,8 +287,9 @@ function getVariableListByKey (name) {
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  * @param {*} variableTypeInfo
+ * @param {*} wxsModuleNameList
  */
-function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
+function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo, wxsModuleNameList, fileKey) {
     if (!$jsAst) return
 
     //1.遍历data列表
@@ -302,22 +304,19 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
 
     //TODO: 冲突的变量？？？类型冲突？？？
 
-    var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA, true)
+    var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA, fileKey, true)
     var dataNameList = dataList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
     })
 
-    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS)
+    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS, fileKey)
     var propNameList = propList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
     })
-    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS)
+    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS, fileKey)
     var methodNameList = methodList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
     })
-
-    var wxsModuleNameList = ggcUtils.getWxmlAstModuleList($wxmlAst)
-
 
     var res = $jsAst.find(`export default {
         data() {
@@ -347,7 +346,7 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
 
                     var list = getVariableListByKey(keyName)
 
-                    // console.log('%c [ list ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', JSON.stringify(list))
+                    // global.log('%c [ list ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', JSON.stringify(list))
 
                     var first = list[0]
                     //判断list第一个是否在props里面
@@ -366,13 +365,13 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
 
     //**********************template里未定义的变量处理***********************
     var expList = getTemplateExpressionList($wxmlAst)
-    // console.log('list :>> ', JSON.stringify(expList))
+    // global.log('list :>> ', JSON.stringify(expList))
     expList.map(function (obj) {
         var code = obj.code
         var type = obj.type
         var list = getVariableListByKey(code)
 
-        // console.log('%c [ list ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', JSON.stringify(list))
+        // global.log('%c [ list ]: ', 'color: #bf2c9f; background: pink; font-size: 13px;', JSON.stringify(list))
 
         var first = list[0]
         //判断list第一个是否在props里面
@@ -392,7 +391,7 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
     //     })
     //     if(res) return  true
     // })
-    // console.log('newList :>> ', newList)
+    // global.log('newList :>> ', newList)
 
     // 0:'show'
     // 1:'maskClass'
@@ -415,10 +414,10 @@ function undefinedVariableHandle ($jsAst, $wxmlAst, variableTypeInfo) {
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  */
-function jsKeywordFunctionHandle ($jsAst, $wxmlAst) {
+function jsKeywordFunctionHandle ($jsAst, $wxmlAst, fileKey) {
     if (!$jsAst || !$wxmlAst) return
 
-    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS)
+    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS, fileKey)
     var methodNameList = methodList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
     })
@@ -431,23 +430,20 @@ function jsKeywordFunctionHandle ($jsAst, $wxmlAst) {
     var renameFun = function (name) {
         return name + "Fun"
     }
-    renameScriptWithTemplateByNameList($jsAst, $wxmlAst, list, ggcUtils.propTypes.METHODS, renameFun, true)
+    renameScriptWithTemplateByNameList($jsAst, $wxmlAst, list, ggcUtils.propTypes.METHODS, renameFun, fileKey, true)
 }
 
 
 /**
  * 对vue不支持的变量命名方式进行处理
  * vue不支持使用_和$开头作为变量名
- *
- * //TODO: 有没有使用这两个作为方法名的？
- *
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  */
-function unsupportedVariableHandle ($jsAst, $wxmlAst) {
+function unsupportedVariableHandle ($jsAst, $wxmlAst, fileKey) {
     if (!$jsAst || !$wxmlAst) return
 
-    var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA)
+    var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA, fileKey)
     var dataNameList = dataList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
     })
@@ -457,9 +453,34 @@ function unsupportedVariableHandle ($jsAst, $wxmlAst) {
 
     //开始替换
     var renameFun = function (name) {
-        return "clone" + name
+        return name.replace(reg, "") + (name.includes("_") ? "_var": "Var")
     }
-    renameScriptWithTemplateByNameList($jsAst, $wxmlAst, list, ggcUtils.propTypes.DATA, renameFun)
+    renameScriptWithTemplateByNameList($jsAst, $wxmlAst, list, ggcUtils.propTypes.DATA, renameFun, fileKey)
+}
+
+
+/**
+ * 对vue不支持的函数命名方式进行处理
+ * vue不支持使用_和$开头作为函数名
+ * @param {*} $jsAst
+ * @param {*} $wxmlAst
+ */
+function unsupportedFunctionHandle ($jsAst, $wxmlAst, fileKey) {
+    if (!$jsAst || !$wxmlAst) return
+
+    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS, fileKey)
+    var methodNameList = methodList.map(function (item) {
+        return item.key && (item.key.name || item.key.value)
+    })
+
+    var reg = /^[_$]/
+    var list = methodNameList.filter(name => reg.test(name))
+
+    //开始替换
+    var renameFun = function (name) {
+        return name.replace(reg, "") + (name.endsWith("Fun") ? "" : "Fun")
+    }
+    renameScriptWithTemplateByNameList($jsAst, $wxmlAst, list, ggcUtils.propTypes.METHODS, renameFun, fileKey)
 }
 
 
@@ -468,10 +489,10 @@ function unsupportedVariableHandle ($jsAst, $wxmlAst) {
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  */
-function dataWithMethodsDuplicateHandle ($jsAst, $wxmlAst) {
-    var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA)
-    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS)
-    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS)
+function dataWithMethodsDuplicateHandle ($jsAst, $wxmlAst, fileKey) {
+    var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA, fileKey)
+    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS, fileKey)
+    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS, fileKey)
 
     var dataNameList = dataList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
@@ -496,7 +517,7 @@ function dataWithMethodsDuplicateHandle ($jsAst, $wxmlAst) {
 
         //TODO: 其实这个策略有点问题，，如果是@tap="flag?'test':'handle'" 这种形式就那啥了，看是不是要反过来，将变量名给改了
         //估计问题也不大，替换函数名的好处就是替换的比较少
-        renameScriptWithTemplateByNameList($jsAst, $wxmlAst, dataAndMethods, ggcUtils.propTypes.METHODS, renameFun, true)
+        renameScriptWithTemplateByNameList($jsAst, $wxmlAst, dataAndMethods, ggcUtils.propTypes.METHODS, renameFun, fileKey, true)
     }
 }
 
@@ -507,9 +528,9 @@ function dataWithMethodsDuplicateHandle ($jsAst, $wxmlAst) {
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  */
-function propsWithMethodsDuplicateHandle ($jsAst, $wxmlAst) {
-    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS)
-    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS)
+function propsWithMethodsDuplicateHandle ($jsAst, $wxmlAst, fileKey) {
+    var methodList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.METHODS, fileKey)
+    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS, fileKey)
 
     var propNameList = propList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
@@ -529,7 +550,7 @@ function propsWithMethodsDuplicateHandle ($jsAst, $wxmlAst) {
 
         //TODO: 其实这个策略有点问题，，如果是@tap="flag?'test':'handle'" 这种形式就那啥了，看是不是要反过来，将变量名给改了
         //估计问题也不大，替换函数名的好处就是替换的比较少
-        renameScriptWithTemplateByNameList($jsAst, $wxmlAst, propsAndMethods, ggcUtils.propTypes.METHODS, renameFun, true)
+        renameScriptWithTemplateByNameList($jsAst, $wxmlAst, propsAndMethods, ggcUtils.propTypes.METHODS, renameFun, fileKey, true)
     }
 }
 
@@ -541,9 +562,9 @@ function propsWithMethodsDuplicateHandle ($jsAst, $wxmlAst) {
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  */
-function propWithDataDuplicateHandle ($jsAst, $wxmlAst) {
-    var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA)
-    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS)
+function propWithDataDuplicateHandle ($jsAst, $wxmlAst, fileKey) {
+    var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA, fileKey)
+    var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS, fileKey)
 
     var dataNameList = dataList.map(function (item) {
         return item.key && (item.key.name || item.key.value)
@@ -563,10 +584,10 @@ function propWithDataDuplicateHandle ($jsAst, $wxmlAst) {
         var renameFun = function (name) {
             return name + "Clone"
         }
-        var templateRenameList = renameScriptWithTemplateByNameList($jsAst, $wxmlAst, propAndSetData, ggcUtils.propTypes.DATA, renameFun)
+        var templateRenameList = renameScriptWithTemplateByNameList($jsAst, $wxmlAst, propAndSetData, ggcUtils.propTypes.DATA, renameFun, fileKey)
 
         // 3.在watch里面添加
-        var watchList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.WATCH)
+        var watchList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.WATCH, fileKey)
         var watchNameList = watchList.map(function (item) {
             return item.key && (item.key.name || item.key.value)
         })
@@ -583,7 +604,7 @@ function propWithDataDuplicateHandle ($jsAst, $wxmlAst) {
             if (!watchNameList.includes(oldName)) {
                 var newNode = `${ oldName }: {
                     handler(newName, oldName) {
-                        this.${ newName } = this.deepClone(newName);
+                        this.${ newName } = this.clone(newName);
                     },
                     deep: true,
                     immediate: true
@@ -601,9 +622,10 @@ function propWithDataDuplicateHandle ($jsAst, $wxmlAst) {
  * @param {*} list                    需要替换的列表
  * @param {*} varType                 需要替换的变量是DATA还是METHODS
  * @param {*} renameFun               对旧变量名创建一个合适的名字的函数，比如 $data --> clone$data 等等
+ * @param {*} fileKey
  * @param {*} isOnlyReplaceFunction   仅对template里的函数名进行替换
  */
-function renameScriptWithTemplateByNameList ($jsAst, $wxmlAst, list, varType, renameFun, isOnlyReplaceFunction = false) {
+function renameScriptWithTemplateByNameList ($jsAst, $wxmlAst, list, varType, renameFun, fileKey, isOnlyReplaceFunction = false) {
     if (!$jsAst || !$wxmlAst) return []
 
     //TODO:参数有效判断
@@ -612,7 +634,7 @@ function renameScriptWithTemplateByNameList ($jsAst, $wxmlAst, list, varType, re
     var templateRenameList = []
     list.map(function (name) {
         var newName = renameFun(name)
-        renameScriptVariable($jsAst, name, newName, varType)
+        renameScriptVariable($jsAst, name, newName, varType, fileKey)
         var obj = {
             oldName: name,
             newName,
@@ -632,9 +654,10 @@ function renameScriptWithTemplateByNameList ($jsAst, $wxmlAst, list, varType, re
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  * @param {*} variableTypeInfo
+ * @param {*} wxsModuleNameList
  * @param {*} fileKey
  */
-function transformVariable ($jsAst, $wxmlAst, variableTypeInfo, fileKey) {
+function transformVariable ($jsAst, $wxmlAst, variableTypeInfo, wxsModuleNameList, fileKey) {
     // 变量重命名
     // $ _
 
@@ -699,22 +722,24 @@ function transformVariable ($jsAst, $wxmlAst, variableTypeInfo, fileKey) {
     //  js里面重名函数及引用
     //  template里面重名函数
 
-    // console.log('fileKey :>> ', fileKey)
+    // global.log('fileKey :>> ', fileKey)
+
 
 
     //第一步：把没有定义的变量和函数，先定义出来
-    undefinedVariableHandle($jsAst, $wxmlAst, variableTypeInfo)
-    undefinedFunctionHandle($jsAst, $wxmlAst)
+    undefinedVariableHandle($jsAst, $wxmlAst, variableTypeInfo, wxsModuleNameList, fileKey)
+    undefinedFunctionHandle($jsAst, $wxmlAst, fileKey)
 
-    dataWithMethodsDuplicateHandle($jsAst, $wxmlAst)
-    propWithDataDuplicateHandle($jsAst, $wxmlAst)
-    propsWithMethodsDuplicateHandle($jsAst, $wxmlAst)
+    dataWithMethodsDuplicateHandle($jsAst, $wxmlAst, fileKey)
+    propWithDataDuplicateHandle($jsAst, $wxmlAst, fileKey)
+    propsWithMethodsDuplicateHandle($jsAst, $wxmlAst, fileKey)
 
     //再扫一遍，看是否有还未定义的变量
-    undefinedVariableHandle($jsAst, $wxmlAst, variableTypeInfo)
+    undefinedVariableHandle($jsAst, $wxmlAst, variableTypeInfo, wxsModuleNameList, fileKey)
 
-    unsupportedVariableHandle($jsAst, $wxmlAst)
-    jsKeywordFunctionHandle($jsAst, $wxmlAst)
+    unsupportedVariableHandle($jsAst, $wxmlAst, fileKey)
+    unsupportedFunctionHandle($jsAst, $wxmlAst, fileKey)
+    jsKeywordFunctionHandle($jsAst, $wxmlAst, fileKey)
 }
 
 
@@ -729,7 +754,7 @@ var attrList = ["class", "style", "id", "key"]
  * @returns
  */
 function getPageSimpleVariableTypeInfo ($jsAst, $wxmlAst, allPageData) {
-    if (!$jsAst || !$wxmlAst) return null
+    if (!$jsAst || !$wxmlAst) return {}
 
     var importComponentList = global.importComponentList
 
@@ -752,13 +777,13 @@ function getPageSimpleVariableTypeInfo ($jsAst, $wxmlAst, allPageData) {
 
             //找不到这个组件的数据也返回
             if (!allPageData[comFileKey]) {
-                console.log("找不到这个组件: " + comFileKey)
+                global.log("找不到这个组件: " + comFileKey)
                 return
             }
 
             //获取这个组件的props数据
             var propInfo = allPageData[comFileKey].data.getPropsInfo()
-            // console.log("propInfo", propInfo)
+            // global.log("propInfo", propInfo)
 
             var attributes = item.attr("content.attributes")
 
@@ -781,38 +806,41 @@ function getPageSimpleVariableTypeInfo ($jsAst, $wxmlAst, allPageData) {
                     //这里将单个单词的变量添加到variableTypeInfo
                     //多变量或表达式，不考虑!
                     if (attr && !attrList.includes(attr)) {
-                        var type = propInfo[attr]
+                        var typeList = propInfo[attr] || []
+
+                        if (!typeList.length) return
+
                         if (utils.isVariableName(value)) {
-                            if (type === "Boolean" && utils.isBooleanString(value)) {
+                            if (typeList.includes("Boolean") && utils.isBooleanString(value)) {
                                 if (attrNode.content[0] !== ":") {
                                     //修复数值的绑定关系，是否是数值还是字符串
                                     attrNode.content = ":" + attrNode.content
-                                    // console.log("这个属性是Bool，添加v-bind:" + attr + '="' + value + '"')
+                                    // global.log("这个属性是Bool，添加v-bind:" + attr + '="' + value + '"')
                                 }
                             } else {
                                 //中文的不添加
                                 if (!reg_cn.test(value)) {
-                                    variableTypeInfo[value] = type
-                                    // console.log("加进来的属性", attr + '="' + value + '"', "属性类型为：", type)
+                                    variableTypeInfo[value] = typeList
+                                    // global.log("加进来的属性", attr + '="' + value + '"', "属性类型为：", type)
                                 }
                             }
-                        } else if (type === "Number" && utils.isNumberString(value)) {
+                        } else if (typeList.includes("Number") && utils.isNumberString(value)) {
                             if (attrNode.content[0] !== ":") {
                                 //修复数值的绑定关系，是否是数值还是字符串
                                 attrNode.content = ":" + attrNode.content
-                                // console.log("这个属性是数字，添加v-bind:" + attr + '="' + value + '"')
+                                // global.log("这个属性是数字，添加v-bind:" + attr + '="' + value + '"')
                             }
                         } else {
-                            // console.log("这个属性不加进来了1", attr + '="' + value + '"')
+                            // global.log("这个属性不加进来了1", attr + '="' + value + '"')
                         }
                     } else {
-                        // console.log("这个属性不加进来了2", attr + '="' + value + '"')
+                        // global.log("这个属性不加进来了2", attr + '="' + value + '"')
                     }
                 })
             }
         }).root()
 
-    // console.log("varList", variableTypeInfo)
+    // global.log("varList", variableTypeInfo)
 
     return variableTypeInfo
 }
@@ -826,6 +854,7 @@ module.exports = {
     undefinedVariableHandle,
     undefinedFunctionHandle,
     unsupportedVariableHandle,
+    unsupportedFunctionHandle,
     jsKeywordFunctionHandle,
     propWithDataDuplicateHandle,
 

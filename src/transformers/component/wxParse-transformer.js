@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2021-11-30 10:09:25
+ * @LastEditTime: 2023-04-02 19:59:07
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\transformers\component\wxParse-transformer.js
+ * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/wxParse-transformer.js
  *
  */
 
@@ -28,10 +28,10 @@ const { parseMustache } = require(appRoot + "/src/utils/mustacheUtils")
  * @param {*} $ast
  * @returns
  */
-function removeRequireWxParseCode ($ast) {
+function removeRequireWxParseCode ($ast, fileKey) {
     if (!$ast) return
 
-    var reg = /\/wxParse\/|wxParse\.js/i
+    var reg = /\/?\bwxParse\/|wxParse\.js/i
 
     //TODO: import wxParse from '../../../wxParse/wxParse.js';
     $ast
@@ -45,31 +45,85 @@ function removeRequireWxParseCode ($ast) {
 
 
     //删除var a = require("../js/wxParse.js");
-    $ast.find("require($_$src)").each(function (item) {
-        var src = item.match["src"][0].value
-        if (reg.test(src)) {
-            var isRemoved = false
-            item.parents().each(parent => {
-                //只作用于第一个找到的VariableDeclarator
-                if (isRemoved) return
+    // $ast.find([
+    //     "require($_$src)",
+    //     "requirejs($_$src)",
+    //     "requireJs($_$src)",
+    //     "requireJS($_$src)",
+    // ]).each(function (item) {
+    //     var src = item.match["src"][0].value
+    //     if (reg.test(src)) {
+    //         var isRemoved = false
+    //         item.parents().each(parent => {
+    //             //只作用于第一个找到的VariableDeclarator
+    //             if (isRemoved) return
 
-                if (parent.node && parent.node.type == 'VariableDeclarator') {
-                    parent.remove()
-                    isRemoved = true
-                }
-            })
+    //             if (parent.node && parent.node.type == 'VariableDeclarator') {
+    //                 parent.remove()
+    //                 isRemoved = true
+    //             }
+    //         })
 
-            if (isRemoved) {
-                //如果父级都没有定义语句了，那一并删除
-                if (!item.parent().node.declarations) {
-                    item.remove()
-                }
-            } else {
-                //处理: require("../../../../utils/wxParse.js");
-                item.remove()
-            }
-        }
-    }).root()
+    //         if (isRemoved) {
+    //             //如果父级都没有定义语句了，那一并删除
+    //             if (!item.parent().node.declarations.length) {
+    //                 item.parent().parent().parent().remove()
+    //             }
+    //         } else {
+    //             //处理: require("../../../../utils/wxParse.js");
+    //             item.remove()
+    //         }
+    //     }
+    // }).root()
+
+
+
+    // 删除var a = require("../js/wxParse.js");第二版
+    var funNameList = ["require", "requirejs", "requireJs", "requireJS"]
+
+    // $ast.find({
+    //     type: "CallExpression"
+    // }).each(item => {
+    //     var funName = ""
+    //     if (t.isIdentifier(item.node.callee)) {
+    //         funName = item.node.callee.name
+    //     } else if (t.isMemberExpression(item.node.callee)) {
+    //         funName = item.node.callee.property.name
+    //     }
+
+    //     if (funNameList.includes(funName)) {
+    //         var firstArg = item.node.arguments[0]
+    //         var argValue = firstArg.name || firstArg.value || ""
+    //         if (reg.test(argValue)) {
+
+    //             var isRemoved = false
+    //             var parentVariableDeclaration = null
+    //             item.parents().each(parent => {
+    //                 //只作用于第一个找到的VariableDeclarator
+    //                 if (isRemoved) return
+
+    //                 if (parent.node && parent.node.type == 'VariableDeclarator') {
+    //                     // parent.remove()
+    //                     isRemoved = true
+    //                 }
+
+    //                 if (parent.node && parent.node.type == 'VariableDeclaration') {
+    //                     parentVariableDeclaration = parent
+    //                 }
+    //             })
+
+    //             if (isRemoved) {
+    //                 //如果父级都没有定义语句了，那一并删除
+    //                 if (!parentVariableDeclaration.node.declarations.length) {
+    //                     // parentVariableDeclaration.remove()
+    //                 }
+    //             } else {
+    //                 //处理: require("../../../../utils/wxParse.js");
+    //                 // item.remove()
+    //             }
+    //         }
+    //     }
+    // })
 }
 
 
@@ -93,7 +147,7 @@ function getWxParseDataNewVarName (varName) {
  * @param {*} $jsAast
  * @returns
  */
-function transformWxParseScript ($jsAast) {
+function transformWxParseScript ($jsAast, fileKey) {
     if (!$jsAast) return
 
     $jsAast.find('$_$1.wxParse($$$)').each(function (item) {
@@ -112,21 +166,31 @@ function transformWxParseScript ($jsAast) {
         } else {
             bindName = $(bindNameNode).generate()
             isComputed = true
-            // const logStr = `[Error] 工具能力有限！此行代码转换后可能会报错，需手动调试修复:  ${ pathStr }     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
+            // const logStr = `[ERROR] 工具能力有限！此行代码转换后可能会报错，需手动调试修复:  ${ pathStr }     file:  ${ nodePath.relative(global.miniprogramRoot, file_js) }`
             // //存入日志，方便查看，以防上面那么多层级搜索出问题
-            // console.log(logStr)
+            // global.log(logStr)
             // global.log.push(logStr)
         }
         var code = `${ targetNode }.${ bindName } = ${ targetNode }.escape2Html(${ dataNode })`
         if (isComputed) {
-            var code = `${ targetNode }[${ bindName }] = ${ targetNode }.escape2Html(${ dataNode })`
+            code = `${ targetNode }[${ bindName }] = ${ targetNode }.escape2Html(${ dataNode })`
         }
 
         var oldCode = item.generate()
         item.replaceBy(code)
 
-        //添加注释
-        item.before("//" + oldCode + "\n")
+        //没反混淆后，就不能在这里加注释
+        // var parentNodeType = item.parent().node.type
+        // if (parentNodeType === "ObjectProperty") {
+        //     //添加注释
+        //     item.parent().before("//" + oldCode + "\n")
+        // } else if (parentNodeType === "ExpressionStatement" ||  parentNodeType === "ConditionalExpression") {
+        //     //以逗号连接的代码，则不添加注释，否则样式报错
+
+        // } else {
+        //     //添加注释
+        //     item.before("//" + oldCode + "\n")
+        // }
 
         //TODO:
         // 1.加注释  ok
@@ -143,16 +207,16 @@ function transformWxParseScript ($jsAast) {
  * @param {*} $wxmlAst
  * @returns
  */
-function transformWxParseTemplate ($wxmlAst) {
+function transformWxParseTemplate ($wxmlAst, fileKey) {
     if (!$wxmlAst) return
 
-    // console.log("-----", $wxmlAst.generate());
+    // global.log("-----", $wxmlAst.generate());
 
     $wxmlAst
         .find(['<template is="wxParse" :data="$_$data" $$$></template>',
             '<template is="wxParse" data="$_$data" $$$></template>'])
         .each(function (item) {
-            // console.log(match, nodePath)
+            // global.log(match, nodePath)
             var data = item[0].match["data"][0].value
             var attrListNode = item.match["$$$$"]
 
@@ -161,7 +225,7 @@ function transformWxParseTemplate ($wxmlAst) {
             //data应该已经转换好了，成了vue的格式，没有双括号了
             var ast = $(`${ object }`, { isProgram: false })
 
-            // console.log("ast", ast.attr("declarations.0.init.properties.0.value"))
+            // global.log("ast", ast.attr("declarations.0.init.properties.0.value"))
 
             var args = ast.attr("declarations.0.init.properties.0.value")
             if (args) {
@@ -192,7 +256,7 @@ function transformWxParseTemplate ($wxmlAst) {
                 var newTag = `<mp-html :content="${ argsStr }" ${ attrList.join(" ") }></mp-html>`
                 item.replaceBy(newTag)
             } else {
-                console.log("获取wxparse参数异常", item.generate())
+                global.log("获取wxparse参数异常", item.generate())
                 return null
             }
 
@@ -214,22 +278,25 @@ function transformWxParseTemplate ($wxmlAst) {
  * @param {*} $jsAst
  * @param {*} $wxmlAst
  */
-function transformWxParse ($jsAst, $wxmlAst) {
+function transformWxParse ($jsAst, $wxmlAst, fileKey) {
+    try {
+        if ($jsAst) {
+            removeRequireWxParseCode($jsAst, fileKey)
+            transformWxParseScript($jsAst, fileKey)
+        }
 
-    if ($jsAst) {
-        removeRequireWxParseCode($jsAst)
-        transformWxParseScript($jsAst)
-    }
-
-    if ($wxmlAst) {
-        transformWxParseTemplate($wxmlAst)
+        if ($wxmlAst) {
+            transformWxParseTemplate($wxmlAst, fileKey)
+        }
+    } catch (error) {
+        global.log("[ERROR]transformWxParse: ", fileKey, $jsAst.generate(), error)
     }
 }
 
 
 // var $jsAast = $(`WxParse.wxParse('editors.editor' + item.id, 'html', item.content.fulltext, this);`)
 // transformWxParseScript($jsAast)
-// console.log("生成", $jsAast.generate())
+// global.log("生成", $jsAast.generate())
 
 
 ////删除var a = require("../js/wxParse.js");
@@ -394,9 +461,9 @@ if (this.data.moduleData.length > 0) {
 //             let reg = /['"\+\[\]]/
 //             if (reg.test(argsBindName)) {
 //                 //这个变量名可能是表达式
-//                 const logStr = "[Error] 这个变量名可能是表达式：" + argsBindName + "    file: " + file_js;;
+//                 const logStr = "[ERROR] 这个变量名可能是表达式：" + argsBindName + "    file: " + file_js;;
 //                 //存入日志，方便查看，以防上面那么多层级搜索出问题
-//                 console.log(logStr)
+//                 global.log(logStr)
 //                 global.log.push(logStr)
 //             } else {
 //                 if (isComputed) {
@@ -413,13 +480,13 @@ if (this.data.moduleData.length > 0) {
 //             }
 //         } catch (error) {
 //             const logStr =
-//                 "[Error]   " +
+//                 "[ERROR]   " +
 //                 error +
 //                 '   source: astDataPath.get("body.body.0.argument.properties")' +
 //                 "    file: " +
 //                 file_js
 //             //存入日志，方便查看，以防上面那么多层级搜索出问题
-//             console.log(logStr)
+//             global.log(logStr)
 //             global.log.push(logStr)
 //         }
 //     }

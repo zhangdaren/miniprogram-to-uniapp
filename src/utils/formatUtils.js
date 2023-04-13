@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2022-05-07 17:32:04
+ * @LastEditTime: 2023-01-12 22:34:30
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\formatUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/formatUtils.js
  *
  */
 
@@ -22,7 +22,7 @@ const prettier = require("./prettier/standalone.js")
 const html = require("./prettier/parser-html.js")
 const postcss = require("./prettier/parser-postcss.js")
 const babel = require("./prettier/parser-babel.js")
-
+const typescript = require("./prettier/parser-typescript.js")
 
 var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
@@ -130,6 +130,9 @@ function getPrettierOptions (type) {
         case "js":
             parser = "babel"
             break
+        case "ts":
+            parser = "typescript"
+            break
         case "css":
         case "scss":
         case "less":
@@ -141,7 +144,7 @@ function getPrettierOptions (type) {
             break
     }
     prettierOptions.parser = parser
-    prettierOptions.plugins = [html, babel, postcss]
+    prettierOptions.plugins = [html, babel, postcss, typescript]
     return prettierOptions
 }
 
@@ -156,13 +159,19 @@ function getPrettierOptions (type) {
 function formatCode (code, extname, fileKey, showErrorCdoeLog = true) {
     if (!code) return code
 
+    //使用Prettier+vue会直接格出bug...
+    //<script></script>
+    // <style>
+    //  /* pages/index/inc.wxss *//* pages/index/inc.wxss */
+    //  .page {}
+    // </style>
+
     var newCode = formateByPrettier(code, extname, fileKey, showErrorCdoeLog)
 
     if (newCode === null) {
         if (extname[0] !== ".") {
             extname = "." + extname
         }
-
         newCode = formateByBeautify(code, extname, fileKey, showErrorCdoeLog)
         if (newCode === null) {
             newCode = code
@@ -187,10 +196,10 @@ function formateByPrettier (code, extname, fileKey, showErrorCdoeLog) {
         res = prettier.format(code, options)
     } catch (error) {
         if (showErrorCdoeLog) {
-            console.log("格式化Error: fileKey: " + fileKey + "     type:" + extname + "       error：", error)
-            // console.log("格式化Error: code: " + code)
+            global.log("格式化Error: fileKey: " + fileKey + "     type:" + extname + "       error：", error)
+            // global.log("格式化Error: code: " + code)
         } else {
-            console.log("格式化Error: fileKey: " + fileKey)
+            global.log("格式化Error: fileKey: " + fileKey)
         }
     }
     return res
@@ -211,7 +220,7 @@ function formateByBeautify (code, extname, fileKey, showErrorCdoeLog) {
     try {
         res = beautify[parser](code, beautifyOptions.options)
     } catch (error) {
-        console.log("二次格式化Error: fileKey: " + fileKey)
+        global.log("二次格式化Error: fileKey: " + fileKey)
     }
     return res
 }
@@ -267,12 +276,12 @@ function getFormatType (file) {
  * @param {*} folder
  */
 function formatFolder (folder) {
-    if (!folder) throw new Error("没有输入目录咧！")
+    if (!folder) global.log("没有输入目录咧！")
     var files = utils.getAllFile(folder)
 
     //TODO: 统计所用时间
     //TODO:  这里应该只需要文件即可！！！！！！！
-    console.log("文件数：" + files.length)
+    global.log("文件数：" + files.length)
 
     var bar = new ProgressBar('  格式化进度 [:bar] :rate/bps :percent 剩余:etas ', {
         complete: '█',
@@ -303,7 +312,7 @@ function formatFolder (folder) {
             // if (type && !/\.min\./.test(file)) {
             // fs.readFile(file, 'utf-8', function (err, data) {
             //     if (err) {
-            //         console.log(err)
+            //         global.log(err)
             //         bar.tick()
             //     } else {
             //         var type = getFormatType(file)
@@ -312,7 +321,7 @@ function formatFolder (folder) {
             //         fs.writeFile(file, fileData, function (err) {
             //             if (err) {
             //                 bar.tick()
-            //                 return console.log(err)
+            //                 return global.log(err)
             //             }
             //             bar.tick()
             //         })

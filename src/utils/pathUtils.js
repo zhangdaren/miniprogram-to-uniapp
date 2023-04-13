@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2022-07-09 11:29:58
+ * @LastEditTime: 2023-04-10 20:37:57
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\pathUtils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/pathUtils.js
  *
  */
 // const { NodePath } = require('@babel/traverse')
@@ -67,7 +67,7 @@ function relativePath (filePath, root, fileDir, defaultExtname = "") {
     var extname = path.extname(filePath)
 
     if (filePath.indexOf("weui-miniprogram") > -1) {
-        console.log("---- weui-miniprogram --")
+        global.log("---- weui-miniprogram --")
     }
 
     if (reg_single.test(filePath) && global.dependencies[filePath]) {
@@ -76,8 +76,8 @@ function relativePath (filePath, root, fileDir, defaultExtname = "") {
         //TODO: 这里还要优化，不需要判断miniprogram_npm，后面处理时weui再议
         var testFile = path.join(root, "miniprogram_npm", filePath)
 
-        // console.log("---------------filePath 1 ", filePath)
-        // console.log("---------------ftestFolder ", testFolder)
+        // global.log("---------------filePath 1 ", filePath)
+        // global.log("---------------ftestFolder ", testFolder)
         if (fs.existsSync(testFile)) {
             filePath = "@/" + path.relative(root, testFile)
         } else {
@@ -85,18 +85,18 @@ function relativePath (filePath, root, fileDir, defaultExtname = "") {
             if (fs.existsSync(curFolderPath)) {
                 filePath = "./" + filePath + (extname || defaultExtname)
             } else {
-                // console.log("----------------------漏风")
+                // global.log("----------------------漏风")
                 if (/^\//.test(filePath)) {
                     //如果是以/开头的，表示根目录
                     filePath = path.join(root, filePath)
                 } else {
                     filePath = path.join(fileDir, filePath)
                 }
-                // console.log("---------------filePath 2 ", filePath)
+                // global.log("---------------filePath 2 ", filePath)
 
                 //todo: test @
                 // var xx = path.relative(global.miniprogramRoot, filePath);
-                // console.log("xx", xx)
+                // global.log("xx", xx)
 
                 filePath = path.relative(fileDir, filePath)
 
@@ -115,11 +115,11 @@ function relativePath (filePath, root, fileDir, defaultExtname = "") {
         } else {
             filePath = path.join(fileDir, filePath)
         }
-        // console.log("---------------filePath 2 ", filePath)
+        // global.log("---------------filePath 2 ", filePath)
 
         //todo: test @
         // var xx = path.relative(global.miniprogramRoot, filePath);
-        // console.log("xx", xx)
+        // global.log("xx", xx)
 
         filePath = path.relative(fileDir, filePath)
 
@@ -130,7 +130,7 @@ function relativePath (filePath, root, fileDir, defaultExtname = "") {
 
     // if(filePath.indexOf("pubsub-js") > -1)
     // {
-    //     console.log("---------------filePath 2 ", filePath)
+    //     global.log("---------------filePath 2 ", filePath)
     // }
 
     return utils.normalizePath(filePath)
@@ -146,7 +146,7 @@ function relativePath (filePath, root, fileDir, defaultExtname = "") {
  * @param {*} userAtSymbol 是否在根路径前面增加@符号，默认true
  */
 function repairAssetPath (filePath, root, fileDir, userAtSymbol = true) {
-    // console.log(" repairAssetPath", filePath, fileDir)
+    // global.log(" repairAssetPath", filePath, fileDir)
     if (!filePath || utils.isURL(filePath)) return filePath
     if (!/^[\.\/]/.test(filePath)) {
         filePath = './' + filePath
@@ -239,7 +239,7 @@ function cacheImportComponentList (jsFile, wxmlFile, usingComponents) {
         var componentPath = usingComponents[componentName]
 
         if (componentPath.indexOf("plugin:") === 0) {
-            console.log("这个是小程序插件" + componentPath)
+            global.log("这个是小程序插件" + componentPath)
             return
         }
 
@@ -253,6 +253,37 @@ function cacheImportComponentList (jsFile, wxmlFile, usingComponents) {
 }
 
 
+/**
+ * 获取路径的全路径
+ * @param {*} srcPath 源路径
+ * @param {*} fileDir 当前文件所在目录
+ * @returns
+ */
+function getResolvePath (srcPath, fileDir) {
+    var newUrl = ""
+    if (srcPath.startsWith("/") && !srcPath.includes(global.miniprogramRoot)) {
+        newUrl = path.join(global.miniprogramRoot, srcPath)
+    } else {
+        newUrl = path.resolve(fileDir, srcPath)
+    }
+    return utils.normalizePath(newUrl)
+}
+
+/**
+ * 获取路径的绝对路径，加@或不加@
+ * @param {*} fullPath 全路径
+ * @param {*} userAtSymbol 是否在根路径前面增加@符号，默认true
+ * @returns
+ */
+function getAbsolutePath (fullPath, userAtSymbol = true) {
+    //TODO: 校验是否为全路径！！！！！
+    var absPath = path.relative(global.miniprogramRoot, fullPath)
+    absPath = utils.normalizePath(absPath)
+    // 这里未作判断，理论上，路径应该是字母开头，而不是.或/
+    if (userAtSymbol) absPath = '@/' + absPath
+    return absPath
+}
+
 module.exports = {
     getFileNameNoExt,
     getParentFolderName,
@@ -261,5 +292,8 @@ module.exports = {
     getFileKey,
     getAssetsNewPath,
     repairAssetPath,
-    cacheImportComponentList
+    cacheImportComponentList,
+
+    getResolvePath,
+    getAbsolutePath
 }

@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2022-07-09 17:14:02
+ * @LastEditTime: 2023-04-13 13:00:49
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: \miniprogram-to-uniapp\test.js
@@ -16,6 +16,14 @@ const t = require("@babel/types")
 
 const utils = require('./src/utils/utils.js')
 const { transform } = require('./index')
+
+
+// const { next} = require('./next/2023.js')
+// next()
+// return
+
+
+
 
 /**
  *  仅用于测试
@@ -44,7 +52,118 @@ async function test () {
         // var sourceFolder = "./demo/test-20220119"
 
         // var sourceFolder = "./demo/test-20220606"
-        var sourceFolder = "./demo/接龙"
+
+        // var sourceFolder = "./demo/qinghang-applet"
+
+        // var sourceFolder = "./demo/test-20220824"
+
+        // var sourceFolder = "./demo/miniprogram5.1"
+
+        // var sourceFolder = "./demo/test-20220504"
+
+        // var sourceFolder = "./demo/dlg-modal"
+
+        // var sourceFolder = "./demo/test-20221005"
+
+
+
+
+        // var sourceFolder = "./demo/minisns_front"
+
+        // var sourceFolder = "./demo/test-20221017"
+
+        // var sourceFolder = "./demo/test-20221029-relation"
+
+        // var sourceFolder = "./demo/synthesize_components-master"
+
+
+        var sourceFolder = "./demo/test-20221030"
+
+        // var sourceFolder = "./demo/test-vant"
+
+
+        //ts demo
+        // var sourceFolder = "./demo/deduction-service-main"
+
+
+
+
+        // var sourceFolder = "./demo/test-20221023"
+
+        // var sourceFolder = "./demo/test-20221108"
+
+        // var sourceFolder = "./demo/test-wx-cloud"
+
+        // var sourceFolder = "./demo/test-20221029-relation"
+
+
+        // var sourceFolder = "./demo/test-menery"
+
+        // var sourceFolder = "./demo/image-clipper"
+        //
+        // var sourceFolder = "./demo/test-20221103-lifecycle"
+
+        // var sourceFolder = "./demo/test-20221031-setdata"
+
+        // var sourceFolder = "./demo/neweggs_client"
+
+
+        // var sourceFolder = "./demo/test-wxs-select-component-20221024"
+
+        // var sourceFolder = "./demo/test-20221026-selectcomponent"
+
+        // var sourceFolder = "./demo/test-20221027-ts"
+
+        // var sourceFolder = "./demo/renrenmall-2"
+
+        // var sourceFolder = "./demo/test-20230214"
+
+
+
+        // template include ---test
+        // var sourceFolder = "./demo/test-20230305-tem-include"
+
+
+        // var sourceFolder = "./demo/renrenmall-new"
+
+
+
+
+
+
+        // var sourceFolder = "./demo/waterfall-relation"
+
+        // var sourceFolder = "./demo/test-20221023"
+
+
+        // var sourceFolder = "./demo/test-20230214"
+
+        // var sourceFolder = "./demo/test-20230401-sync-update"
+
+        // var sourceFolder = "./demo/renrenmall-new"
+
+
+
+        // var sourceFolder = "./demo/baiduDemo-develop"
+        // var sourceFolder = "./demo/SmartAppDemo-master"
+
+        // var sourceFolder = "./demo/miniprogram-demo-master"  //cloud
+
+
+
+
+
+        // var sourceFolder = "./demo/test-20221020"
+
+        // var sourceFolder = "./demo/test-less-rpx-bug"
+
+        // var sourceFolder = "./demo/test-20221006"
+
+        // var sourceFolder = "./demo/验证bug专用/test-wca2uni"
+
+        // var sourceFolder = "./demo/askdada/t"
+
+        // var sourceFolder = "./demo/接龙"
 
         // var sourceFolder = "./demo/test-wca2uni0701"
 
@@ -84,8 +203,9 @@ async function test () {
         sourceFolder = utils.normalizePath(sourceFolder)
 
         var options = {
-            // isVueAppCliMode:true
-            isMergeWxssToVue:true
+            // isVueAppCliMode:true,
+            // isMergeWxssToVue:true
+            isTemplateToComponent:true
         }
 
         await transform(sourceFolder, options)
