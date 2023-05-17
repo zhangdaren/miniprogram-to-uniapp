@@ -63,6 +63,9 @@ function transformPageAst ($ast, fileKey) {
     transformLifecycleFunction($ast, fileKey)
 
     var dataNode = ggcUtils.getLifecycleNode($ast, "Page", "data", true)
+    if(dataNode && !t.isObjectExpression(dataNode.value)){
+        console.log("异常。。。data",  fileKey)
+    }
     var methodsNode = ggcUtils.getLifecycleNode($ast, "Page", "methods", true)
 
     $ast
@@ -89,7 +92,12 @@ function transformPageAst ($ast, fileKey) {
                                 methodsNode.value.properties.push(subItem)
                             } else {
                                 //如果是其他变量，就加入到data
-                                dataNode.value.properties.push(subItem)
+                                try {
+                                    dataNode.value.properties.push(subItem)
+
+                                } catch (error) {
+                                    console.log("dataNode.value.properties.push(subItem)--error: ", error)
+                                }
                             }
                             isMatch = false
                         }

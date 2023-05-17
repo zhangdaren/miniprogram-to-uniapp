@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2023-03-27 23:12:05
+ * @LastEditTime: 2023-04-17 22:07:23
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/relation-transformer.js
@@ -23,6 +23,9 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
  * @returns
  */
 function getComponentNameByRelationPath (comPath) {
+    //可能为空。。。
+    if(!comPath) return ""
+
     var list = comPath.split('/')
     list = list.filter(
         (item) => !item.includes('.') && item !== 'index'
@@ -76,6 +79,19 @@ function transformRelation ($jsAst, fileKey) {
                     var paramName = linkedNode.params[0].name
                     var code = $(linkedNode.body).generate()
                     code = code.replace(/^{|}$|\n/g, "").trim()
+
+                    if(code.startsWith("//")){
+                        //如果这里面的代码是含注释的，那将直接运行报错 = =，因此这里添加换行
+                        // relations: {
+                        //     './waterfall': {
+                        //       type: 'parent',
+                        //       linked(target) {
+                        //         // console.log('li-target:', target)
+                        //       }
+                        //     }
+                        //  },
+                        code = `\n${code}\n`
+                    }
                     createdNode.value.body.body.unshift(`/** linked处理 */\nthis.getRelationNodes('${ comPath }').map(${ paramName }=>{${ code }})`)
                 }
 
@@ -95,6 +111,10 @@ function transformRelation ($jsAst, fileKey) {
                 `$_$1.getRelationNodes($_$2)`,
                 (match, nodePath) => {
                     let comPath = match[2][0].value
+
+                    //可能为空。。。
+                    if(!comPath) return null
+
                     global.log("getRelationNodes", comPath)
                     comPath = getComponentNameByRelationPath(comPath)
                     return `$_$1.getRelationNodes('${ comPath }')`

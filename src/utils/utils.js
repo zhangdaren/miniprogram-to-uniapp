@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-04-10 20:38:11
+ * @LastEditTime: 2023-05-17 14:27:30
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/utils/utils.js
+ * @FilePath: \miniprogram-to-uniapp\src\utils\utils.js
  *
  */
 const chalk = require('chalk')
@@ -965,6 +965,41 @@ function escape2Html (str) {
     return str.replace(/&(lt|gt|nbsp|amp|quot);/ig, function (all, t) { return arrEntities[t] })
 }
 
+/**
+ * 获取行数
+ * @param {*} str
+ * @returns
+ */
+function getStringLines(str){
+    return (str.match(/\n/g) || '').length + 1
+}
+
+
+/**
+ * 检测是否为uni-app发布后的项目
+ * @param {*} sourceFolder
+ */
+function checkCompileProject (sourceFolder) {
+    let result = false
+    const appJs = nodePath.join(sourceFolder, "app.js")
+    const mainJs = nodePath.join(sourceFolder, "common", "main.js")
+    const vendorJs = nodePath.join(sourceFolder, "common", "vendor.js")
+
+    if (fs.existsSync(appJs) && fs.existsSync(vendorJs)) {
+        var appContent = ""
+        try {
+            appContent = fs.readFileSync(appJs, 'utf-8')
+        } catch (error) {
+            //可能没有这个文件
+        }
+
+        if (appContent.includes(`./common/vendor.js`)) {
+            result = true
+        }
+    }
+    return result
+}
+
 
 module.exports = {
     log,
@@ -1031,4 +1066,8 @@ module.exports = {
 
     html2Escape,
     escape2Html,
+
+    getStringLines,
+
+    checkCompileProject
 }

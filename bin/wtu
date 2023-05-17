@@ -1,19 +1,22 @@
 #! /usr/bin/env node
 
-const program = require('commander');
-const chalk = require('chalk');
-const path = require('path');
-const fs = require('fs');
+const program = require('commander')
+const chalk = require('chalk')
+const path = require('path')
+const fs = require('fs')
+const inquirer = require('inquirer')
+const updater = require('pkg-updater')
+const pathUtils = require('../src/utils/pathUtils')
 
-const { transform } = require('../index');
-const pkg = require('../package.json');
+const { transform } = require('../index')
+const pkg = require('../package.json')
 
-const updater = require('pkg-updater');
 
-//检查更新
-updater({ 'pkg': pkg }).then(() => {
+async function main () {
+    //检查更新
+    await updater({ 'pkg': pkg })
 
-    process.on('exit', () => console.log());
+    process.on('exit', () => console.log())
 
     program
         .version(pkg.version)
@@ -23,46 +26,80 @@ updater({ 'pkg': pkg }).then(() => {
         .option('-c, --cli', 'the type of output project is vue-cli, which default value is false', false)
         .option('-m, --merge', 'merge wxss file into vue file, which default value is false', false)
         .option('-t, --template', 'transform template and include to component, which default value is false', false)
-        .parse(process.argv);
+        .parse(process.argv)
+        .action((arg) => {
+            console.log('执行了', arg)
+        })
 
     program.on('--help', function () {
-        console.log();
-        console.log('  Examples:');
-        console.log();
-        console.log(chalk.gray('    # transform a miniprogram project to uni-app project'));
-        console.log();
-        console.log('    $ wtu -i ./miniprogram-project [-m -c -t]');
-        console.log();
-    });
+        console.log()
+        console.log('  Examples:')
+        console.log()
+        console.log(chalk.gray('    # transform a miniprogram project to uni-app project'))
+        console.log()
+        console.log('    $ wtu -i ./miniprogram-project [-m -c -t]')
+        console.log()
+    })
 
-    function help() {
+    function help () {
         if (program.args.length < 1) {
-            return program.help();
+            return program.help()
         }
     }
 
-    help();
+    help()
 
-    let src = program.args[0];
-    const dist = "";
-    const opts = program.opts();
-    const isVueAppCliMode = opts.cli;
-    const isMergeWxssToVue = opts.merge;
-    const isTemplateToComponent = opts.template;
-
+    let input = program.args[0]
+    let output = ""
+    const opts = program.opts()
+    //
     const options = {
-        dist,
-        isVueAppCliMode,
-        isMergeWxssToVue,
-        isTemplateToComponent
+        input,
+        output,
+        isVueAppCliMode: opts.cli,
+        isMergeWxssToVue: opts.merge,
+        isTemplateToComponent: opts.template
+    }
+    //
+    input = path.resolve(process.cwd(), input)
+
+    if (!fs.existsSync(input)) {
+        console.error("【ERROR】输入目录不存在，请重新输入要转换的小程序目录")
+        process.exit()
     }
 
-    src = path.resolve(process.cwd(), src);
+    //获取输入目录
+    input = pathUtils.getInputFolder(input)
 
-    if (!fs.existsSync(src)) {
-        console.log(`The source folder dose not exist: ${src}`);
-        process.exit();
+    //分区判断，TODO: mac需调试！
+    if(/[a-z]:[\\/]?/i.test(input)){
+        console.error("【ERROR】不要对某个分区进行转换啊！ ╮(╯▽╰)╭")
+        process.exit()
     }
 
-    transform(src, options);
-});
+    //获取输出目录
+    output = pathUtils.getOutputFolder(input, options.isVueAppCliMode)
+
+    //输出目录不为空时
+    if (!pathUtils.isEmptyFolder(output)) {
+        let params = []
+        params.push({
+            type: 'confirm',
+            name: 'overwrite',
+            default:false, //默认值为false (直接按回车时，也设为false)
+            message: '输出目录非空，执行此操作将会替换原有文件，确定要继续转换吗？',
+        })
+        const answer = await inquirer.prompt(params)
+
+        //不同意则停止转换
+        if (!answer.overwrite) {
+            console.log(`输出目录非空，停止转换~`)
+            process.exit()
+        }
+    }
+
+    transform(input, options)
+}
+
+main()
+

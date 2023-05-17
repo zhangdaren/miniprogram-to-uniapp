@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2023-04-13 13:00:49
+ * @LastEditTime: 2023-05-12 22:00:01
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\test.js
+ * @FilePath: /miniprogram-to-uniapp2/test.js
  *
  */
 
@@ -17,10 +17,6 @@ const t = require("@babel/types")
 const utils = require('./src/utils/utils.js')
 const { transform } = require('./index')
 
-
-// const { next} = require('./next/2023.js')
-// next()
-// return
 
 
 
@@ -77,7 +73,11 @@ async function test () {
         // var sourceFolder = "./demo/synthesize_components-master"
 
 
-        var sourceFolder = "./demo/test-20221030"
+        //TODO: 有问题，会报错！！！！！！！！！！！！！！！！！！！！！！！！！！
+        // var sourceFolder = "./demo/test-20221030"
+
+
+
 
         // var sourceFolder = "./demo/test-vant"
 
@@ -199,6 +199,42 @@ async function test () {
 
         // var sourceFolder = "./demo/xiaochengxu"
 
+
+        /////////////////////////////////////////////////------------------------------------
+
+        //vant小程序v https://github.com/vant-ui/vant-demo
+
+        // var sourceFolder = "./demo/vant-mini-app"
+
+        //有报错！！！！
+        // var sourceFolder = "./demo/wxapp"
+
+        // var sourceFolder = "./demo/miniprogram-template有几个base_list_tpl未转换"
+
+        // var sourceFolder = "./demo/test-20230426-template"
+
+
+
+        //测试简易双向绑定
+        // var sourceFolder = "./demo/test-simple-model2"
+
+
+        //vant demo
+        // var sourceFolder = "./demo/vant-weapp-learning-master"
+
+
+        //先不要动
+        // var sourceFolder = "./demo/vant-demo"
+
+        // var sourceFolder = "./demo/minisns_front"
+
+
+        //抽象节点
+        var sourceFolder = "./demo/test-20221023"
+
+
+
+
         sourceFolder = path.join(__dirname, sourceFolder)
         sourceFolder = utils.normalizePath(sourceFolder)
 
@@ -207,6 +243,8 @@ async function test () {
             // isMergeWxssToVue:true
             isTemplateToComponent:true
         }
+
+        //require('v8').writeHeapSnapshot();
 
         await transform(sourceFolder, options)
     } catch (error) {

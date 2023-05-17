@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-04-12 20:49:33
+ * @LastEditTime: 2023-05-17 14:20:54
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/project/projectHandle.js
+ * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
  *
  */
 
@@ -50,29 +50,6 @@ const MAX_FILE_SIZE = 1024 * 500  //最大可处理js大小
 // global = { ...global, ...options }
 //注意，不能像上面这样给global增加东西，会报错的。。 比如：prettier-eslint
 
-
-/**
- * 检测是否为uni-app发布后的项目
- * @param {*} sourceFolder
- */
-function checkCompileProject (sourceFolder) {
-    var appJs = path.join(sourceFolder, "app.js")
-    var content = ""
-    try {
-        content = fs.readFileSync(appJs, 'utf-8')
-    } catch (error) {
-        //可能没有这个文件
-    }
-    if (content) {
-        var list = ["./common/vendor.js"]
-        var result = list.every(str => content.includes(str))
-        return result
-    } else {
-        return false
-    }
-}
-
-
 /**
  *
  * @param {*} sourceFolder
@@ -83,7 +60,7 @@ async function transform (sourceFolder, targetSourceFolder) {
     return new Promise(async function (resolve, reject) {
         var allPageData = {}
 
-        var isCompileProject = checkCompileProject(sourceFolder)
+        var isCompileProject = utils.checkCompileProject(sourceFolder)
         if (isCompileProject) {
             reject("[ERROR]检测到当前项目可能是uniapp发布后的小程序项目，不支持转换！")
             return
@@ -99,6 +76,9 @@ async function transform (sourceFolder, targetSourceFolder) {
 
         //过滤目录不处理
         // files = files.filter(file=> !file.includes("node_modules") && !file.includes("miniprogram_npm"))
+
+        //过滤含点目录
+        // files = files.filter(file=> !file.includes("."))
 
         global.log(`开始分析文件`)
 
@@ -131,7 +111,8 @@ async function transform (sourceFolder, targetSourceFolder) {
                     //     fs.copySync(file, newFile)
                 } else {
                     if (!fs.existsSync(newFile)) {
-                        fs.mkdirSync(newFile)
+                        //使用ensureDirSync可以创建多级目录
+                        fs.ensureDirSync(newFile)
                     }
                 }
             } else {
@@ -262,6 +243,8 @@ async function transform (sourceFolder, targetSourceFolder) {
         //顺序不能错!!!
         await transformPageList(allPageData, bar, total)
 
+        //暂未用上
+        // transformTwoWayBindingAll(allPageData)
         global.log(`开始二次遍历及生成vue文件`)
         await transformOtherComponents(allPageData, bar, total)
 
@@ -269,6 +252,46 @@ async function transform (sourceFolder, targetSourceFolder) {
     })
 }
 
+
+
+
+/**
+ * @param {*} pageData
+ * @param {*} allPageData
+ * @returns
+ */
+function transformTwoWayBindingAll (allPageData) {
+    var importComponentList = global.importComponentList
+
+    for (let fileKey of Object.keys(allPageData)) {
+        var pageData = allPageData[fileKey]["data"]
+
+        pageData.tagTwoWayBindings.map(item => {
+            var componentName = item.componentName
+            var propName = item.propName
+
+            //驼峰命名转为短横线命名
+            componentName = utils.getKebabCase(componentName)
+
+            //找不到这个组件，就返回
+            if (!importComponentList[componentName]) return
+
+            var comFileKey = importComponentList[componentName]
+
+            //找不到这个组件的数据也返回
+            if (!allPageData[comFileKey]) {
+                //小程序里components/child 等价于components/child/index
+                if (allPageData[comFileKey + "/index"]) {
+                    comFileKey += "/index"
+                } else {
+                    global.log("找不到这个组件: " + comFileKey)
+                    return
+                }
+            }
+            allPageData[comFileKey].data.twoWayBindings.push(propName)
+        })
+    }
+}
 
 
 /**
@@ -279,6 +302,12 @@ async function transform (sourceFolder, targetSourceFolder) {
  */
 async function transformFileGroup (fileGroupData, fileKey, bar, total) {
     return new Promise(async function (resolve, reject) {
+        //进度输出
+        bar.tick()
+        if (global.hbxLog) {
+            global.log(`转换进度: ${ count } / ${ total }   fileKey：` + fileKey)
+        }
+
         var count = 0
         var jsFile = fileGroupData["js"] || ""
         var jsFileType = fileGroupData["jsFileType"] || ""
@@ -324,17 +353,13 @@ async function transformFileGroup (fileGroupData, fileKey, bar, total) {
         pathUtils.cacheImportComponentList(jsFile, wxmlFile, page.usingComponents)
 
         //
-        // if (!global.isTemplateToComponent) {
-        addTemplateTagDataToGlobal(page, fileKey)
-        // }
+        if (!global.isTemplateToComponent) {
+            addTemplateTagDataToGlobal(page, fileKey)
+        }
 
         fileGroupData["data"] = page
 
         statisticUtils.statistic(page)
-
-        bar.tick()
-
-        global.log(`转换进度: ${ count } / ${ total }   fileKey：` + fileKey)
 
         resolve()
     })
@@ -366,6 +391,13 @@ async function transformPageList (allPageData, bar, total) {
         // })
 
         for (let fileKey of Object.keys(allPageData)) {
+            //进度输出
+            bar.tick()
+            count++
+            if (global.hbxLog) {
+                global.log(`转换进度: ${ count } / ${ total }   fileKey：` + fileKey)
+            }
+
             var fileGroupData = allPageData[fileKey]
 
             var jsFile = fileGroupData["js"] || ""
@@ -412,18 +444,13 @@ async function transformPageList (allPageData, bar, total) {
             pathUtils.cacheImportComponentList(jsFile, wxmlFile, page.usingComponents)
 
             //
-            // if (!global.isTemplateToComponent) {
-            addTemplateTagDataToGlobal(page, fileKey)
-            // }
+            if (!global.isTemplateToComponent) {
+                addTemplateTagDataToGlobal(page, fileKey)
+            }
 
             allPageData[fileKey]["data"] = page
 
             statisticUtils.statistic(page)
-
-            bar.tick()
-
-            count++
-            global.log(`转换进度: ${ count } / ${ total }   fileKey：` + fileKey)
         }
         resolve()
 
@@ -442,6 +469,13 @@ async function transformOtherComponents (allPageData, bar, total) {
         //处理template和include标签，以及未定义的变量等
         var count = 0
         for (let fileKey of Object.keys(allPageData)) {
+            //进度输出
+            bar.tick()
+            count++
+            if (global.outputChannel) {
+                global.log(`转换进度: ${ count + total / 2 } / ${ total }   fileKey：` + fileKey)
+            }
+
             var pageData = allPageData[fileKey]["data"]
 
             var jsAst = pageData.jsAst
@@ -450,21 +484,33 @@ async function transformOtherComponents (allPageData, bar, total) {
             var genericsComponentList = pageData.genericsComponentList
             var usingComponents = pageData.usingComponents
 
-
-            if (wxmlAst) {
-                //待template to component成熟后，此种方式将弃用。
-                if (!global.isTemplateToComponent) {
-                    transformIncludeTag(wxmlAst, wxmlFile, allPageData)
-                    transformTemplateTag(pageData, fileKey, false)
+            try {
+                if (wxmlAst) {
+                    //待template to component成熟后，此种方式将弃用。
+                    if (!global.isTemplateToComponent) {
+                        transformIncludeTag(wxmlAst, wxmlFile, allPageData)
+                        transformTemplateTag(pageData, fileKey, false)
+                    }
                 }
+            } catch (error) {
+                global.log("[ERROR]transform template/include Tag: ", fileKey, error)
             }
 
-            //抽象节点
-            transformGenericsComponent(jsAst, wxmlAst, genericsComponentList, usingComponents, fileKey)
+            try {
+                //抽象节点
+                transformGenericsComponent(jsAst, wxmlAst, genericsComponentList, usingComponents, fileKey)
+            } catch (error) {
+                global.log("[ERROR]transformGenericsComponent: ", fileKey, error)
+            }
 
-            if (jsAst && !pageData.isTemplateFile) {
-                var variableTypeInfo = getPageSimpleVariableTypeInfo(jsAst, wxmlAst, allPageData)
-                pageData.variableHandle(variableTypeInfo)
+
+            try {
+                if (jsAst && !pageData.isTemplateFile) {
+                    var variableTypeInfo = getPageSimpleVariableTypeInfo(jsAst, wxmlAst, allPageData)
+                    pageData.variableHandle(variableTypeInfo)
+                }
+            } catch (error) {
+                global.log("[ERROR]variableHandle: ", fileKey, error)
             }
 
             //处理属性类型与组件定义类型有差异的---是个大工程，杀鸡用牛刀，花里胡哨
@@ -474,17 +520,14 @@ async function transformOtherComponents (allPageData, bar, total) {
             //还需加入全局组件
             //简单判断，暂时不考虑自动注册全局组件的情况
 
-            pageData.generate()
+            try {
+                pageData.generate()
+            } catch (error) {
+                global.log("[ERROR]generate: ", fileKey, error)
+            }
 
             if (pageData.isVueFile) {
                 global.statistics.vueFileCount++
-            }
-
-            bar.tick()
-
-            count++
-            if (global.outputChannel) {
-                global.log(`转换进度: ${ count + total / 2 } / ${ total }   fileKey：` + fileKey)
             }
         }
         resolve()
@@ -506,15 +549,8 @@ async function transformOtherComponents (allPageData, bar, total) {
  */
 async function projectHandle (sourceFolder, options = {}) {
 
-    //如果选择的目录里面只有一个目录的话，那就把source目录定位为此目录，暂时只管这一层，多的不理了。
-    var readDir = fs.readdirSync(sourceFolder)
-    if (readDir.length === 1) {
-        var baseFolder = path.join(sourceFolder, readDir[0])
-        var statInfo = fs.statSync(baseFolder)
-        if (statInfo.isDirectory()) {
-            sourceFolder = baseFolder
-        }
-    }
+    //获取输入目录
+    sourceFolder = pathUtils.getInputFolder(sourceFolder)
 
     if (!fs.existsSync(sourceFolder)) {
         console.error("【ERROR】输入目录不存在，请重新输入或选择要转换的小程序目录项目")
@@ -523,27 +559,26 @@ async function projectHandle (sourceFolder, options = {}) {
 
     let miniprogramRoot = sourceFolder
 
+    if (!options.output) {
+        options.output = pathUtils.getOutputFolder(sourceFolder, options.isVueAppCliMode)
+    }
+
     //因后面会清空输出目录，为防止误删除其他目录/文件，所以这里不给自定义!!!
     //目标项目目录
-    var targetProjectFolder = sourceFolder + '_uni'
+    var targetProjectFolder = options.output
     //目录项目src目录，也可能与项目目录一致
-    var targetSourceFolder = sourceFolder + '_uni'
+    var targetSourceFolder = options.output
 
     if (options.isVueAppCliMode) {
-        targetProjectFolder = sourceFolder + '_uni_vue-cli'
         targetSourceFolder = path.join(targetProjectFolder, "src")
 
         if (!fs.existsSync(targetProjectFolder)) {
             fs.mkdirSync(targetProjectFolder)
         }
+    }
 
-        if (!fs.existsSync(targetSourceFolder)) {
-            fs.mkdirSync(targetSourceFolder)
-        }
-    } else {
-        if (!fs.existsSync(targetSourceFolder)) {
-            fs.mkdirSync(targetSourceFolder)
-        }
+    if (!fs.existsSync(targetSourceFolder)) {
+        fs.mkdirSync(targetSourceFolder)
     }
 
     //定义全局变量
@@ -624,6 +659,7 @@ async function projectHandle (sourceFolder, options = {}) {
         videoCount: 0,
         mapCount: 0,
         adCount: 0,
+        vanTagList: [],
     }
 
     //云开发目录

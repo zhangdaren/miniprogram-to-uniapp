@@ -64,6 +64,9 @@ function statistic (page, fileKey) {
     global.statistics.mapCount += mapCount
     global.statistics.adCount += adCount
 
+    //统计vant
+    global.statistics.vanTagList.push(...page.vanTagList)
+
     // getRelationNodes
 
     // 分享

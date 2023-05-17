@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 11:46:21
- * @LastEditTime: 2022-10-20 22:57:44
+ * @LastEditTime: 2023-05-14 21:09:26
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/utils/mustacheUtils.js
@@ -37,6 +37,11 @@ function parseMustache (expr, identifier = false) {
     if (!expr) {
         return ''
     }
+
+    // 简单处理嵌套的形式： <view tip="{{value?tip:'请输入{{groupInfo.name}}名'}}"></view>
+    // if(/^\{\{.*?\{\{.*?\}\}.*?\}\}$/.test(expr)){
+    //     expr = expr.replace(/^\{\{(.*?\{\{.*?\}\}.*?)\}\}$/, "$1")
+    // }
 
     // global.log("expr", expr)
 

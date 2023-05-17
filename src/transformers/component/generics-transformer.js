@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2023-03-27 23:12:17
+ * @LastEditTime: 2023-05-12 22:20:02
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/generics-transformer.js
@@ -115,10 +115,10 @@ function transformGenericsComponent ($jsAst, $wxmlAst, genericsComponentList, us
 
     //添加props
     if ($jsAst) {
-        var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS,fileKey)
+        var propList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.PROPS, fileKey)
         genericsComponentList.map(item => {
             //有path是默认节点，不用添加prop了
-            if(!item.path){
+            if (!item.path) {
                 var name = utils.toCamel(item.name)
                 let op = t.objectProperty(t.identifier(name), t.identifier("String"))
                 propList.push(op)
@@ -142,7 +142,7 @@ function transformGenericsComponent ($jsAst, $wxmlAst, genericsComponentList, us
             }
             genericTargetList.push(...list)
         })
-        global.log("genericTargetList", genericTargetList)
+        // global.log("genericTargetList", genericTargetList)
 
         //数据结构
         // {
@@ -198,20 +198,26 @@ function getCloneAst (item, data) {
     var children = clone(item.attr('content.children'))
     if (attributes) {
         var propName = utils.toCamel(data.genericName)
-        attributes.unshift({
-            key: {
-                content: "v-if"
-            },
-            value: {
-                content: `${ propName }==='${ data.genericTargetName }'`
-            },
-            startWrapper: {
-                type: 'token:attribute-value-wrapper-start', content: '"',
-            },
-            endWrapper: {
-                type: 'token:attribute-value-wrapper-end', content: '"'
-            }
-        })
+        var vIfNode = attributes.find(attr => attr.key.content === "v-if")
+        if (vIfNode) {
+            // 合并v-if
+            vIfNode.value.content = `(${ vIfNode.value.content }) && ${ propName }==='${ data.genericTargetName }'`
+        } else {
+            attributes.unshift({
+                key: {
+                    content: "v-if"
+                },
+                value: {
+                    content: `${ propName }==='${ data.genericTargetName }'`
+                },
+                startWrapper: {
+                    type: 'token:attribute-value-wrapper-start', content: '"',
+                },
+                endWrapper: {
+                    type: 'token:attribute-value-wrapper-end', content: '"'
+                }
+            })
+        }
         newAst.attr('content.attributes', attributes)
     }
     if (children) {

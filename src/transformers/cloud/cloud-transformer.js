@@ -111,10 +111,9 @@ function transformCloud (file, targetFile) {
 /**
  * @param {*} sourceCloudFunsFolder
  * @param {*} targetCloudFunsFolder
- * @param {*} outputChannel  hbx插件专用
  * @returns
  */
-async function transform (sourceCloudFunsFolder, targetCloudFunsFolder, outputChannel) {
+async function transform (sourceCloudFunsFolder, targetCloudFunsFolder) {
   return new Promise(async function (resolve, reject) {
 
     const startTime = new Date()

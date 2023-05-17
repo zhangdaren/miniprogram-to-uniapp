@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-04-02 16:32:00
+ * @LastEditTime: 2023-05-09 18:30:23
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/template/template-transformer.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\template\template-transformer.js
  *
  */
 
@@ -264,7 +264,6 @@ function transformEvent (keyNode, valueNode, state) {
 
     //TODO: 如果valueNode没有，那应该需要删除！
     if (event !== name && valueNode) {
-
         //TODO: 这里要改掉
         // 模板 <template name> 中用到的方法在其父组件
         let newValue = parseMustache(valueNode.content, true)
@@ -666,6 +665,42 @@ function transformAttr (keyNode, valueNode, state) {
     }
 }
 
+
+/**
+ * 微信小程序的简易双向绑定
+ * @param {*} keyNode
+ * @param {*} valueNode
+ * @param {*} state
+ * @returns
+ */
+function transformTwoWayBinding (node, state) {
+    var attributes = node.attr('content.attributes')
+    var tagName = node.attr('content.name')
+    // global.log("attributes", attributes)
+
+    if (!attributes) {
+        return
+    }
+
+    attributes.map(function (item, i) {
+        let { key: keyNode, value: valueNode } = item
+
+        var keyName = keyNode.content
+        if (keyName !== "model:value" && keyName.startsWith("model:")) {
+            // model:my-value="{{}}"   -->   :my-value.sync="{{}}"
+            var propName = keyName.replace(/^model:([\w-]+)$/, "$1")
+            keyNode.content = `:${ propName }.sync`
+
+            //加入到pageData，方便后续操作
+            state.self.tagTwoWayBindings.push({
+                componentName: utils.toCamel(tagName),
+                propName: utils.toCamel(propName),
+            })
+        }
+    })
+}
+
+
 /**
  * 转换attrs
  * @param {*} node
@@ -691,6 +726,8 @@ function transformAttrs (node, state) {
     state['isComponent'] = isComponent
 
     transformFor(node, state)
+
+    transformTwoWayBinding(node, state)
 
     //小程序scroll-view属性,需要有值，不然就是boolean
     var scrollAttrList = ['scroll-top', 'scroll-left']
@@ -773,7 +810,8 @@ function transformEventDynamicCode ($wxmlAst) {
                         //解决这种情况：<image bindtap='{{maxImg>1?"":"selctHouseImg"}}'></image>
                         value = value.replace(/"/g, "'")
                     }
-                    var reg = /\?|\+/
+                    //三元表达式、运算表达式、a.b
+                    var reg = /\?|\+|\./
                     if (attr[0] === "@" && reg.test(value)) {
                         obj.value.content = `parseEventDynamicCode($event, ${ value })`
                     }
@@ -990,9 +1028,10 @@ function replaceQuoteDouble ($ast) {
  * @param {*} $ast
  * @param {*} wxmlFile
  * @param {*} wxmlExtname
+ * @param {*} self
  * @returns
  */
-function transformTemplateAst ($ast, wxmlFile, wxmlExtname) {
+function transformTemplateAst ($ast, wxmlFile, wxmlExtname, self) {
     // var data = `{{leftIndex:index+1,section3Title:item.title}}`
 
     // //解析这种会有问题
@@ -1011,7 +1050,8 @@ function transformTemplateAst ($ast, wxmlFile, wxmlExtname) {
     //前缀
     var prefix = getPrefixByExtname(wxmlExtname)
     var state = {
-        prefix
+        prefix,
+        self
     }
 
     //替换双引号为&quot;

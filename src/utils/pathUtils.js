@@ -284,6 +284,49 @@ function getAbsolutePath (fullPath, userAtSymbol = true) {
     return absPath
 }
 
+/**
+ * 判断是否为空目录
+ * @param folder
+ * @returns
+ */
+function isEmptyFolder (folder) {
+    if(!fs.existsSync(folder)) return true
+    return fs.readdirSync(folder).length <= 0
+}
+
+/**
+ * 获取输入目录
+ * @param {*} input
+ */
+function getInputFolder (input) {
+    //如果选择的目录里面只有一个目录的话，那就把source目录定位为此目录，暂时只管这一层，多的不理了。
+    var readDir = fs.readdirSync(input)
+    if (readDir.length === 1) {
+        var baseFolder = path.join(input, readDir[0])
+        var statInfo = fs.statSync(baseFolder)
+        if (statInfo.isDirectory()) {
+            input = baseFolder
+        }
+    }
+    return input
+}
+
+/**
+ * 获取输出目录
+ * @param {*} input
+ * @param {*} isVueAppCliMode
+ * @returns
+ */
+function getOutputFolder (input, isVueAppCliMode) {
+    let output = ""
+    if (isVueAppCliMode) {
+        output = input + '_uni_vue-cli'
+    } else {
+        output = input + '_uni'
+    }
+    return output
+}
+
 module.exports = {
     getFileNameNoExt,
     getParentFolderName,
@@ -295,5 +338,10 @@ module.exports = {
     cacheImportComponentList,
 
     getResolvePath,
-    getAbsolutePath
+    getAbsolutePath,
+
+    isEmptyFolder,
+
+    getInputFolder,
+    getOutputFolder
 }

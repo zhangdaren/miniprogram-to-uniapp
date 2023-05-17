@@ -56,9 +56,9 @@ const componentDefaultProperty = {
 //小程序的pageLifetimes（组件所在页面的生命周期）
 //https://ask.dcloud.net.cn/article/37086
 const pageLifetimes = {
-    "show": "onPageShow", //页面被展示时执行
-    "hide": "onPageHide", //页面被隐藏时执行
-    "resize": "onPageResize", //页面尺寸变化时执行
+    "show": "handlePageShow", //页面被展示时执行
+    "hide": "handlePageHide", //页面被隐藏时执行
+    "resize": "handlePageResize", //页面尺寸变化时执行
 }
 
 /**
@@ -183,14 +183,27 @@ function transformComponentAst ($ast, fileKey) {
     //此行一定要位于transformObservers前面，切记！
     global.props[fileKey] = ggcUtils.getComponentPropsList($ast, fileKey)
 
-    // relations组件间关系处理
-    transformRelation($ast, fileKey)
 
-    //TODO: 放这里不太人性化，，，，有点那啥。。。。不能统一搞
-    //需在transformPageLifetimes之后
-    $ast.root().replace("Component($$$)", "export default $$$")
+    try {
+        // relations组件间关系处理
+        transformRelation($ast, fileKey)
+    } catch (error) {
+        global.log("transformRelation error", fileKey, error)
+    }
 
-    transformObservers($ast, fileKey)
+    try {
+        //TODO: 放这里不太人性化，，，，有点那啥。。。。不能统一搞
+        //需在transformPageLifetimes之后
+        $ast.root().replace("Component($$$)", "export default $$$")
+    } catch (error) {
+        global.log("Component -> export default  error", fileKey, error)
+    }
+
+    try {
+        transformObservers($ast, fileKey)
+    } catch (error) {
+        global.log("transformObservers error", fileKey, error)
+    }
 
     try {
         transformProperties($ast, fileKey)

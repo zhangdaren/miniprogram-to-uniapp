@@ -14,19 +14,19 @@ export const pageLifetimes = {
 	onLoad() {
 		// #ifndef APP || MP-MP-WEIXIN || MP-KUAISHOU
 		uni.onWindowResize((res) => {
-			handlePageLifetime(this, "onPageResize")
+			handlePageLifetime(this, "handlePageResize")
 		})
 		// #endif
 	},
 	onShow() {
-		handlePageLifetime(this, "onPageShow")
+		handlePageLifetime(this, "handlePageShow")
 	},
 	onHide() {
-		handlePageLifetime(this, "onPageHide")
+		handlePageLifetime(this, "handlePageHide")
 	},
 	onResize() {
 		// #ifdef APP || MP-MP-WEIXIN || MP-KUAISHOU
-		handlePageLifetime(this, "onPageResize")
+		handlePageLifetime(this, "handlePageResize")
 		// #endif
 	}
 };

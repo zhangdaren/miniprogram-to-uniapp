@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-04-02 13:43:15
+ * @LastEditTime: 2023-05-17 15:29:56
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/page/index.js
+ * @FilePath: \miniprogram-to-uniapp\src\page\index.js
  *
  */
 
@@ -147,7 +147,11 @@ class Page {
         this.templateNameList = []
         this.templateImportList = []
         this.includeList = []
+        this.vanTagList = []
 
+        //统计简易双向绑定变量，其实这两个并无实际用上。
+        this.tagTwoWayBindings = []
+        this.twoWayBindings = []
     }
 
     /**
@@ -369,6 +373,11 @@ class Page {
         //检查代码里是否有不支持的代码
         this.checkCode(jsAst, wxmlAst, fileKey)
 
+        //编译页面里使用到的vant组件
+        if(this.astType !== "VantComponent"){
+            this.vanTagList = ggcUtils.getVanTagList(wxmlAst)
+        }
+
         //判断是否含weui
         global.hasWeUI = global.hasWeUI || ggcUtils.checkWeUI(jsAst, wxmlAst)
     }
@@ -378,7 +387,7 @@ class Page {
     /**
      * 变量处理，须在template和include标签处理后再进行处理
      */
-    variableHandle (variableTypeInfo, wxsModuleNameList) {
+    variableHandle (variableTypeInfo) {
         try {
             //处理所有变量，包括未声明、重名的等等等等
             //(必须最后处理! 因为可能某prop的observer里通过this.data.xxx调用了它，不能重名！)
@@ -594,7 +603,7 @@ class Page {
             global.log(`小程序template代码解析失败(gogocode)，请根据错误信息修复后，再重新进行转换。file: ${ this.fileKey } :>> ` + $ast.error)
         }
 
-        transformTemplateAst($ast, wxmlFile, wxmlExtname)
+        transformTemplateAst($ast, wxmlFile, wxmlExtname, this)
 
         this.wxmlAst = $ast
     }

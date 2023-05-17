@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-03-30 23:13:01
+ * @LastEditTime: 2023-04-30 10:51:06
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/utils/ggcUtils.js
@@ -23,6 +23,8 @@ const staticAssetsReg = /^\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff)$/i
 const assetsFileReg = /^((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))$/i
 
 const multiAssetsFileReg = /['"]?((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
+
+const urlReg = /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,}))\.?)(?::\d{2,5})?(?:[/?#]\S*)?$/i
 
 const pageExpList = [
     {
@@ -144,7 +146,7 @@ function transformAppDotGlobalData ($ast) {
     var selector = { type: "VariableDeclarator", init: { callee: { name: "getApp" } } }
     var nameList = getVarNameList($ast, selector, "app")
     //TODO：这里仅用第一个，严格来说还是会漏掉一些场景，后续再议
-    if(nameList.length){
+    if (nameList.length) {
         appName = nameList[0] || "app"
     }
 
@@ -155,7 +157,9 @@ function transformAppDotGlobalData ($ast) {
             var nodePath = item[0].nodePath
             var node = nodePath.node
             var property = node.property
-            var isGlobal = nodePath.scope.lookup(appName).isGlobal
+            var info = nodePath.scope.lookup(appName)
+            //TODO: 如果一个js里面一个函数内使用了app，但整个文件都没有地方定义它时，则info为空。。。
+            var isGlobal = info && info.isGlobal || false
 
             /**
              * 注意！！！
@@ -494,6 +498,26 @@ function getTagCount ($ast, tagName) {
     var count = $ast.find(`<${ tagName }></${ tagName }>`).length
     $ast.root()
     return count || 0
+}
+
+/**
+ * 获取当前页面vant标签信息
+ * @param {*} $wxmlAst
+ * @returns
+ */
+function getVanTagList ($wxmlAst) {
+    var list = []
+    if (!$wxmlAst) return list
+    $wxmlAst.find(`<$_$tag></$_$tag>`).each(item=>{
+        var tagName = item.attr('content.name')
+        if(tagName.startsWith("van-")){
+            list.push(tagName)
+        }
+    }).root()
+
+    //去重
+    list = utils.duplicateRemoval(list)
+    return list
 }
 
 /**
@@ -895,6 +919,10 @@ module.exports = {
     staticAssetsReg,
     assetsFileReg,
     multiAssetsFileReg,
+    urlReg,
+
+
+
     transformAppDotGlobalData,
     transformGetApp,
     transformThisDotKeywordExpression,
@@ -903,6 +931,7 @@ module.exports = {
 
     getApiCount,
     getTagCount,
+    getVanTagList,
 
     getDataOrPropsOrMethodsList,
     getWxmlAstModuleList,

@@ -26,6 +26,10 @@ var templateFileObj = {}
  * @param {*} file path
  */
 function getTemplateNameListByFile (file, fileKey) {
+    if(!fs.existsSync(file)){
+        global.log(`[WARN]文件${file}不存在`)
+        return;
+    }
     if (templateFileObj[fileKey]) return templateFileObj[fileKey]
 
     //读取文件，获取name列表
@@ -68,16 +72,19 @@ function getTemplateImportList ($wxmlAst, fileDir, fileKey) {
             //读取文件，获取name列表
             let templateNameList = getTemplateNameListByFile(fullPath, importFileKey)
 
-            let componentName = utils.toCamel(templateNameList.join("-"))
-            //首字母大写
-            // componentName = componentName.charAt(0).toUpperCase() + componentName.slice(1)
-            list.push({
-                src: file,
-                path: fullPath,
-                fileKey: importFileKey,
-                templateNameList,
-                componentName
-            })
+            //可能找不到。。。
+            if(templateNameList && templateNameList.length){
+                let componentName = utils.toCamel(templateNameList.join("-"))
+                //首字母大写
+                // componentName = componentName.charAt(0).toUpperCase() + componentName.slice(1)
+                list.push({
+                    src: file,
+                    path: fullPath,
+                    fileKey: importFileKey,
+                    templateNameList,
+                    componentName
+                })
+            }
         }).root()
 
 
@@ -129,9 +136,10 @@ function templateIsReplaceFn (match, nodePath, self, templateImportList) {
     var isValue = match['is'][0].value
 
     //wxparse过滤
-    if(/wxParse|WxEmojiView/i.test(isValue)) return null
+    if (/wxParse|WxEmojiView/i.test(isValue)) return null
 
     var dataStr = ''
+    //ps:有意思的是，实际标签里面是:data，但这里要用data来取。。。
     if (match['data']) {
         var dataValue = match['data'][0].value
         if (dataValue) {
@@ -173,12 +181,11 @@ function transformIncludePage ($jsAst, $wxmlAst, templateImportList, usingCompon
 
 
     //有data和没data的，，先这么处理着
+    //此处要注意顺序！！！！！！！！！！！
     $wxmlAst
-        .replace('<template is="$_$is"  $$$1>$$$2</template>', (match, nodePath) => templateIsReplaceFn(match, nodePath, self, templateImportList))
-
-    $wxmlAst
-        .replace('<template is="$_$is" data="$_$data" $$$1>$$$2</template>', (match, nodePath) => templateIsReplaceFn(match, nodePath, self, templateImportList))
-
+        .replace('<template is="$_$is" :data="$_$data" $$$1>$$$2</template>', (match, nodePath) => templateIsReplaceFn(match, nodePath, self, templateImportList))
+        // .replace('<template is="$_$is" data="$_$data" $$$1>$$$2</template>', (match, nodePath) => templateIsReplaceFn(match, nodePath, self, templateImportList))
+        .replace('<template is="$_$is" $$$1>$$$2</template>', (match, nodePath) => templateIsReplaceFn(match, nodePath, self, templateImportList))
 
 
     $wxmlAst
@@ -355,8 +362,8 @@ function transformTemplate (self, fileKey) {
 
             self.jsAst = $(code)
         }
-        var newWxmlAst = $(self.wxmlAst.generate(), { parseOptions: { language: 'html' } })
 
+        var newWxmlAst = $(self.wxmlAst.generate(), { parseOptions: { language: 'html' } })
 
         // <template name="foo">
         // <template v-if="compName == 'foo'">
@@ -367,6 +374,8 @@ function transformTemplate (self, fileKey) {
                     return `<template v-if="compName === '$_$1'" $$$1>$$$2</template>`
                 }
             )
+
+        self.wxmlAst = newWxmlAst
     }
 }
 
@@ -468,6 +477,15 @@ function createIncludePage (self, fileDir, fileKey) {
     return list
 }
 
+/**
+ * 移除import标签
+ * @param {*} $wxmlAst
+ * @returns
+ */
+function removeImportTag($wxmlAst){
+    if(!$wxmlAst) return
+    $wxmlAst.replace(`<import src="$_$1"></import>`, '').root()
+}
 
 /**
  * 将template和include标签转换为组件
@@ -492,10 +510,13 @@ function transformTemplateToComponent (self, isIncludeFile, fileDir, fileKey) {
 
     self.templateIncludeList = createIncludePage(self, fileDir, fileKey)
 
-    if (self.isVueFile) {
+    if (self.isVueFile || self.isTemplateFile) {
         transformIncludePage(self.jsAst, self.wxmlAst, self.templateImportList, self.usingComponents, fileDir, self)
     }
+
+    removeImportTag(self.wxmlAst)
 }
+
 
 
 module.exports = {

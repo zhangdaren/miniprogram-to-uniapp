@@ -423,7 +423,7 @@ const visitorar = {
             //     // }
             // },
 
-        ConditionalExpression: {
+            ConditionalExpression: {
                 exit (path) {
                     let { test, consequent, alternate } = path.node
                     let new_consequent = t.BlockStatement([t.ExpressionStatement(consequent)])
@@ -548,7 +548,7 @@ const visitorar = {
         // global.log('添加移除捕获输出')
         return {
             CatchClause (path) {
-                const err_name = (path.node.param).name
+                const err_name = (path.node.param) && (path.node.param).name || ""
                 path.node.body.body.unshift({
                     type: 'ExpressionStatement',
                     expression: {
@@ -776,14 +776,136 @@ const visitorar = {
                             } catch (error) {
                                 global.log("xx////////////////////////////////////////////xxxxx")
                             }
-
                         }
                     }
                 }
             },
         }
     },
+
+    // 示例:
+    // _defineProperty({
+    //     info1: [],
+    //     member_info: {
+    //       username: "",
+    //       member_id: 1,
+    //       is_pingtai: 0,
+    //       avatar: "../../images/head-bitmap.png"
+    //     }
+    //   }, "info", {
+    //     total_money: 0,
+    //     share_name: "无"
+    //   });
+    // 注:_defineProperty 可能是其他名称
+
+    /**
+     * defineProperty函数转换
+     */
+    transformDefineProperty () {
+        return {
+            CallExpression (path) {
+                var args = path.get('arguments')
+                if (args.length === 3) {
+                    const [obj, key, value] = path.get('arguments')
+                    if (key.node.type === "StringLiteral" && t.isObjectExpression(obj) && t.isObjectExpression(value)) {
+                        obj.node.properties.push({
+                            type: "ObjectProperty",
+                            key: key.node,
+                            value: value.node,
+                        })
+                        path.replaceWith(obj)
+                    }
+                }
+            }
+        }
+    },
+    /**
+     * defineProperty函数转换 plus版, 示例见下方
+     */
+    transformDefinePropertyPlus () {
+        return {
+            SequenceExpression (path, state) {
+                let expressions = path.get("expressions")
+                if (expressions.length >= 2) {
+                    let firstNode = expressions[0]
+                    let lastNode = expressions[expressions.length - 1]
+
+                    if (t.isAssignmentExpression(firstNode) && t.isIdentifier(lastNode) ) {
+                        let varName = lastNode.node.name
+                        if (firstNode.node.left.name === lastNode.node.name) {
+
+                            //这里取properties不能用get函数, 即无须带原有作用域
+                            let properties = firstNode.node.right.properties
+                            let objExp = t.objectExpression(properties)
+
+                            //遍历第二个至倒数第二个
+                            for (let i = 1;i < expressions.length - 1;i++) {
+                                var obj = callExpressionToObjectProperty(expressions[i], varName)
+                                objExp.properties.push(obj)
+                            }
+
+                            let newParentPath = t.objectProperty(path.parentPath.node.key, objExp)
+                            path.parentPath.replaceWith(newParentPath)
+                        }
+                    }
+                }
+            }
+        }
+    },
 }
+
+// 示例代码
+// Component({
+//     methods: ((t = {
+//             toMyGroups: function () {
+//                 wx.navigateTo({
+//                     url: "/packageB/member/group/MyGroups/MyGroups"
+//                 })
+//             },
+//             childAdressPost: function (t) {
+//                 this.setData({
+//                     AdressState: t
+//                 })
+//             },
+//         }),
+//         o(t, "closeShopList", function () {
+//             this.setData({
+//                 supplierListShow: !1
+//             })
+//         }),
+//         o(t, "checkSet", function (t) {
+//             var e = this,
+//                 o = this,
+//                 a = this.data.timestamp
+//         }),
+//     t)
+// })
+
+// o(t, "checkSet", function (t) {
+//     var e = this,
+//         o = this,
+//         a = this.data.timestamp
+// }),
+/**
+ * 转换上面这种函数为ObjectProperty结构, 即key:value形式
+ * @param {*} path
+ * @param {*} varName 即第一个参数的名称
+ * @returns
+ */
+function callExpressionToObjectProperty (path, varName) {
+    var res = null
+    if (t.isCallExpression(path)) {
+        var args = path.get('arguments')
+        if (args.length === 3) {
+            const [objNode, key, value] = args
+            if (objNode.node.name === varName && key.node.type === "StringLiteral") {
+                res = t.objectProperty(key.node, value.node)
+            }
+        }
+    }
+    return res
+}
+
 
 
 /**

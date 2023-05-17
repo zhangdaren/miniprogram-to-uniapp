@@ -105,6 +105,9 @@ class Deobfuscator {
         traverse(this.ast, visitorar.expandReturnStatement()) // 展开返回表达式
         traverse(this.ast, visitorar.expandExpressionStatement()) // 展开ExpressionStatement表达式
 
+        traverse(this.ast, visitorar.transformDefinePropertyPlus()) // defineProperty函数转换 plus版 -- 先
+        traverse(this.ast, visitorar.transformDefineProperty()) // defineProperty函数转换 -- 后
+
 
         traverse(this.ast, visitorar.clearDeadCode()) // 清理死代码
         // PS:不能执行这行，否则影响了后面的正常判断，比如：renameKeyword函数

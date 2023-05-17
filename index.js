@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-07-22 16:20:33
- * @LastEditTime: 2023-04-13 11:25:02
+ * @LastEditTime: 2023-05-12 22:12:21
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\index.js
+ * @FilePath: /miniprogram-to-uniapp2/index.js
  *
  */
 
@@ -12,82 +12,10 @@ const $ = require('gogocode')
 const path = require('path')
 const fs = require('fs-extra')
 const util = require('util')
+const utils = require('./src/utils/utils.js')
 const projectHandle = require('./src/project/projectHandle')
 const pkg = require('./package.json')
-
-
-/**
- * 初始化日志，用于写入到转换目录目录
- * @param {*} folder
- * @param {*} outputChannel
- */
-function initConsole (sourceFolder, options) {
-
-    //如果选择的目录里面只有一个目录的话，那就把source目录定位为此目录，暂时只管这一层，多的不理了。
-    var readDir = fs.readdirSync(sourceFolder)
-    if (readDir.length === 1) {
-        var baseFolder = path.join(sourceFolder, readDir[0])
-        var statInfo = fs.statSync(baseFolder)
-        if (statInfo.isDirectory()) {
-            sourceFolder = baseFolder
-        }
-    }
-
-    if (!fs.existsSync(sourceFolder)) {
-        console.log("【ERROR】输入目录不存在，请重新输入或选择要转换的小程序目录项目")
-        return
-    }
-
-    //因后面会清空输出目录，为防止误删除其他目录/文件，所以这里不给自定义!!!
-    //目标项目目录
-    var targetProjectFolder = sourceFolder + '_uni'
-    //目录项目src目录，也可能与项目目录一致
-    var targetSourceFolder = sourceFolder + '_uni'
-
-    if (options.isVueAppCliMode) {
-        targetProjectFolder = sourceFolder + '_uni_vue-cli'
-        targetSourceFolder = path.join(targetProjectFolder, "src")
-
-        if (!fs.existsSync(targetProjectFolder)) {
-            fs.mkdirSync(targetProjectFolder)
-        }
-
-        if (!fs.existsSync(targetSourceFolder)) {
-            fs.mkdirSync(targetSourceFolder)
-        }
-    } else {
-        if (!fs.existsSync(targetSourceFolder)) {
-            fs.mkdirSync(targetSourceFolder)
-        }
-    }
-
-    var logPath = path.join(targetProjectFolder, 'transform.log')
-
-    if (fs.existsSync(logPath)) {
-        fs.unlinkSync(logPath)
-    }
-
-    // var logFile = fs.createWriteStream(logPath, { flags: 'a' })
-    global.log = function () {
-        var log = ""
-        try {
-            //某些情况报：RangeError:Maximum call stack size exceeded
-            //来源gogocode find.js 解析html
-            log = util.format.apply(null, arguments) + '\n'
-        } catch (error) {
-            log = error
-        }
-        // logFile.write(log)  //TODO:貌似不生效了，不知道是node16还是因为win10
-        fs.appendFileSync(logPath, log)
-        process.stdout.write(log)
-
-        //hbuilderx console log
-        if (options.outputChannel) {
-            options.outputChannel.appendLine(log)
-        }
-    }
-}
-
+const {initConsole} = require('./src/utils/logUtils.js')
 
 /**
  *
@@ -121,6 +49,9 @@ async function transform (sourceFolder, options = {}, callback) {
     global.log("<map/>数量:", global.statistics.mapCount)
     global.log("<video/>数量:", global.statistics.videoCount)
 
+    let vanTagList = utils.duplicateRemoval(global.statistics.vanTagList)
+    global.log("Vant组件:", `${vanTagList.join("、")}， 数量：${vanTagList.length}`)
+
 
     if (global.isCompileProject) {
         console.error("\n[ERROR]项目转换失败！！！\n")
@@ -140,8 +71,9 @@ async function transform (sourceFolder, options = {}, callback) {
 
     global.log(`\n使用说明：
     1.因各种原因，本工具并非100%完美转换！部分语法仍需人工处理！
-    2.如遇运行报错，请添加QQ群(四群：555691239)带图反馈或https://github.com/zhangdaren/miniprogram-to-uniapp提交Issue！
-    3.更多信息请查阅转换后目录里的 README.md 和 transform.log\n\n`)
+    2.工具转换原理及说明文档参考：https://l4rz4zwpx7.k.topthink.com/@kmrvzg72lx/
+    3.如遇运行报错，请添加QQ群(五群：536178289)带图反馈或https://github.com/zhangdaren/miniprogram-to-uniapp提交Issue！
+    4.转换后请查阅_uni目录或_uni-cli目录里的 README.md 和 transform.log\n\n`)
 
     callback && callback()
 }

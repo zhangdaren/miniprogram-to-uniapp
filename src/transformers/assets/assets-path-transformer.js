@@ -102,7 +102,7 @@ function repairTemplateSourcePath ($jsAst, wxmlFile) {
                 let fullPath = pathUtils.getResolvePath($1, fileDir)
 
                 //重要：判断是否有源文件！防止误替换(???不太记得了)，这里仍然还是转换为相对于static目录
-                if (!fs.existsSync(fullPath)) {
+                if (!ggcUtils.urlReg.test(newVal) && !fs.existsSync(fullPath)) {
                     var fileKey = pathUtils.getFileKey(wxmlFile)
                     global.log(`[WARN] 文件 ${ pathUtils.getAbsolutePath(fullPath, false) } 不存在，但仍然对路径进行转换为相对于static目录，运行时需注意！   fileKey: ${ fileKey }`)
                 }
@@ -116,10 +116,13 @@ function repairTemplateSourcePath ($jsAst, wxmlFile) {
 
                 //加上引号
                 let character = match[0]
-                if (!/['"]/.test(character)) {
-                    character = ""
+                if (/^['"]/.test(character)) {
+                    newVal = `${ character }${ newVal }`
                 }
-                newVal = `${ character }${ newVal }${ character }`
+                character = match[match.length - 1]
+                if (/['"]$/.test(character)) {
+                    newVal = `${ newVal }${ character }`
+                }
 
                 return newVal
             })

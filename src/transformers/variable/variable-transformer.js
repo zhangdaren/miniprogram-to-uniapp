@@ -561,6 +561,7 @@ function propsWithMethodsDuplicateHandle ($jsAst, $wxmlAst, fileKey) {
  * 创建一个变量接管这个prop变量的工作，并且替换掉所有引用
  * @param {*} $jsAst
  * @param {*} $wxmlAst
+ * @param {*} fileKey
  */
 function propWithDataDuplicateHandle ($jsAst, $wxmlAst, fileKey) {
     var dataList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, ggcUtils.propTypes.DATA, fileKey)
@@ -777,8 +778,13 @@ function getPageSimpleVariableTypeInfo ($jsAst, $wxmlAst, allPageData) {
 
             //找不到这个组件的数据也返回
             if (!allPageData[comFileKey]) {
-                global.log("找不到这个组件: " + comFileKey)
-                return
+                //小程序里components/child 等价于components/child/index
+                if(allPageData[comFileKey + "/index"]){
+                    comFileKey += "/index"
+                }else{
+                    global.log("找不到这个组件: " + comFileKey)
+                    return
+                }
             }
 
             //获取这个组件的props数据

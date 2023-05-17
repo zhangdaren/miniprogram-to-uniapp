@@ -1,7 +1,7 @@
 {
     "id": "mp-html",
     "displayName": "mp-html 富文本组件【全端支持，支持编辑、latex等扩展】",
-    "version": "v2.4.1",
+    "version": "v2.4.2",
     "description": "一个强大的富文本组件，高效轻量，功能丰富",
     "keywords": [
         "富文本",

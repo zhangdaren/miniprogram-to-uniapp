@@ -16,7 +16,7 @@
 
 点击右侧 “使用 HBuilderX 导入插件” 按钮，并选择对应项目。
 
-# 使用 
+# 使用
 
 在main.js文件里面增加引用，即可全局使用这些函数，如下所示：
 
@@ -79,28 +79,29 @@ export function createApp() {
 解析事件里的动态函数名，这种没有()的函数名，在uniapp不被执行
 
 比如：<view bindtap="{{openId==undefined?'denglu':'hy_to'}}">立即</view>
-	
+
 ## getTabBar
 实现小程序自定义组件的this.getTabBar().setData()函数
 
 ## getRelationNodes
-获取组件间关系this.getRelationNodes() 
+获取组件间关系this.getRelationNodes()
 
-注意： 
+注意：
 
-1.须与p-f-unicom配合使用！ 
+1.须与p-f-unicom配合使用！
 
 2.并不能与小程序的getRelationNodes相提并论，因为底层实现不一样
 
 ## selectComponent
 ## selectAllComponents
-抹平各平台差异，实现类似于小程序的selectComponent和selectAllComponents函数。 
+抹平各平台差异，实现类似于小程序的selectComponent和selectAllComponents函数。
 
-使用方式与小程序一致。 
+使用方式与小程序一致。
 
 注：新项目建议还是使用ref这种方式，获取组件实例。
 
 ## setData
-实现setData函数，让uni-app也能支持使用setData函数。 
+1.实现setData函数，让uni-app也能支持使用setData函数。
+2.实现微信“简易双向绑定”
 
 注意：本函数仅为小程序转换uniapp项目所作的支撑，如uni-app项目里，最好还是使用this.xx这种方式。

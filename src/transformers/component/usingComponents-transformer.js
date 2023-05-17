@@ -31,7 +31,7 @@ const { repairRequireAndImportPath } = require(appRoot + '/src/transformers/asse
  * @param {*} $jsAst
  * @param {*} usingComponents
  */
-function transformUsingComponents ($jsAst, usingComponents,fileKey) {
+function transformUsingComponents ($jsAst, usingComponents, fileKey) {
     if (!$jsAst) return
 
     // 1.在头上添加import,注意组件名
@@ -59,7 +59,7 @@ function transformUsingComponents ($jsAst, usingComponents,fileKey) {
     try {
         componentList = ggcUtils.getDataOrPropsOrMethodsList($jsAst, "COMPONENTS", fileKey, true)
     } catch (error) {
-        global.log("[ERROR]", error, "getDataOrPropsOrMethodsList",  fileKey)
+        global.log("[ERROR]", error, "getDataOrPropsOrMethodsList", fileKey)
     }
 
     var reg_plugin = /^plugin:\/\//
@@ -121,11 +121,16 @@ function transformUsingComponents ($jsAst, usingComponents,fileKey) {
     //倒转一下再插入，不然是反的。
     importStrList.reverse().map(function (importStr) {
         if (importStr.startsWith("//")) {
-            $jsAst.before(importStr).root()
+            try {
+                //有可能有时会执行报错。。。
+                $jsAst.before(importStr).root()
+            } catch (error) {
+                global.log(`[WARN]$jsAst.before(importStr).root()运行报错,   importStr：${importStr}      error: ${ error }`)
+            }
         } else {
-            try{
+            try {
                 $jsAst.prepend(importStr).root()
-            }catch(error){
+            } catch (error) {
                 global.log('%c [ $jsAst.prepend(importStr).root() error ]-124', 'font-size:13px; background:pink; color:#bf2c9f;', error)
                 global.log('%c [ importStr ]-125', 'font-size:13px; background:pink; color:#bf2c9f;', importStr)
             }

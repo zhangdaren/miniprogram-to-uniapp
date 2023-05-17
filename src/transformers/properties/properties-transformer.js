@@ -55,6 +55,16 @@ function transformPropReference ($jsAst, propItemName) {
  * @param {*} fileKey
  */
 function checkPropDefaultValueType (propItemName, typeName, valueNode, fileKey) {
+    // 这种不提示
+    // properties: {
+    //     color:{
+    //         type:String,
+    //         value: i.GRAY
+    //     }
+    // },
+    if(valueNode.type === "MemberExpression") return
+
+
     var valueType = valueNode.type
     var valueContent = valueNode.value
 
