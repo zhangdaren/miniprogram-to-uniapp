@@ -71,12 +71,6 @@ async function main () {
     //获取输入目录
     input = pathUtils.getInputFolder(input)
 
-    //分区判断，TODO: mac需调试！
-    if(/[a-z]:[\\/]?/i.test(input)){
-        console.error("【ERROR】不要对某个分区进行转换啊！ ╮(╯▽╰)╭")
-        process.exit()
-    }
-
     //获取输出目录
     output = pathUtils.getOutputFolder(input, options.isVueAppCliMode)
 

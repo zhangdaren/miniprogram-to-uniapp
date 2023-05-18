@@ -830,7 +830,11 @@ const visitorar = {
                     let firstNode = expressions[0]
                     let lastNode = expressions[expressions.length - 1]
 
-                    if (t.isAssignmentExpression(firstNode) && t.isIdentifier(lastNode) ) {
+                    if (t.isAssignmentExpression(firstNode)
+                        && t.isObjectExpression(firstNode.node.right)
+                        && t.isIdentifier(lastNode)
+                        && t.isObjectProperty(path.parentPath)
+                    ) {
                         let varName = lastNode.node.name
                         if (firstNode.node.left.name === lastNode.node.name) {
 

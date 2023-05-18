@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2023-04-17 22:07:23
+ * @LastEditTime: 2023-05-18 21:28:20
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/relation-transformer.js
@@ -24,7 +24,7 @@ const ggcUtils = require(appRoot + "/src/utils/ggcUtils")
  */
 function getComponentNameByRelationPath (comPath) {
     //可能为空。。。
-    if(!comPath) return ""
+    if (!comPath) return ""
 
     var list = comPath.split('/')
     list = list.filter(
@@ -71,32 +71,35 @@ function transformRelation ($jsAst, fileKey) {
             relationsNode.value.properties.map(item => {
                 comPath = item.key.value
                 comPath = getComponentNameByRelationPath(comPath)
-                var linkedNode = item.value.properties.find(obj => obj.key.name === "linked")
+                if (item.value) {
+                    var linkedNode = item.value.properties.find(obj => obj.key.name === "linked")
 
-                // this.getRelationNodes('segment-item').map(e=>this.initTabs(e))
+                    // this.getRelationNodes('segment-item').map(e=>this.initTabs(e))
 
-                if (linkedNode && linkedNode.params && linkedNode.params.length) {
-                    var paramName = linkedNode.params[0].name
-                    var code = $(linkedNode.body).generate()
-                    code = code.replace(/^{|}$|\n/g, "").trim()
+                    if (linkedNode && linkedNode.params && linkedNode.params.length) {
+                        var paramName = linkedNode.params[0].name
+                        var code = $(linkedNode.body).generate()
+                        code = code.replace(/^{|}$|\n/g, "").trim()
 
-                    if(code.startsWith("//")){
-                        //如果这里面的代码是含注释的，那将直接运行报错 = =，因此这里添加换行
-                        // relations: {
-                        //     './waterfall': {
-                        //       type: 'parent',
-                        //       linked(target) {
-                        //         // console.log('li-target:', target)
-                        //       }
-                        //     }
-                        //  },
-                        code = `\n${code}\n`
+                        if (code.startsWith("//")) {
+                            //如果这里面的代码是含注释的，那将直接运行报错 = =，因此这里添加换行
+                            // relations: {
+                            //     './waterfall': {
+                            //       type: 'parent',
+                            //       linked(target) {
+                            //         // console.log('li-target:', target)
+                            //       }
+                            //     }
+                            //  },
+                            code = `\n${ code }\n`
+                        }
+                        createdNode.value.body.body.unshift(`/** linked处理 */\nthis.getRelationNodes('${ comPath }').map(${ paramName }=>{${ code }})`)
                     }
-                    createdNode.value.body.body.unshift(`/** linked处理 */\nthis.getRelationNodes('${ comPath }').map(${ paramName }=>{${ code }})`)
+                    //是否使用到relations和getRelationNodes函数
+                    global.hasComponentRelation = true
+                } else {
+                    global.log(`[ERROR]transformRelation 结构有问题  fileKey: ${ fileKey }`)
                 }
-
-                //是否使用到relations和getRelationNodes函数
-                global.hasComponentRelation = true
             })
 
             // created() {
@@ -113,7 +116,7 @@ function transformRelation ($jsAst, fileKey) {
                     let comPath = match[2][0].value
 
                     //可能为空。。。
-                    if(!comPath) return null
+                    if (!comPath) return null
 
                     global.log("getRelationNodes", comPath)
                     comPath = getComponentNameByRelationPath(comPath)

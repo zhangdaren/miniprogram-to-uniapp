@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-05-17 14:20:54
+ * @LastEditTime: 2023-05-18 21:43:50
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\project\projectHandle.js
+ * @FilePath: /miniprogram-to-uniapp2/src/project/projectHandle.js
  *
  */
 
@@ -60,9 +60,9 @@ async function transform (sourceFolder, targetSourceFolder) {
     return new Promise(async function (resolve, reject) {
         var allPageData = {}
 
-        var isCompileProject = utils.checkCompileProject(sourceFolder)
-        if (isCompileProject) {
-            reject("[ERROR]检测到当前项目可能是uniapp发布后的小程序项目，不支持转换！")
+        var compileProjectInfo = utils.checkCompileProject(sourceFolder)
+        if (compileProjectInfo) {
+            reject(`[ERROR]检测到当前项目可能是${compileProjectInfo}发布后的小程序项目，不支持转换！请换一个小程序项目再尝试。`)
             return
         }
 
@@ -630,12 +630,6 @@ async function projectHandle (sourceFolder, options = {}) {
 
     //项目里用到的npm包
     global.dependencies = configData.dependencies || {}
-
-    //检测是否是taro项目
-    var hasTaro = Object.keys(global.dependencies).some(key => key.includes("@tarojs/"))
-    if (hasTaro) {
-        console.error("[ERROR]检测到当前项目可能是Taro开发的小程序项目，不支持转换！")
-    }
 
     //是否使用到relations和getRelationNodes函数
     global.hasComponentRelation = false

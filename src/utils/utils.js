@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-05-17 14:27:30
+ * @LastEditTime: 2023-05-18 21:37:23
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\utils\utils.js
+ * @FilePath: /miniprogram-to-uniapp2/src/utils/utils.js
  *
  */
 const chalk = require('chalk')
@@ -985,7 +985,10 @@ function checkCompileProject (sourceFolder) {
     const mainJs = nodePath.join(sourceFolder, "common", "main.js")
     const vendorJs = nodePath.join(sourceFolder, "common", "vendor.js")
 
-    if (fs.existsSync(appJs) && fs.existsSync(vendorJs)) {
+    // npm/@tarojs目录
+    const taroFolder = nodePath.join(sourceFolder, "npm", "vtarojs")
+
+    if (fs.existsSync(appJs)) {
         var appContent = ""
         try {
             appContent = fs.readFileSync(appJs, 'utf-8')
@@ -993,8 +996,12 @@ function checkCompileProject (sourceFolder) {
             //可能没有这个文件
         }
 
-        if (appContent.includes(`./common/vendor.js`)) {
-            result = true
+        if (appContent.includes(`./common/vendor.js`) && fs.existsSync(vendorJs)) {
+            result = 'uni-app'
+        }else if (appContent.includes(`npm/wepy/lib/wepy.js`)) {
+            result = "wepy"
+        }else if (appContent.includes(`npm/@tarojs`) && fs.existsSync(taroFolder)) {
+            result = "taro"
         }
     }
     return result
