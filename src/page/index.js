@@ -704,7 +704,7 @@ class Page {
         }
 
         if (tagList.length > 1) {
-            templateContent = `<template>\r\n<view style="height:100%">\r\n${ templateContent }\r\n</view>\r\n</template>`
+            templateContent = `<template>\r\n<view style="height:100%;overflow: auto;">\r\n${ templateContent }\r\n</view>\r\n</template>`
         } else if (tagList.length === 1) {
             var firstNode = tagList[0].content
             var attributes = firstNode.attributes
@@ -712,7 +712,7 @@ class Page {
 
             var hasFor = attributes.some(obj => obj.key.content.indexOf("for") > -1)
             if (hasFor || firstNode.name !== "view") {
-                templateContent = `<template>\r\n<view style="height:100%">\r\n${ templateContent }\r\n</view>\r\n</template>`
+                templateContent = `<template>\r\n<view style="height:100%;overflow: auto;">\r\n${ templateContent }\r\n</view>\r\n</template>`
             } else {
                 templateContent = `<template>\r\n${ templateContent }\r\n</template>`
             }
