@@ -38,7 +38,7 @@ function getProjectConfig(folder, sourceFolder) {
     if (fs.existsSync(file_projectConfigJson)) {
         let data = {};
         try {
-            data = fs.readJsonSync(file_projectConfigJson);
+            data = utils.readJson(file_projectConfigJson);
         } catch (error) {
             global.log(`[ERROR] 解析project.config.json报错：` + error);
         }
@@ -72,7 +72,7 @@ function getProjectConfig(folder, sourceFolder) {
     if (fs.existsSync(file_package)) {
         let packageJson = null;
         try {
-            packageJson = fs.readJsonSync(file_package);
+            packageJson = utils.readJson(file_package);
         } catch (error) {
             global.log(`[ERROR] 解析package.json报错：` + error);
         }

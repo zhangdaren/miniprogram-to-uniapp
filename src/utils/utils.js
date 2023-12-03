@@ -30,7 +30,13 @@ var ignoreList = [
     /[\/\\]cloudfunctions[\/\\]/,
 ]
 
-function getAllFile (sourceFolder, options) {
+/**
+ * 搜索目录所有文件
+ * @param {*} sourceFolder 目录
+ * @param {*} ignoreReg  过滤正则，默认过滤.开头的目录或文件
+ * @returns
+ */
+function getAllFile (sourceFolder, ignoreReg = /^\./) {
 
     //两者，都无法找出无后缀名的文件
 
@@ -63,10 +69,7 @@ function getAllFile (sourceFolder, options) {
             //过滤以.开头、node_modules和miniprogram_npm等目录
             // let reg = /^\.|^node_modules|^miniprogram_npm/
 
-            //TODO: 暂时只过滤.开头的目录
-            const reg = /^\./
-
-            if (reg.test(folderName) || reg.test(relativePath)) {
+            if (ignoreReg.test(folderName) || ignoreReg.test(relativePath)) {
                 result = false
             }
             return result
@@ -567,7 +570,7 @@ function isReservedName (name) {
  * 判断关键字是否与vant有关  //van-是老版vant，可以支持。
  */
 function isVant (name) {
-    return /\bvant-weapp\b|\bvant\b|van-/.test(name)
+    return /\bvant-weapp\b|\bvant\b|vant?-/.test(name)
 }
 
 /**
@@ -1008,7 +1011,32 @@ function checkCompileProject (sourceFolder) {
 }
 
 
+/**
+ * 读取指定地址的json文件，并返回反序列化后的js对象
+ * 1.读取带注释的json文件
+ * 2.读取格式为UTF-8 BOM格式的json文件
+ * @param filePath json文件路径
+ * @returns {} 反序列化后的对象
+ */
+// module.exports.readJson = (filePath) => {
+const readJson = (filePath) => {
+    const JSON5 = require('json5')
+    // const fs = require('fs')
+
+    let config = fs.readFileSync(filePath)
+    if (config[0] === 0xEF && config[1] === 0xBB && config[2] === 0xBF) {
+        config = config.slice(3)
+    }
+    config = JSON5.parse(config.toString('utf-8'))
+
+    return config
+}
+
+
+
+
 module.exports = {
+    readJson,
     log,
 
     isString,
@@ -1076,5 +1104,5 @@ module.exports = {
 
     getStringLines,
 
-    checkCompileProject
+    checkCompileProject,
 }

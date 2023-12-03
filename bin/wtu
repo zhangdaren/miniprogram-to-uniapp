@@ -26,6 +26,8 @@ async function main () {
         .option('-c, --cli', 'the type of output project is vue-cli, which default value is false', false)
         .option('-m, --merge', 'merge wxss file into vue file, which default value is false', false)
         .option('-t, --template', 'transform template and include to component, which default value is false', false)
+        .option('-vant, --vant', 'transform vant component, which default value is false', true)
+        .option('-ts, --typescript', 'transform typescript, which default value is false', false)
         .parse(process.argv)
         .action((arg) => {
             console.log('执行了', arg)
@@ -58,13 +60,15 @@ async function main () {
         output,
         isVueAppCliMode: opts.cli,
         isMergeWxssToVue: opts.merge,
-        isTemplateToComponent: opts.template
+        isTemplateToComponent: opts.template,
+        isTransformVant: opts.vant,
+        isTransformTypescript: opts.typescript
     }
     //
     input = path.resolve(process.cwd(), input)
 
     if (!fs.existsSync(input)) {
-        console.error("【ERROR】输入目录不存在，请重新输入要转换的小程序目录")
+        console.error(`【ERROR】输入目录${input}不存在，请重新输入要转换的小程序目录`)
         process.exit()
     }
 

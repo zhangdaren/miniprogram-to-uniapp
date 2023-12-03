@@ -754,17 +754,21 @@ function transformAttrs (node, state) {
         //template标签转换
         //<template is="foo" data="{{item, pic}}" /> => < compName="foo" :data="{ item, pic }" />
         if (global.isTemplateToComponent && tagName === 'template' && keyNode.content === "data") {
-            keyNode.content = ":" + keyNode.content
-            if (valueNode && valueNode.content) {
-                valueNode.content = valueNode.content.replace(/^\{\{([^\{]*)\}\}$/, "{$1}")
-            } else {
-                //<template is="WxParseBr" data wx:elif="{{item.tag=='br'}}"></template> 这类都没data的值的
-                item.value = {
-                    content: 'this',
-                    type: 'token:attribute-value',
+            //判断是否为wxParse，如是，则忽略
+            // let isWxParse = attributes.some(attr=>attr.key.content === "is" && attr.value.content === "wxParse")
+            // if(!isWxParse){
+                keyNode.content = ":" + keyNode.content
+                if (valueNode && valueNode.content) {
+                    valueNode.content = valueNode.content.replace(/^\{\{([^\{]*)\}\}$/, "{$1}")
+                } else {
+                    //<template is="WxParseBr" data wx:elif="{{item.tag=='br'}}"></template> 这类都没data的值的
+                    item.value = {
+                        content: 'this',
+                        type: 'token:attribute-value',
+                    }
+                    isNotAttrContent = false
                 }
-                isNotAttrContent = false
-            }
+            // }
         }
 
         if (!isNotAttrContent) {

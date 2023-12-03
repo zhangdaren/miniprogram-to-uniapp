@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-03 10:01:45
- * @LastEditTime: 2023-05-18 21:28:20
+ * @LastEditTime: 2023-07-26 21:42:36
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/transformers/component/relation-transformer.js
@@ -71,8 +71,9 @@ function transformRelation ($jsAst, fileKey) {
             relationsNode.value.properties.map(item => {
                 comPath = item.key.value
                 comPath = getComponentNameByRelationPath(comPath)
-                if (item.value) {
-                    var linkedNode = item.value.properties.find(obj => obj.key.name === "linked")
+                if(!item.value) return console.error(`[ERROR]transformRelation 结构有问题  fileKey: ${ fileKey }`)
+
+                var linkedNode = item.value.properties.find(obj => obj.key.name === "linked")
 
                     // this.getRelationNodes('segment-item').map(e=>this.initTabs(e))
 
@@ -97,9 +98,6 @@ function transformRelation ($jsAst, fileKey) {
                     }
                     //是否使用到relations和getRelationNodes函数
                     global.hasComponentRelation = true
-                } else {
-                    global.log(`[ERROR]transformRelation 结构有问题  fileKey: ${ fileKey }`)
-                }
             })
 
             // created() {

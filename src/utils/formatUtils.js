@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-18 13:56:43
- * @LastEditTime: 2023-01-12 22:34:30
+ * @LastEditTime: 2023-10-23 09:14:58
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: /miniprogram-to-uniapp2/src/utils/formatUtils.js
+ * @FilePath: \miniprogram-to-uniapp\src\utils\formatUtils.js
  *
  */
 
@@ -15,14 +15,7 @@ const fs = require('fs-extra')
 const t = require("@babel/types")
 const clone = require("clone")
 
-// const prettier = require("prettier")
-
-
-const prettier = require("./prettier/standalone.js")
-const html = require("./prettier/parser-html.js")
-const postcss = require("./prettier/parser-postcss.js")
-const babel = require("./prettier/parser-babel.js")
-const typescript = require("./prettier/parser-typescript.js")
+const prettier = require("prettier")
 
 var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
@@ -56,6 +49,7 @@ var prettierOptions = {
     htmlWhitespaceSensitivity: "ignore",   // "ignore" 所有标签周围的空白(或缺少空白)被认为是无关紧要的。
     // requirePragma: true,                 // 格式化css需要的，否则格式化出错（用scss格式没问题，先用scss）
 }
+
 
 //Beautify options
 var beautifyOptions = {
@@ -135,17 +129,18 @@ function getPrettierOptions (type) {
             break
         case "css":
         case "scss":
-        case "less":
             parser = "scss"
+            break
+        case "less":
+            parser = "less"
             break
         default:
             //其他如json等
             parser = type
             break
     }
-    prettierOptions.parser = parser
-    prettierOptions.plugins = [html, babel, postcss, typescript]
-    return prettierOptions
+    let options = { ...prettierOptions, parser }
+    return options
 }
 
 /**
@@ -156,7 +151,7 @@ function getPrettierOptions (type) {
  * @param {*} fileKey
  *
  */
-function formatCode (code, extname, fileKey, showErrorCdoeLog = true) {
+async function formatCode (code, extname, fileKey, showErrorCodeLog = true) {
     if (!code) return code
 
     //使用Prettier+vue会直接格出bug...
@@ -166,13 +161,13 @@ function formatCode (code, extname, fileKey, showErrorCdoeLog = true) {
     //  .page {}
     // </style>
 
-    var newCode = formateByPrettier(code, extname, fileKey, showErrorCdoeLog)
+    var newCode = await formateByPrettier(code, extname, fileKey, showErrorCodeLog)
 
     if (newCode === null) {
         if (extname[0] !== ".") {
             extname = "." + extname
         }
-        newCode = formateByBeautify(code, extname, fileKey, showErrorCdoeLog)
+        newCode = formateByBeautify(code, extname, fileKey, showErrorCodeLog)
         if (newCode === null) {
             newCode = code
         }
@@ -180,14 +175,41 @@ function formatCode (code, extname, fileKey, showErrorCdoeLog = true) {
 
     return newCode
 }
+
+/**
+ * 格式化代码同步
+ * @param {*} code     代码
+ * @param {*} extname     type
+ * @param {*} fileKey
+ *
+ */
+function formatCodeSync (code, extname, fileKey, showErrorCodeLog = true) {
+    if (!code) return code
+
+    var newCode = formateByPrettier(code, extname, fileKey, showErrorCodeLog)
+
+    if (newCode === null) {
+        if (extname[0] !== ".") {
+            extname = "." + extname
+        }
+        newCode = formateByBeautify(code, extname, fileKey, showErrorCodeLog)
+        if (newCode === null) {
+            newCode = code
+        }
+    }
+
+    return newCode
+}
+
+
 /**
  * 使用Beautify进行格式化代码
  * @param {*} code
  * @param {*} extname
  * @param {*} fileKey
- * @param {*} showErrorCdoeLog
+ * @param {*} showErrorCodeLog
  */
-function formateByPrettier (code, extname, fileKey, showErrorCdoeLog) {
+function formateByPrettier (code, extname, fileKey, showErrorCodeLog) {
     if (!code) return code
     var options = getPrettierOptions(extname)
 
@@ -195,7 +217,7 @@ function formateByPrettier (code, extname, fileKey, showErrorCdoeLog) {
     try {
         res = prettier.format(code, options)
     } catch (error) {
-        if (showErrorCdoeLog) {
+        if (showErrorCodeLog) {
             global.log("格式化Error: fileKey: " + fileKey + "     type:" + extname + "       error：", error)
             // global.log("格式化Error: code: " + code)
         } else {
@@ -210,9 +232,9 @@ function formateByPrettier (code, extname, fileKey, showErrorCdoeLog) {
  * @param {*} code
  * @param {*} extname
  * @param {*} fileKey
- * @param {*} showErrorCdoeLog
+ * @param {*} showErrorCodeLog
  */
-function formateByBeautify (code, extname, fileKey, showErrorCdoeLog) {
+function formateByBeautify (code, extname, fileKey, showErrorCodeLog) {
     if (!code) return code
     var parser = beautifyOptions.parsers[extname] || "html"
 
@@ -237,10 +259,12 @@ function getFormatType (file) {
     var type = ""
     switch (extname) {
         case '.js':
-        case '.ts':
         case '.wxs':
         case '.sjs':
             type = "js"
+            break
+        case '.ts':
+            type = "ts"
             break
         case '.vue':
             type = "vue"
@@ -256,10 +280,14 @@ function getFormatType (file) {
         case '.qss':
         case '.ttss':
         case '.acss':
-        case '.less':
-        case '.scss':
         case '.css':
             type = "css"
+            break
+        case '.less':
+            type = "less"
+            break
+        case '.scss':
+            type = "scss"
             break
         case '.json':
             type = "json"
@@ -275,67 +303,47 @@ function getFormatType (file) {
  * 对目录下面所有文件进行格式化
  * @param {*} folder
  */
-function formatFolder (folder) {
+async function formatFolder (folder, bar, total) {
     if (!folder) global.log("没有输入目录咧！")
-    var files = utils.getAllFile(folder)
+    var files = utils.getAllFile(folder, /^\.|node_modules|miniprogram_npm|.log$|\.min\.|uni_modules/)
 
     //TODO: 统计所用时间
     //TODO:  这里应该只需要文件即可！！！！！！！
     global.log("文件数：" + files.length)
 
-    var bar = new ProgressBar('  格式化进度 [:bar] :rate/bps :percent 剩余:etas ', {
-        complete: '█',
-        incomplete: '░',
-        width: 60,
-        total: files.length
-    })
+    // var bar = new ProgressBar('进度 [:bar] :rate/bps :percent 剩余:etas ', {
+    //     complete: '█',
+    //     incomplete: '░',
+    //     width: 60,
+    //     total: files.length
+    // })
 
-    var len = files.length
-    var cur = 0
-    var complete = function () {
 
-    }
-    files.forEach(function (file) {
+    let promiseList = files.map(async function (file, count) {
+        //进度输出
+        bar.tick()
+        if (global.hbxLog) {
+            global.log(`转换进度: ${ count } / ${ total }   fileKey：` + fileKey)
+        }
+
         let isFolder = !path.extname(file)
         if (isFolder) {
-            bar.tick()
         } else {
             var type = getFormatType(file)
-            if (type && !/\.min\./.test(file)) {
+            if (type) {
                 var fileData = fs.readFileSync(file, 'utf8')
-                fileData = formatCode(fileData, type, file, false)
+                fileData = await formatCode(fileData, type, file, false)
                 $.writeFile(fileData, file, false)
-                bar.tick()
-            } else {
-                bar.tick()
             }
-            // if (type && !/\.min\./.test(file)) {
-            // fs.readFile(file, 'utf-8', function (err, data) {
-            //     if (err) {
-            //         global.log(err)
-            //         bar.tick()
-            //     } else {
-            //         var type = getFormatType(file)
-            //         var fileData = formatCode(data, type, file, false)
-            //         // $.writeFile(fileData, file, false)
-            //         fs.writeFile(file, fileData, function (err) {
-            //             if (err) {
-            //                 bar.tick()
-            //                 return global.log(err)
-            //             }
-            //             bar.tick()
-            //         })
-            //     }
-            // })
-            // } else {
-            //     bar.tick()
-            // }
         }
     })
+
+    await Promise.all(promiseList)  // 用Promise.all的方法，等待执行
 }
 
 module.exports = {
     formatCode,
+    formatCodeSync,
     formatFolder
 
 }

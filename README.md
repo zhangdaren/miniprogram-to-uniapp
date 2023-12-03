@@ -108,4 +108,4 @@ $ wtu -i "./miniprogram-project" -t
 
 ## LICENSE
 
-This repo is released under the [MIT](http://opensource.org/licenses/MIT).
+This repo is released under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).

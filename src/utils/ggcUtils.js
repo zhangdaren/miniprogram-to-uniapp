@@ -22,7 +22,7 @@ const staticAssetsReg = /^\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff)$/i
 //支持的文件的正则，用于替换引入路径
 const assetsFileReg = /^((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))$/i
 
-const multiAssetsFileReg = /['"]?((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?/gi
+const multiAssetsFileReg = /^['"]?((\/|\.+\/)*[^'+]*\.(jpe?g|gif|svg|png|mp3|mp4|ttf|eot|woff))['"]?$/gi
 
 const urlReg = /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,}))\.?)(?::\d{2,5})?(?:[/?#]\S*)?$/i
 
@@ -510,7 +510,7 @@ function getVanTagList ($wxmlAst) {
     if (!$wxmlAst) return list
     $wxmlAst.find(`<$_$tag></$_$tag>`).each(item=>{
         var tagName = item.attr('content.name')
-        if(tagName.startsWith("van-")){
+        if(/^vant?-/.test(tagName)){
             list.push(tagName)
         }
     }).root()
@@ -608,7 +608,7 @@ function getDataOrPropsOrMethodsList ($jsAst, type, fileKey, isCreate = false) {
                 list = getDataOrPropsOrMethodsList($jsAst, type, fileKey, isCreate)
             } else {
                 //TODO: 直接抛异常会有问题的
-                global.log("结构有问题！！！！", $jsAst.generate())
+                global.log("结构有问题！！！！  type=" + type ,  "   fileKey=" + fileKey, $jsAst.generate())
 
                 //这里需设置为true，list也需赋值，不然会死循环
                 isCreate = true
@@ -685,7 +685,7 @@ function getDataOrPropsOrMethodsList ($jsAst, type, fileKey, isCreate = false) {
  */
 function objectMethod2FunctionExpression (path) {
     if (!path) global.log("objectMethod2FunctionExpression 参数错误")
-    return t.functionExpression(path.id, path.params, path.body)
+    return t.functionExpression(path.id, path.params, path.body, path.generator, path.async)
 }
 
 /**

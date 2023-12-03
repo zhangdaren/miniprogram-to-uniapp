@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-05-18 21:43:50
+ * @LastEditTime: 2023-07-26 22:14:32
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/src/project/projectHandle.js
@@ -21,6 +21,7 @@ const ProgressBar = require('progress')
 var appRoot = "../.."
 const utils = require(appRoot + '/src/utils/utils.js')
 const pathUtils = require(appRoot + '/src/utils/pathUtils.js')
+const formatUtils = require(appRoot + '/src/utils/formatUtils.js')
 const ggcUtils = require(appRoot + '/src/utils/ggcUtils.js')
 const statisticUtils = require(appRoot + '/src/utils/statisticUtils.js')
 
@@ -116,6 +117,12 @@ async function transform (sourceFolder, targetSourceFolder) {
                     }
                 }
             } else {
+                //忽略.d.ts文件处理
+                if (/\.d\.ts$/.test(file)) {
+                    fs.copySync(file, newFile)
+                    return
+                }
+
                 var fileKey = pathUtils.getFileKey(file)
 
                 if (!allPageData[fileKey]) {
@@ -178,17 +185,27 @@ async function transform (sourceFolder, targetSourceFolder) {
                         fileData['cssLanguage'] = "scss"
                         break
                     case '.ts':
-                        //如果有ts文件，优先用ts
-                        var stats = fs.statSync(file)
-                        if (stats.size > MAX_FILE_SIZE) {
-                            //直接复制
-                            fs.copySync(file, newFile)
+                        if (global.isTransformTypescript) {
+                            //如果有ts文件，优先用ts
+                            var stats = fs.statSync(file)
+                            if (stats.size > MAX_FILE_SIZE) {
+                                //直接复制
+                                fs.copySync(file, newFile)
+                            } else {
+                                fileData['js'] = file
+                                fileData['jsFileType'] = "TS"
+                            }
+                            //有ts文件，则判定为ts项目
+                            global.isTypescript = true
                         } else {
-                            fileData['js'] = file
-                            fileData['jsFileType'] = "TS"
+                            let isCheck = pathUtils.checkTSFileAndJSFile(file)
+                            if (!isCheck) {
+                                // global.log("")
+                                // throw new Error("转换报错！")
+                                fileData['js'] = file
+                                fileData['jsFileType'] = "TS"
+                            }
                         }
-                        //有ts文件，则判定为ts项目
-                        global.isTypescript = true
                         break
                     case '.json':
                         //粗暴获取上层目录的名称~~~
@@ -216,6 +233,13 @@ async function transform (sourceFolder, targetSourceFolder) {
                             global.assetInfo[relPath]['oldPath'] = file
                             let targetFile = path.join(targetSourceFolder, relPath.startsWith('static') ? "" : "static", relPath)
                             global.assetInfo[relPath]['newPath'] = targetFile
+
+                            //如无static目录，则创建
+                            let staticFolder = path.join(targetSourceFolder, "static")
+                            if (!fs.existsSync(staticFolder)) {
+                                //使用ensureDirSync可以创建多级目录
+                                fs.ensureDirSync(staticFolder)
+                            }
 
                             fs.copySync(file, targetFile)
                         } else {
@@ -247,6 +271,9 @@ async function transform (sourceFolder, targetSourceFolder) {
         // transformTwoWayBindingAll(allPageData)
         global.log(`开始二次遍历及生成vue文件`)
         await transformOtherComponents(allPageData, bar, total)
+
+        // global.log(`\n开始格式化文件`)
+        // await formatUtils.formatFolder(global.targetSourceFolder, bar, total)
 
         resolve()
     })
@@ -472,7 +499,7 @@ async function transformOtherComponents (allPageData, bar, total) {
             //进度输出
             bar.tick()
             count++
-            if (global.outputChannel) {
+            if (global.hbxLog) {
                 global.log(`转换进度: ${ count + total / 2 } / ${ total }   fileKey：` + fileKey)
             }
 
@@ -596,6 +623,7 @@ async function projectHandle (sourceFolder, options = {}) {
     global.isVueAppCliMode = options.isVueAppCliMode || false
     global.isMergeWxssToVue = options.isMergeWxssToVue || false
     global.isTemplateToComponent = options.isTemplateToComponent || false
+    global.isTransformVant = options.isTransformVant || false
 
     //是否加载polyfill
     global.hasPolyfill = options.hasPolyfill || false
@@ -613,6 +641,8 @@ async function projectHandle (sourceFolder, options = {}) {
     //TODO: 未完成
     //判断项目是否含vant
     global.hasVant = false
+
+    global.vantMode = 3
 
     //读取小程序项目配置
     const configData = configUtils.getProjectConfig(miniprogramRoot, sourceFolder)

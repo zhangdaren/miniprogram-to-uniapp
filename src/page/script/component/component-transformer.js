@@ -176,9 +176,20 @@ function transformComponentAst ($ast, fileKey) {
             }
         })
         .root()
-        .replace("Component({data:$_$1,$$$})", `Component({data() {
+
+    try {
+        $ast.replace("Component({data:$_$1,$$$})", `Component({data() {
             return $_$1;
-          },$$$})`)
+        },$$$})`)
+    } catch (error) {
+        // 这写法当场报错。。。。混合写法
+        // Component({
+        //     data() {
+        //       newMenus:''
+        //     }
+        //   })
+        global.log("transform component data error", fileKey, error)
+    }
 
     //此行一定要位于transformObservers前面，切记！
     global.props[fileKey] = ggcUtils.getComponentPropsList($ast, fileKey)

@@ -37,6 +37,7 @@
         "postcss": "^8.4.13",
         "postcss-less": "^6.0.0",
         "postcss-scss": "^4.0.4",
+        "prettier": "2.8.8",
         "progress": "^2.0.3"
     },
     "deprecated": false,
@@ -57,7 +58,7 @@
         "uniCloud",
         "cloud"
     ],
-    "license": "MIT",
+    "license": "Apache License 2.0",
     "main": "index.js",
     "repository": {
         "type": "git",
@@ -67,5 +68,5 @@
         "test": "jest",
         "debugger": "node --inspect-brk ./node_modules/jest/bin/jest --runInBand --no-cache --no-watchman"
     },
-    "version": "2.2.3"
+    "version": "2.2.6"
 }

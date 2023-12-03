@@ -34,8 +34,11 @@ function addTemplateTagDataToGlobal (pageData, fileKey) {
         }
 
         var wxsScriptList = pageData.wxsScriptList
-        var code = wxmlAst.generate()
-
+        try{
+           var code = wxmlAst.generate()
+        }catch(err){
+           var code = ""
+        }
         wxmlAst.replace(`<import src="$_$" $$$></import>`, "")
             .find(`<template name="$_$name" $$$></template>`)
             .each(function (item) {
@@ -56,11 +59,13 @@ function addTemplateTagDataToGlobal (pageData, fileKey) {
 
                 //wxss
                 var wxssFile = pageData.wxssFile
-                let fileDir = path.dirname(wxssFile)
-                let fullPath = pathUtils.getResolvePath(wxssFile, fileDir)
-                var absPath = pathUtils.getAbsolutePath(fullPath)
-                absPath = absPath.replace(/\.wxss$/, '.css')
-                global.templateData[name]["wxssFile"] = absPath
+                if(wxssFile){
+                    let fileDir = path.dirname(wxssFile)
+                    let fullPath = pathUtils.getResolvePath(wxssFile, fileDir)
+                    var absPath = pathUtils.getAbsolutePath(fullPath)
+                    absPath = absPath.replace(/\.wxss$/, '.css')
+                    global.templateData[name]["wxssFile"] = absPath
+                }
 
                 //TODO: 注释它
             }).root()

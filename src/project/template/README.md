@@ -84,4 +84,4 @@ https://uniapp.dcloud.io/tutorial/miniprogram-subject.html#%E5%B0%8F%E7%A8%8B%E5
 
 ### 其他
 - 因各种原因，本工具并非100%完美转换！有问题实属正常！
-- 如遇运行报错，请添加QQ群(780359397、361784059、603659851、555691239、536178289任意一群)带图反馈或https://github.com/zhangdaren/miniprogram-to-uniapp提交Issue！
+- 如遇运行报错，请在https://github.com/zhangdaren/miniprogram-to-uniapp，将详细情况提交Issue！

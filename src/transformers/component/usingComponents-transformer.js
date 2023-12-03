@@ -51,6 +51,8 @@ function transformUsingComponents ($jsAst, usingComponents, fileKey) {
 
 
     var keyList = Object.keys(usingComponents)
+    //去掉van组件
+    keyList = keyList.filter(key=>!/^vant?-/.test(key))
     if (!keyList.length) {
         return
     }

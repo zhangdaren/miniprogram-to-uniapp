@@ -79,12 +79,12 @@ export function setData (obj, callback = null) {
         //处理微信“简易双向绑定”
         if (variableNameReg.test(key) && key.endsWith("Clone")) {
             let propName = key.replace(/Clone$/, "")
-            if (this.$options.propsData[propName]) {
+            if (this.$options && this.$options.propsData[propName]) {
                 this.$emit(`update:${propName}`, obj[key])
             }
         }
     })
 
-    debounce(this, '$forceUpdate', 200)
+    this.$forceUpdate();
     if (typeof callback == 'function') this.$nextTick(callback)
 }

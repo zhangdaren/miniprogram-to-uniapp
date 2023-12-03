@@ -163,7 +163,9 @@ function templateIsReplaceFn (match, nodePath, self, templateImportList) {
         return `<${ componentName } compName="${ isValue }" ${ dataStr } $$$1>$$$2</${ componentName }>`
     } else {
         global.log(`没有找到template的组件名${ isValue }`, self.fileKey)
-        return null
+        //没找到就先注释
+        let temp = $(nodePath.node, { parseOptions: { language: 'html' }}).generate()
+        return `<!-- ${temp} -->`
     }
 }
 

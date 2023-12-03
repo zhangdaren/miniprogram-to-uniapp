@@ -74,7 +74,11 @@ const visitorar = {
         return {
             VariableDeclaration (path) {
                 let { kind, declarations } = path.node
-                if (declarations.length > 1) {
+                // 如果是在for循环里，则不处理。 TODO:其他循环有没有这种问题？
+                // 测试代码：
+                // var bjbdx = this.dataSoures;
+                // for (let j = 0, lenJ = bjbdx.length; j < lenJ; ++j) {}
+                if (declarations.length > 1 && !t.isForStatement(path.parentPath)) {
                     const newVariableDeclarations = declarations.map((d) => t.variableDeclaration(kind, [d]))
                     path.replaceWithMultiple(newVariableDeclarations)
                 }
@@ -328,13 +332,14 @@ const visitorar = {
             VariableDeclarator (path) {
                 const { id, init } = path.node
                 if (!(t.isLiteral(init) || t.isObjectExpression(init) || t.isFunctionExpression(init))) return
-                const binding = path.scope.getBinding((id).name)
+                const binding = path.scope.getBinding(id.name)
                 if (!binding || binding.constantViolations.length > 0) return
 
                 if (binding.referencePaths.length > 0) return
                 path.remove()
             },
             FunctionDeclaration (path) {
+                if(!path.node.id) return 
                 const binding = path.scope.getBinding(path.node.id.name)
                 if (!binding || binding.constantViolations.length > 0) return
 
@@ -448,35 +453,38 @@ const visitorar = {
      *   a = 22;
      * }
      */
+    //  TODO: 有问题(原因是const)：
+    //  const data = this.data;
+    //  const value = data.value ? false : true;
     conditionVarToIf () {
         // global.log('赋值三元表达式转换成if')
-        return {
-            VariableDeclaration (path) {
-                if (t.isForStatement(path.parentPath)) return
-                var declarations = path.node.declarations
-                var rpls = []
-                var togg = false
-                for (const declaration of declarations) {
-                    if (t.isConditionalExpression(declaration.init)) {
-                        togg = true
-                        let { test, consequent, alternate } = declaration.init
-                        rpls.push(
-                            t.ifStatement(
-                                test,
-                                t.blockStatement([t.variableDeclaration(path.node.kind, [t.variableDeclarator(declaration.id, consequent)])]),
-                                t.blockStatement([t.variableDeclaration(path.node.kind, [t.variableDeclarator(declaration.id, alternate)])]),
-                            ),
-                        )
-                    } else {
-                        rpls.push(t.variableDeclaration(path.node.kind, [declaration]))
-                    }
-                }
-                if (togg) {
-                    path.replaceWithMultiple(rpls)
-                    path.stop()
-                }
-            },
-        }
+        // return {
+        //     VariableDeclaration (path) {
+        //         if (t.isForStatement(path.parentPath)) return
+        //         var declarations = path.node.declarations
+        //         var rpls = []
+        //         var togg = false
+        //         for (const declaration of declarations) {
+        //             if (t.isConditionalExpression(declaration.init)) {
+        //                 togg = true
+        //                 let { test, consequent, alternate } = declaration.init
+        //                 rpls.push(
+        //                     t.ifStatement(
+        //                         test,
+        //                         t.blockStatement([t.variableDeclaration(path.node.kind, [t.variableDeclarator(declaration.id, consequent)])]),
+        //                         t.blockStatement([t.variableDeclaration(path.node.kind, [t.variableDeclarator(declaration.id, alternate)])]),
+        //                     ),
+        //                 )
+        //             } else {
+        //                 rpls.push(t.variableDeclaration(path.node.kind, [declaration]))
+        //             }
+        //         }
+        //         if (togg) {
+        //             path.replaceWithMultiple(rpls)
+        //             path.stop()
+        //         }
+        //     },
+        // }
     },
 
     /**

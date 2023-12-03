@@ -133,7 +133,7 @@ function transformProperties ($jsAst, fileKey) {
                         }
                     }
 
-                    if (valueNode) {
+                    if (valueNode && valueNode.value && typeNode && typeNode.value) {
                         //检查类型
                         checkPropDefaultValueType(propItemName, typeNode.value.name, valueNode.value, fileKey)
                     }
@@ -160,7 +160,7 @@ function transformProperties ($jsAst, fileKey) {
                         }
                     }
 
-                    if (observerNode) {
+                    if (observerNode && typeNode && typeNode.value) {
                         ggcUtils.addWatchHandlerItem($jsAst, watchList, propItemName, typeNode.value.name, observerNode)
 
                         //删除observer节点

@@ -1,10 +1,10 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-08-02 09:02:29
- * @LastEditTime: 2023-05-17 15:29:56
+ * @LastEditTime: 2023-06-30 22:15:15
  * @LastEditors: zhang peng
  * @Description:
- * @FilePath: \miniprogram-to-uniapp\src\page\index.js
+ * @FilePath: /miniprogram-to-uniapp2/src/page/index.js
  *
  */
 
@@ -242,15 +242,6 @@ class Page {
         //解析json文件
         this.parsePageConfig()
 
-        //将template和include转换为组件（实验性）
-        if (global.isTemplateToComponent) {
-            try {
-                transformTemplateToComponent(this,isIncludeFile, fileDir, fileKey)
-            } catch (error) {
-                global.log("[ERROR]transformTemplateToComponent: ", fileKey,  error)
-            }
-        }
-
         try {
             //生命周期处理
             transformLifecycleFunction(jsAst)
@@ -263,6 +254,15 @@ class Page {
             transformWxParse(jsAst, wxmlAst, fileKey)
         } catch (error) {
             global.log("[ERROR]transformWxParse: ", fileKey,  error)
+        }
+
+        //将template和include转换为组件（实验性）
+        if (global.isTemplateToComponent) {
+            try {
+                transformTemplateToComponent(this,isIncludeFile, fileDir, fileKey)
+            } catch (error) {
+                global.log("[ERROR]transformTemplateToComponent: ", fileKey,  error)
+            }
         }
 
         try {
@@ -476,8 +476,12 @@ class Page {
             global.log(`小程序js代码解析失败(gogocode)，请根据错误信息修复后，再重新进行转换。file: ${ this.fileKey }.js :>> ` + $ast.error)
         }
 
-        //处理特殊结构
-        transformSpecialStructure($ast, this.fileKey)
+        try {
+            //处理特殊结构
+            transformSpecialStructure($ast, this.fileKey)
+        } catch (error) {
+            global.log("[ERROR]transformSpecialStructure: ", this.fileKey,  error)
+        }
 
         this.astType = ggcUtils.getAstType($ast, this.fileKey)
 
@@ -538,7 +542,7 @@ class Page {
 
         code = code.replace(/url\(\s*\\?['"]\s*\{\{(.*?)\}\}\s*\\?['"]\s*\)/g, "url({{$1}})")
             .replace(/([^'])url\(['"]([^'"].*?)['"]\)/g, "$1url($2)")
-            .replace(/(?<!['"\d#])(0{2,})(?!['"\d])/g, `'$1'`)  //将00替换为"00"
+            .replace(/(?<![:'"\d#\w])(0{2,})(?![:'"\d\w])/g, `'$1'`)  //将00替换为"00"
             .replace(/\\"/g, `&quot;`) //使用特定字符替换掉引号，以便gogocode可以顺利解析
             .replace(/\b\s?<\s?\b/g, " < ") //在<前后添加空格，以便gogocode可以顺利解  TODO: 如果在注释里,会被误替换,不过问题不大
 
@@ -618,14 +622,14 @@ class Page {
 
         let data = ""
         try {
-            data = fs.readJsonSync(this.jsonFile)
+            data = utils.readJson(this.jsonFile)
         } catch (error) {
             global.log("读取json报错" + this.jsonFile)
         }
 
         if (data) {
             this.styleConfig = { ...data }
-            this.styleConfig["usingComponents"] && delete this.styleConfig["usingComponents"]
+            // this.styleConfig["usingComponents"] && delete this.styleConfig["usingComponents"]
             this.usingComponents = data.usingComponents || {}
 
             //处理抽象节点
@@ -688,7 +692,7 @@ class Page {
         var templateContent = ""
         var list = this.wxmlAst.root().attr("content.children")
         //如果wxml无内容, 则添加空template节点
-        if (!list) return "<template></template>"
+        if (!list) return "<template><view></view></template>"
 
         //使用replayBy后，会将内容使用document节点包住。。。见include-tag-transformer.js
         var tagList = list.filter(obj => obj.nodeType === "tag" || obj.nodeType === "document")
@@ -704,7 +708,9 @@ class Page {
         }
 
         if (tagList.length > 1) {
-            templateContent = `<template>\r\n<view style="height:100%">\r\n${ templateContent }\r\n</view>\r\n</template>`
+            //TODO: 有些时候需要100%，有时候时候不需要，，暂注释先
+            // templateContent = `<template>\r\n<view style="height:100%">\r\n${ templateContent }\r\n</view>\r\n</template>`
+            templateContent = `<template>\r\n<view>\r\n${ templateContent }\r\n</view>\r\n</template>`
         } else if (tagList.length === 1) {
             var firstNode = tagList[0].content
             var attributes = firstNode.attributes
@@ -712,7 +718,8 @@ class Page {
 
             var hasFor = attributes.some(obj => obj.key.content.indexOf("for") > -1)
             if (hasFor || firstNode.name !== "view") {
-                templateContent = `<template>\r\n<view style="height:100%">\r\n${ templateContent }\r\n</view>\r\n</template>`
+                // templateContent = `<template>\r\n<view style="height:100%">\r\n${ templateContent }\r\n</view>\r\n</template>`
+                templateContent = `<template>\r\n<view>\r\n${ templateContent }\r\n</view>\r\n</template>`
             } else {
                 templateContent = `<template>\r\n${ templateContent }\r\n</template>`
             }
@@ -775,6 +782,10 @@ class Page {
 
         var styleContent = this.styleContent
         var styleContentFull = this.styleContent
+
+        //双保险，修复HBuilderX插件会多生成@import '@/C:/Users/xzn/HBuilderX.3.8.7.20230703/HBuilderX/bin';的bug
+        styleContent = styleContent.replace(/@import ['"]@\/.*?\/HBuilderX\/bin['"];?/gi, "")
+        styleContentFull = styleContentFull.replace(/@import ['"]@\/.*?\/HBuilderX\/bin['"];?/gi, "")
 
         return {
             lang,
@@ -851,7 +862,7 @@ class Page {
                     var styleExtname = this.cssLanguage || "css"
                     const cssFilePath = path.join(global.targetSourceFolder, this.fileKey + "." + styleExtname)
 
-                    styleContent = formatUtils.formatCode(styleContent, styleExtname, this.fileKey)
+                    styleContent = formatUtils.formatCodeSync(styleContent, styleExtname, this.fileKey)
                     //写入文件
                     fs.writeFileSync(cssFilePath, styleContent)
                     //
@@ -878,7 +889,7 @@ class Page {
         }
 
         if (fileContent && !reg.test(this.fileKey) && !this.isSDKFile) {
-            fileContent = formatUtils.formatCode(fileContent, extname, this.fileKey)
+            fileContent = formatUtils.formatCodeSync(fileContent, extname, this.fileKey)
         }
         if (global.isMergeWxssToVue && this.isVueFile && extname === "css") {
             return

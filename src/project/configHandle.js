@@ -211,21 +211,39 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetSource
         pagePath = utils.normalizePath(pagePath)
         let data = routerData[pagePath]
 
-        // let usingComponents = {};
-
-        // if (data && JSON.stringify(data) != "{}") {
-        // 	usingComponents = data.usingComponents;
-        // }
-
-        let obj
         let dataBak = {}
         if (data) {
             dataBak = clone(data)
-            if (!global.hasVant) {
+            if (!global.isTransformVant) {
                 delete dataBak.usingComponents
+            } else {
+                //注：直接将vant组件放到globalStyle下面的usingComponents，作为全局组件！因此这里注释
+                // 处理vant项目第三方案
+                // {van-image: '/miniprogram_npm/@vant/weapp/image/index'}
+                // let usingComponents = {}
+                // Object.keys(dataBak.usingComponents).map(key => {
+                //     // let comPath = dataBak.usingComponents[key]
+                //     if (/^van-/.test(key)) {
+                //         //这里直接从key里面取，PS：可能有风险。
+                //         let compName = key.match(/^van-(.*)/)[1]
+                //         usingComponents[key] = `/wxcomponents/vant/${compName}/index`
+                //     }
+                // })
+                // dataBak.usingComponents = usingComponents
+
+                // 去掉van开头的(因为下面直接在globalStyle里全局声明了)
+                let usingComponents = {}
+                if(dataBak.usingComponents){
+                    Object.keys(dataBak.usingComponents).map(key => {
+                        if (!/^vant?-/.test(key)) {
+                            usingComponents[key] = dataBak.usingComponents[key]
+                        }
+                    })
+                }
+                dataBak.usingComponents = usingComponents
             }
         }
-        obj = {
+        let obj = {
             "path": pagePath,
             "style": {
                 ...dataBak
@@ -242,7 +260,8 @@ function generatePageJSON (configData, routerData, miniprogramRoot, targetSource
     delete appJSON["window"]
 
     //判断是否引用了vant
-    if (global.hasVant) {
+    // if (global.hasVant) {
+    if (global.isTransformVant && global.statistics.vanTagList.length) {
         // let usingComponentsVant = {};
         // for (const key in appJSON["usingComponents"]) {
         // 	if (utils.vantComponentList[key]) {
@@ -353,7 +372,7 @@ function generateManifest (configData, routerData, miniprogramRoot, targetSource
     let file_manifest = path.join(__dirname, "/template/mani_fest.json")
     let manifestJson = {}
     try {
-        manifestJson = fs.readJsonSync(file_manifest)
+        manifestJson = utils.readJson(file_manifest)
     } catch (error) {
         global.log("[ERROR]工具已经被损坏，请重新安装", error)
         return
@@ -495,7 +514,7 @@ function generateMainJS (configData, routerData, miniprogramRoot, targetSourceFo
     mainContent += vue2
     mainContent += vue3
 
-    mainContent = formatUtils.formatCode(mainContent, "js", "main.js")
+    mainContent = formatUtils.formatCodeSync(mainContent, "js", "main.js")
 
     //
     let file_main = path.join(targetSourceFolder, "main.js")
@@ -519,7 +538,7 @@ function parseAppJSON (miniprogramRoot) {
     }
     if (fs.existsSync(json_app)) {
         try {
-            appJSON = fs.readJsonSync(json_app)
+            appJSON = utils.readJson(json_app)
         } catch (error) {
             global.log("解析app.json报错", error)
         }
@@ -554,7 +573,7 @@ function generatePackage (configData) {
     //读取package.json
     if (fs.existsSync(file_package)) {
         try {
-            var json = fs.readJsonSync(file_package)
+            var json = utils.readJson(file_package)
             packageJson = { ...packageJson, ...json }
         } catch (error) {
             global.log("解析package.json报错", error)
@@ -605,7 +624,7 @@ function generateTSConfig () {
     //读取tsconfig.json
     if (fs.existsSync(tsconfigFile)) {
         try {
-            var json = fs.readJsonSync(tsconfigFile)
+            var json = utils.readJson(tsconfigFile)
             if (json.include) {
                 tsconfigJson.include = json.include
             }
@@ -675,6 +694,17 @@ async function configHandle (configData, routerData, miniprogramRoot, targetSour
         let sourceReadMeFile = path.join(__dirname, "/template/README.md")
         let targetReadMeFile = path.join(targetSourceFolder, "README.md")
         fs.copySync(sourceReadMeFile, targetReadMeFile)
+
+        //复制wxcomponents
+        if (global.isTransformVant && global.statistics.vanTagList.length){
+            let sourceWxComFolder = path.join(__dirname, "/template/wxcomponents")
+            let targetWxComFolder = path.join(targetSourceFolder, "wxcomponents")
+            try {
+                fs.copySync(sourceWxComFolder, targetWxComFolder)
+            } catch (error) {
+                global.log('%c [ copy wxcomponents error ]-702', 'font-size:13px; background:pink; color:#bf2c9f;', error)
+            }
+        }
 
         resolve()
     })

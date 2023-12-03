@@ -12,7 +12,12 @@ function handlePageLifetime(node, lifeName) {
 
 export const pageLifetimes = {
 	onLoad() {
-		// #ifndef APP || MP-MP-WEIXIN || MP-KUAISHOU
+        // uni.onWindowResize(CALLBACK)  监听窗口尺寸变化事件
+        // 平台差异说明
+        // App	H5	微信小程序	支付宝小程序	百度小程序	抖音小程序	飞书小程序	QQ小程序
+        // √	√	√	x	x	x	√	√
+
+		// #ifdef H5 || MP-LARK || MP-QQ
 		uni.onWindowResize((res) => {
 			handlePageLifetime(this, "handlePageResize")
 		})
@@ -25,7 +30,9 @@ export const pageLifetimes = {
 		handlePageLifetime(this, "handlePageHide")
 	},
 	onResize() {
-		// #ifdef APP || MP-MP-WEIXIN || MP-KUAISHOU
+        //onResize	监听窗口尺寸变化	App、微信小程序、快手小程序
+
+		// #ifdef APP || MP-WEIXIN || MP-KUAISHOU
 		handlePageLifetime(this, "handlePageResize")
 		// #endif
 	}

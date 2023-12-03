@@ -327,6 +327,23 @@ function getOutputFolder (input, isVueAppCliMode) {
     return output
 }
 
+
+/**
+ * 判断ts文件是否有同名js文件
+ */
+function checkTSFileAndJSFile (file) {
+    let res = true
+    if (file.endsWith(".ts") && !file.endsWith(".d.ts")) {
+        let jsFile = file.replace(/.ts$/, ".js")
+        if (!fs.existsSync(jsFile)) {
+            return false
+        }
+    }
+    return true
+}
+
+
+
 module.exports = {
     getFileNameNoExt,
     getParentFolderName,
@@ -343,5 +360,7 @@ module.exports = {
     isEmptyFolder,
 
     getInputFolder,
-    getOutputFolder
+    getOutputFolder,
+
+    checkTSFileAndJSFile
 }

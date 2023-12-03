@@ -1,7 +1,7 @@
 /*
  * @Author: zhang peng
  * @Date: 2021-11-08 18:03:16
- * @LastEditTime: 2023-05-12 22:00:01
+ * @LastEditTime: 2023-07-26 21:40:44
  * @LastEditors: zhang peng
  * @Description:
  * @FilePath: /miniprogram-to-uniapp2/test.js
@@ -224,13 +224,13 @@ async function test () {
 
 
         //先不要动
-        // var sourceFolder = "./demo/vant-demo"
+        var sourceFolder = "./demo/vant-demo"
 
         // var sourceFolder = "./demo/minisns_front"
 
 
         //抽象节点
-        var sourceFolder = "./demo/test-20221023"
+        // var sourceFolder = "./demo/test-20221023"
 
 
 

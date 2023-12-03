@@ -85,6 +85,8 @@ function repairTemplateSourcePath ($jsAst, wxmlFile) {
     ])
         .each(function (item) {
             let srcNode = item.match['src'][0].node
+            if(!srcNode) return
+
             let src = srcNode.content
 
             // global.log("src----", src)
